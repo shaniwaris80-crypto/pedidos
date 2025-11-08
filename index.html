@@ -12,6 +12,432 @@
     --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff;
   }
   *{box-sizing:border-box}
+  <script>
+/* ===========================================================
+   KIWI v3.4 – Patch funcional (compras auto, reset, precios)
+   ➜ Colocar al final del HTML (tras los otros <script>)
+=========================================================== */
+
+/* ---------- 1) Botón "Reiniciar todo" (mantener vocab) ---------- */
+(function addResetButKeepVocab(){
+  const header = document.querySelector('#tab-dic .card .hd .toolbar');
+  if(!header) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn muted';
+  btn.textContent = '♻️ Reiniciar todo (mantener vocab)';
+  btn.title = 'Limpia tiendas, global, asignaciones, pedidos, compras y reparto. Mantiene el vocabulario.';
+  btn.onclick = ()=>{
+    const vocab = localStorage.getItem(LS.VOCAB) || '';
+    if(!confirm('¿Seguro que quieres reiniciar todo (manteniendo vocabulario)?')) return;
+    // Limpieza selectiva
+    const keep = vocab;
+    localStorage.clear();
+    localStorage.setItem(LS.VOCAB, keep);
+    alert('Reiniciado. El vocabulario se ha conservado.');
+    location.reload();
+  };
+  header.appendChild(btn);
+})();
+
+/* ---------- 2) Al ENVIAR a proveedor ⇒ COMPRADO automático ---------- */
+/* Hook para WhatsApp */
+(function patchWhatsAppAutoPurchase(){
+  if(!window.renderProvidersPanels) return;
+  const originalRender = window.renderProvidersPanels;
+  window.renderProvidersPanels = function(){
+    originalRender && originalRender();
+
+    // Eliminar inputs "Comprado" inline (evitar introducir uds al mandar)
+    document.querySelectorAll('#provPanels .comprado-wrap')?.forEach(n=>n.remove());
+
+    // Reinyectar handlers en los botones WhatsApp y TXT para auto-comprar
+    document.querySelectorAll('#provPanels .card').forEach(card=>{
+      const prov = (card.querySelector('.hd strong')?.innerText||'').trim();
+      const toolbar = card.querySelector('.hd .toolbar');
+      if(!prov || !toolbar) return;
+
+      // Asegurar botón WhatsApp existe (ya lo añade tu extensión). Reasignar handler:
+      const btnWhats = toolbar.querySelector('.btn.whats');
+      if(btnWhats && !btnWhats._patched){
+        btnWhats._patched = true;
+        btnWhats.onclick = ()=>{
+          const txt = buildPedidoTextoSeguro(prov);
+          if(!txt){ alert('Sin líneas para enviar.'); return; }
+          const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+          window.open(url, '_blank');
+
+          // ✔️ Marcar comprado automáticamente = qty del pedido
+          marcarCompradoTotalDeProveedor_sinConfirm(prov);
+        };
+      }
+
+      // Añadir/Parchear botón TXT proveedor (descarga + comprado auto)
+      let btnTxt = toolbar.querySelector('.btn.small.txtprov');
+      if(!btnTxt){
+        btnTxt = document.createElement('button');
+        btnTxt.className = 'btn small muted txtprov';
+        btnTxt.textContent = '📄 TXT + comprado';
+        toolbar.appendChild(btnTxt);
+      }
+      if(!btnTxt._patched){
+        btnTxt._patched = true;
+        btnTxt.onclick = ()=>{
+          // Exportar TXT del proveedor según orders[prov]
+          const list = (window.orders?.[prov]||[]);
+          if(!list.length){ alert('No hay líneas para ' + prov); return; }
+          const today = new Date().toISOString().split('T')[0];
+          const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+          const blob = new Blob([txt],{type:'text/plain'});
+          const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
+
+          // ✔️ Marcar comprado automáticamente
+          marcarCompradoTotalDeProveedor_sinConfirm(prov);
+        };
+      }
+    });
+  };
+
+  function buildPedidoTextoSeguro(prov){
+    const list = (window.orders?.[prov]||[]);
+    if(!list.length) return '';
+    let out = `PEDIDO ${prov}\n`;
+    list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
+    return out.trim();
+  }
+
+  // Versión sin confirmación (compra automática)
+  function marcarCompradoTotalDeProveedor_sinConfirm(prov){
+    if(!Array.isArray(window.__purchases?.[prov])) window.__purchases[prov]=[];
+    (window.orders?.[prov]||[]).forEach(it=>{
+      const idx = window.__purchases[prov].findIndex(x=> window.normKey(x.name) === window.normKey(it.name));
+      if (idx>-1) window.__purchases[prov][idx].purchased = Number(it.qty)||0;
+      else window.__purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
+    });
+    // guardar + refrescar
+    localStorage.setItem('arslan_v34_purchases', JSON.stringify(window.__purchases||{}));
+    window.persistState && window.persistState();
+    // refresco de Compras/Reparto si están a la vista
+    const comprasActive = document.getElementById('btn-compras')?.classList.contains('active');
+    const repartoActive = document.getElementById('btn-reparto')?.classList.contains('active');
+    if(comprasActive && window.showTab) window.showTab('compras');
+    if(repartoActive && window.showTab) window.showTab('reparto');
+    alert(`Pedido de ${prov} marcado como COMPRADO automáticamente.`);
+  }
+})();
+
+/* ---------- 3) "Compras" también muestra NO ASIGNADOS ---------- */
+(function patchComprasToIncludeUnassigned(){
+  if(!window.showTab) return;
+
+  // Extendemos renderCompras existente si existe
+  const comprasWrap = document.getElementById('compras-wrap');
+  if(!comprasWrap) return;
+
+  // Utilidades
+  function totalSolicitadoPorNombre(){
+    const all = [].concat(window.tiendaState?.sp||[], window.tiendaState?.sl||[], window.tiendaState?.st||[]);
+    const map = {};
+    all.forEach(r=>{
+      const k = window.normKey(r.e);
+      map[k] = (map[k]||0) + (Number(r.q)||0);
+    });
+    const byName = {};
+    Object.keys(map).forEach(k=>{
+      const row = all.find(r=>window.normKey(r.e)===k);
+      byName[row?row.e:k] = map[k];
+    });
+    return byName;
+  }
+
+  function unassignedTotals(){
+    const totals = totalSolicitadoPorNombre();
+    const out = [];
+    Object.keys(totals).forEach(name=>{
+      const k = window.normKey(name);
+      const prov = (window.assignments||{})[k];
+      if(!prov){ out.push({name, qty: Number(totals[name])||0}); }
+    });
+    out.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    return out;
+  }
+
+  // Inyectamos un panel para "Sin proveedor" bajo la tabla existente
+  const origRenderCompras = window.renderCompras;
+  window.renderCompras = function(){
+    origRenderCompras && origRenderCompras();
+
+    // Panel "Sin proveedor asignado"
+    const cont = document.getElementById('compras-wrap');
+    if(!cont) return;
+
+    // Evitar panel duplicado
+    if(cont.querySelector('.card-unassigned')) return;
+
+    const sinProv = unassignedTotals();
+    const section = document.createElement('div');
+    section.className = 'card card-unassigned';
+    section.innerHTML = `
+      <div class="hd"><strong>🛒 Sin proveedor asignado</strong></div>
+      <div class="bd">
+        ${sinProv.length? `
+        <table><thead><tr><th>Producto</th><th>Solicitado</th><th>Comprado</th><th></th></tr></thead><tbody>
+          ${sinProv.map((it,ix)=>`
+            <tr data-name="${it.name}">
+              <td class="c-name" contenteditable="true">${it.name}</td>
+              <td>${it.qty}</td>
+              <td><input class="c-qty" type="number" min="0" step="0.01" value="0" style="width:110px"></td>
+              <td><button class="btn small">Guardar</button></td>
+            </tr>
+          `).join('')}
+        </tbody></table>` : `<div class="hint">No hay productos sin asignar.</div>`}
+      </div>`;
+    cont.appendChild(section);
+
+    // Guardar compras sin proveedor (se almacenan bajo prov virtual "_SIN_PROV_")
+    section.querySelectorAll('tr[data-name]').forEach(tr=>{
+      const nameEl = tr.querySelector('.c-name');
+      const qtyEl  = tr.querySelector('.c-qty');
+      const btn    = tr.querySelector('.btn');
+      btn.addEventListener('click', ()=>{
+        const name = window.removeDiacriticsUpper(nameEl.innerText.trim());
+        const qty  = Number(qtyEl.value)||0;
+        if(!window.__purchases) window.__purchases = {};
+        if(!Array.isArray(window.__purchases['_SIN_PROV_'])) window.__purchases['_SIN_PROV_']=[];
+        const idx = window.__purchases['_SIN_PROV_'].findIndex(x=> window.normKey(x.name)===window.normKey(name));
+        if(idx>-1) window.__purchases['_SIN_PROV_'][idx].purchased = qty;
+        else window.__purchases['_SIN_PROV_'].push({name, purchased:qty});
+        localStorage.setItem('arslan_v34_purchases', JSON.stringify(window.__purchases));
+        window.persistState && window.persistState();
+        alert('Compra guardada sin proveedor.');
+      });
+    });
+  };
+})();
+
+/* ---------- 4) Nueva pestaña "📊 Precios" ---------- */
+(function addPricesTab(){
+  const LS_PRICE = 'arslan_v34_prices';  // { "<prov>||<normKey>" : {prov,name,price} }
+  function getPrices(){
+    try{ return JSON.parse(localStorage.getItem(LS_PRICE)||'{}')||{}; }catch{ return {}; }
+  }
+  function setPrices(obj){
+    localStorage.setItem(LS_PRICE, JSON.stringify(obj||{}));
+  }
+  function priceKey(prov,name){ return `${prov}||${window.normKey(name)}`; }
+
+  // Añadir botón y sección
+  const tabbar = document.querySelector('.tabbar');
+  const btn = document.createElement('button');
+  btn.id='btn-precios'; btn.innerHTML='📊<span>Precios</span>'; btn.onclick=()=>showTabExt('precios');
+  tabbar.appendChild(btn);
+
+  const sec = document.createElement('section');
+  sec.className='tab'; sec.id='tab-precios'; sec.style.display='none';
+  sec.innerHTML = `
+    <div class="card">
+      <div class="hd">
+        <strong>📊 Precios (por proveedor)</strong>
+        <div class="toolbar">
+          <button class="btn small" id="precios-send">✉️ Enviar cambios por WhatsApp</button>
+          <button class="btn small muted" id="precios-save">💾 Guardar</button>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="hint" style="margin-bottom:8px">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
+        <div id="precios-wrap" class="scroll-x"></div>
+      </div>
+    </div>`;
+  document.querySelector('.container').appendChild(sec);
+
+  // Hook showTab para activar render
+  const origShow = window.showTab;
+  window.showTab = function(key){
+    origShow && origShow(key);
+    const active = (key==='precios');
+    document.getElementById('tab-precios').style.display = active?'block':'none';
+    document.getElementById('btn-precios').classList.toggle('active', active);
+    if(active) renderPrecios();
+  };
+
+  // Fuente de datos: COMPRADOS (__purchases) + ORDERS (para proveedores)
+  function productosCompradosPorProveedor(){
+    const out = {};
+    (window.PROVEEDORES||[]).forEach(p=> out[p]=[]);
+    // Del carrito de compras por proveedor
+    const purchases = window.__purchases||{};
+    Object.keys(purchases).forEach(prov=>{
+      (purchases[prov]||[]).forEach(it=>{
+        if(prov==='_SIN_PROV_') return; // omite sin proveedor en módulo de precios
+        if((Number(it.purchased)||0)<=0) return;
+        if(!out[prov]) out[prov]=[];
+        const exists = out[prov].some(x=> window.normKey(x.name)===window.normKey(it.name));
+        if(!exists) out[prov].push({name:it.name});
+      });
+    });
+    return out;
+  }
+
+  function renderPrecios(){
+    const cont = document.getElementById('precios-wrap');
+    const prices = getPrices();
+    const data = productosCompradosPorProveedor();
+    let html = '';
+    const provs = Object.keys(data);
+    if(!provs.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; return; }
+
+    provs.forEach(prov=>{
+      const list = data[prov]||[];
+      html += `<div class="card" style="margin-bottom:10px">
+        <div class="hd"><strong>${prov}</strong></div>
+        <div class="bd">`;
+      if(!list.length){
+        html += `<div class="hint">Sin productos comprados para ${prov}.</div>`;
+      }else{
+        html += `<table><thead><tr><th>Producto</th><th>Precio anterior</th><th>Precio nuevo</th><th>Acción</th></tr></thead><tbody>`;
+        list.sort((a,b)=>a.name.localeCompare(b.name,'es')).forEach((it,ix)=>{
+          const k = priceKey(prov, it.name);
+          const prev = prices[k]?.price ?? '';
+          html += `<tr data-prov="${prov}" data-name="${it.name}">
+            <td>${it.name}</td>
+            <td>${prev!==''? prev : '<span class="hint">—</span>'}</td>
+            <td><input class="p-new" type="number" min="0" step="0.01" value="${prev!==''?prev:''}" style="width:130px"></td>
+            <td>
+              <button class="btn small muted p-save">Guardar</button>
+              <button class="btn small p-equal">✅ Igual</button>
+            </td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      html += `</div></div>`;
+    });
+    cont.innerHTML = html;
+
+    // Handlers
+    cont.querySelectorAll('.p-save').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const tr = btn.closest('tr');
+        const prov = tr.dataset.prov;
+        const name = tr.dataset.name;
+        const val  = Number(tr.querySelector('.p-new').value);
+        const k = priceKey(prov, name);
+        const obj = getPrices();
+        obj[k] = {prov, name, price: isFinite(val)? val : null};
+        setPrices(obj);
+        alert('Precio guardado.');
+      });
+    });
+    cont.querySelectorAll('.p-equal').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const tr = btn.closest('tr');
+        const prov = tr.dataset.prov;
+        const name = tr.dataset.name;
+        const k = priceKey(prov, name);
+        const obj = getPrices();
+        // "Igual": mantenemos el precio anterior, no generamos cambio
+        if(obj[k] && obj[k].price!=null){
+          tr.querySelector('.p-new').value = obj[k].price;
+        }else{
+          tr.querySelector('.p-new').value = '';
+        }
+        // Marcamos visualmente, sin forzar envío
+        tr.style.background = '#f6ffed';
+      });
+    });
+
+    // Barra superior de la pestaña
+    document.getElementById('precios-save').onclick = ()=>{
+      // ya se van guardando por fila; aquí solo feedback
+      alert('Los cambios de precio por fila ya quedan guardados al pulsar "Guardar".');
+    };
+    document.getElementById('precios-send').onclick = ()=>{
+      const obj = getPrices();
+      // Recolectar "cambios" (precio nuevo distinto del anterior guardado justo antes)
+      const changesByProv = {};
+      document.querySelectorAll('#precios-wrap tr[data-prov]').forEach(tr=>{
+        const prov = tr.dataset.prov;
+        const name = tr.dataset.name;
+        const inputVal = tr.querySelector('.p-new').value;
+        if(inputVal==='') return; // sin cambio explícito
+        const newPrice = Number(inputVal);
+        if(!isFinite(newPrice)) return;
+
+        const k = priceKey(prov, name);
+        const prev = obj[k]?.price ?? null;
+
+        // Consideramos "cambio" si no hay precio previo o si difiere
+        if(prev===null || Number(prev) !== newPrice){
+          if(!changesByProv[prov]) changesByProv[prov] = [];
+          changesByProv[prov].push({name, prev, next:newPrice});
+          // Persistimos nuevo como "precio anterior" para la próxima vez
+          obj[k] = {prov, name, price:newPrice};
+        }
+      });
+      setPrices(obj);
+
+      if(!Object.keys(changesByProv).length){
+        alert('No hay cambios de precio para enviar.');
+        return;
+      }
+
+      // Generar un WhatsApp por proveedor
+      Object.keys(changesByProv).forEach(prov=>{
+        const lines = changesByProv[prov].map(r=>{
+          const prevTxt = (r.prev===null || r.prev===undefined || r.prev==='')? '—' : r.prev;
+          return `- ${r.name}: ${prevTxt} → ${r.next}`;
+        }).join('\n');
+        const msg = `CAMBIOS DE PRECIOS (${prov})\n${lines}`;
+        const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+        window.open(url, '_blank');
+      });
+    };
+  }
+})();
+
+/* ---------- 5) (Opcional) Extiende Supabase para "prices" ---------- */
+(function extendSupabaseSyncForPrices(){
+  const LS_PRICE = 'arslan_v34_prices';
+  // Solo si existe supabase client
+  if(!window.supabase) return;
+  const SUPA_URL = localStorage.getItem('SUPA_URL') || '';
+  const SUPA_KEY = localStorage.getItem('SUPA_KEY') || '';
+  const supa = (SUPA_URL && SUPA_KEY) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+  if(!supa) return;
+
+  // Parchear persistState/loadState para incluir prices
+  const _persist = window.persistState;
+  const _load    = window.loadState;
+
+  window.persistState = async function(){
+    _persist && _persist();
+    try{
+      const obj = JSON.parse(localStorage.getItem(LS_PRICE)||'{}')||{};
+      await supa.from('prices').delete().neq('prov','');
+      const rows = Object.values(obj).map(it=>({prov:it.prov, name:it.name, price:Number(it.price)||0}));
+      if(rows.length) await supa.from('prices').insert(rows);
+    }catch(e){ console.warn('Supabase up prices:', e.message||e); }
+  };
+
+  window.loadState = async function(){
+    _load && _load();
+    try{
+      const { data } = await supa.from('prices').select('prov,name,price');
+      if(Array.isArray(data)){
+        const obj={};
+        data.forEach(r=>{
+          const k = `${r.prov}||${window.normKey(r.name)}`;
+          obj[k] = {prov:r.prov, name:r.name, price:Number(r.price)||0};
+        });
+        localStorage.setItem(LS_PRICE, JSON.stringify(obj));
+      }
+    }catch(e){ console.warn('Supabase down prices:', e.message||e); }
+  };
+
+  // 📌 Recuerda crear la tabla:
+  // create table if not exists prices ( prov text not null, name text not null, price numeric, primary key (prov,name) );
+})();
+</script>
+
   body{font-family:'Poppins',sans-serif;color:var(--ink);background:#fff;margin:0}
   h1{font-size:18px;margin:0;color:var(--ink)}
   .container{padding:12px 12px 76px} /* bottom space for tabbar */
