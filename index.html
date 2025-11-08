@@ -2,210 +2,243 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>ARSLAN LISTAS — KIWI MASTER (PWA v4.6)</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo-kiwi.png">
+
+<!-- Fuentes -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- XLSX (exportar Excel) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+
+<!-- Supabase (solo vocabulario compartido) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
 <style>
   :root{
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff;
+    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi2:#15803d; --border:#e5e7eb;
+    --bad:#dc2626; --ok:#065f46; --bg:#ffffff; --panel:#f8fafc; --okbg:#ecfdf5; --warnbg:#fee2e2;
   }
   *{box-sizing:border-box}
-  body{font-family:'Poppins',sans-serif;color:var(--ink);background:#fff;margin:0}
-  h1{font-size:18px;margin:0;color:var(--ink)}
-  .container{padding:12px 12px 76px} /* bottom space for tabbar */
-  .hint{font-size:12px;color:var(--muted)}
-  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
+  html,body{height:100%}
+  body{font-family:'Poppins',sans-serif;margin:0;background:#f3f4f6;color:var(--ink)}
+  header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--border);padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+  header h1{font-size:18px;margin:0;color:var(--kiwi)}
+  header .hint{font-size:12px;color:var(--muted)}
+  main{padding:12px}
+  .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:1000px){.grid-3{grid-template-columns:repeat(3,1fr)}}
+
+  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)}
   .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
-  .card .bd{padding:10px 12px}
+  .card .bd{padding:12px}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px}
+  .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi2) 100%);color:#fff;cursor:pointer;font-size:14px}
   .btn.ghost{background:#fff;color:var(--kiwi);border:1px solid var(--kiwi)}
   .btn.muted{background:#fff;border:1px solid var(--border);color:var(--ink)}
-  .btn.small{padding:6px 10px;font-size:13px}
-  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px}
-  table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
-  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
+  .btn.small{padding:6px 8px;font-size:12px}
+  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical}
+  table{width:100%;border-collapse:separate;border-spacing:0;overflow:auto;display:block}
+  th,td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;font-size:14px;white-space:nowrap}
+  th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:#fff}
+  tr.assigned td{background:#ecfdf5}
+  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted)}
   .pill.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
   .pill.warn{border-color:#fecaca;background:#fee2e2;color:#991b1b}
-  .red{color:var(--bad);font-weight:700}
-  .green{color:var(--ok);font-weight:700}
+  .red{color:var(--bad);font-weight:600}
+  .green{color:var(--ok);font-weight:600}
+  .ok-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;background:#10b981;color:#fff;border:0;cursor:pointer}
+  .ok-btn.outline{background:#fff;border:1px solid #10b981;color:#10b981}
+  .prov-bar{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .prov-btn{padding:6px 10px;border-radius:10px;border:1px solid var(--kiwi);background:#fff;color:var(--kiwi);cursor:pointer;font-size:13px}
+  .prov-btn.active{background:var(--kiwi);color:#fff}
+  .row-actions{display:flex;gap:6px;align-items:center}
+  .sticky-actions{position:sticky;bottom:0;background:#fff;padding:8px;border-top:1px solid var(--border)}
+  .hint{font-size:12px;color:var(--muted)}
   .ac-box{position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 16px rgba(0,0,0,.08);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
   .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
   .ac-item:hover{background:#f3f4f6}
-  .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
-  .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:#fff;color:var(--kiwi);cursor:pointer;font-size:13px}
-  .prov-btn.active{background:var(--kiwi);color:#fff}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
-  .dup{background:#fff5f5}
-  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-  /* Tabbar móvil fija */
-  .tabbar{
-    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
-    display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
-  }
-  .tabbar button{
-    background:#fff;border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer
-  }
-  .tabbar button.active{color:var(--kiwi)}
-  .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
-  <div class="container">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
-      <span class="pill">Modo móvil optimizado</span>
-    </div>
-    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT)</div>
 
-    <!-- ========== TAB: Diccionario ========== -->
-    <section class="tab" id="tab-dic">
-      <div class="card">
-        <div class="hd">
-          <strong>📚 Vocabulario estandarizado (editable)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
-            <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="resetAll()">🧹 Limpiar todo</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
-          <textarea id="vocabTxt"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== TAB: Tiendas ========== -->
-    <section class="tab" id="tab-tiendas" style="display:none">
-      <div class="grid-3">
-        <!-- San Pablo -->
-        <div class="card">
-          <div class="hd"><strong>🏪 San Pablo</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-        <!-- San Lesmes -->
-        <div class="card">
-          <div class="hd"><strong>🏪 San Lesmes</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-        <!-- Santiago -->
-        <div class="card">
-          <div class="hd"><strong>🏪 Santiago</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== TAB: Global ========== -->
-    <section class="tab" id="tab-global" style="display:none">
-      <div class="card">
-        <div class="hd"><strong>🧮 Unificación global</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
-            <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
-            <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
-            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
-            <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).</div>
-          <div class="card" style="margin-top:8px">
-            <div class="bd">
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <span class="hint">Proveedor activo:</span>
-                <div class="prov-bar" id="provBar"></div>
-              </div>
-            </div>
-          </div>
-          <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== TAB: Proveedores ========== -->
-    <section class="tab" id="tab-proveedores" style="display:none">
-      <div class="card">
-        <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
-        <div class="bd">
-          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </section>
+<header>
+  <div>
+    <h1>🍈 ARSLAN LISTAS — KIWI MASTER</h1>
+    <div class="hint">Flujo: Estandarizar → Global → Proveedores/Compras → Reparto → Terminar</div>
   </div>
+  <div class="toolbar">
+    <button class="btn ghost" id="btnTerminar">Terminar</button>
+  </div>
+</header>
 
-  <!-- Tabbar móvil -->
-  <nav class="tabbar">
-    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
-    <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
-    <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
-  </nav>
+<main>
+
+  <!-- VOCABULARIO -->
+  <section class="card">
+    <div class="hd">
+      <strong>✔️ Vocabulario estandarizado (editable, sincroniza entre dispositivos)</strong>
+      <div class="toolbar">
+        <button class="btn ghost" id="btnSaveVocab">Guardar</button>
+        <button class="btn muted" id="btnPullVocab">Traer de Supabase</button>
+        <button class="btn muted" id="btnPushVocab">Subir a Supabase</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. (No se borra con “Terminar”)</div>
+      <textarea id="vocabTxt"></textarea>
+    </div>
+  </section>
+
+  <!-- TIENDAS -->
+  <section class="grid-3" style="margin-top:12px">
+    <!-- San Pablo -->
+    <div class="card">
+      <div class="hd"><strong>San Pablo</strong>
+        <div class="toolbar">
+          <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
+          <button class="btn muted" onclick="exportarTiendaWhatsApp('sp')">WhatsApp</button>
+          <button class="btn muted" onclick="exportarTiendaTXT('sp')">TXT</button>
+          <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
+        <div class="hint">Tabla: coincidencia → <span class="green">OK</span>; si no → <span class="red">Revisar</span>. Autocomplete al escribir. El botón OK (izquierda) asigna al proveedor activo.</div>
+        <div id="tbl_sp_wrap" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <!-- San Lesmes -->
+    <div class="card">
+      <div class="hd"><strong>San Lesmes</strong>
+        <div class="toolbar">
+          <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
+          <button class="btn muted" onclick="exportarTiendaWhatsApp('sl')">WhatsApp</button>
+          <button class="btn muted" onclick="exportarTiendaTXT('sl')">TXT</button>
+          <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
+        <div class="hint">Edita en tabla y corrige. Sugerencias al escribir.</div>
+        <div id="tbl_sl_wrap" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <!-- Santiago -->
+    <div class="card">
+      <div class="hd"><strong>Santiago</strong>
+        <div class="toolbar">
+          <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
+          <button class="btn muted" onclick="exportarTiendaWhatsApp('st')">WhatsApp</button>
+          <button class="btn muted" onclick="exportarTiendaTXT('st')">TXT</button>
+          <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
+        <div class="hint">Edita en tabla y corrige. Sugerencias al escribir.</div>
+        <div id="tbl_st_wrap" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UNIFICACIÓN GLOBAL (se completa en Parte 2) -->
+  <section class="card" style="margin-top:14px">
+    <div class="hd"><strong>🧮 Unificación global</strong>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
+        <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
+        <button class="btn muted" onclick="exportarGlobalTXT()">TXT</button>
+        <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
+        <button class="btn muted" onclick="exportarGlobalWhatsApp()">WhatsApp</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="hint">Los productos muy parecidos se <b class="red">marcan en rojo</b> para revisión (similitud híbrida avanzada). Autocomplete al editar.</div>
+      <div id="global_wrap" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- PROVEEDORES + COMPRAS (se completa en Parte 2) -->
+  <section class="card" style="margin-top:14px">
+    <div class="hd">
+      <strong>📦 Proveedores y Compras</strong>
+      <div class="toolbar">
+        <button class="btn muted" onclick="exportarResumenTXT()">Resumen TXT</button>
+        <button class="btn muted" onclick="exportarResumenWhatsApp()">WhatsApp Resumen</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="hint" style="margin-bottom:6px">Proveedor activo (asignación por botón OK o clic).</div>
+      <div class="prov-bar" id="provBar"></div>
+      <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="hd"><strong>🛒 Comprados vs Pendientes</strong></div>
+        <div class="bd" id="comprasWrap">
+          <div class="hint">Marca libremente productos como <b>Comprado</b>. Los <b>Pendientes</b> quedan listados y salen en Resumen.</div>
+          <div id="pendientesList" style="margin-top:8px"></div>
+          <div id="compradosList" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sticky-actions">
+      <button class="btn ghost" onclick="recalcularPendientes()">Recalcular pendientes</button>
+    </div>
+  </section>
+
+  <!-- REPARTO (se completa en Parte 2) -->
+  <section class="card" style="margin:14px 0 80px 0">
+    <div class="hd"><strong>🚚 Reparto por tienda (excluye Comprados)</strong></div>
+    <div class="bd" id="repartoWrap">
+      <div class="hint">Solo aparecen productos <b>no comprados</b>, distribuidos a las tiendas según cantidades iniciales.</div>
+      <div id="repartoSP" style="margin-top:8px"></div>
+      <div id="repartoSL" style="margin-top:8px"></div>
+      <div id="repartoST" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+</main>
 
 <script>
-/* ==========================
-   Tabs (móvil)
-========================== */
-function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores'];
-  ids.forEach(k=>{
-    document.getElementById('tab-'+k).style.display = (k===key)?'block':'none';
-    document.getElementById('btn-'+k).classList.toggle('active', k===key);
+/* =========================================================
+   PWA: registrar Service Worker
+========================================================= */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      console.log('✅ SW registrado:', reg.scope);
+    } catch (e) {
+      console.warn('⚠️ SW error:', e);
+    }
   });
-  // pequeños refrescos
-  if(key==='global'){ unificarGlobal(); buildProvBar(); }
-  if(key==='proveedores'){ renderProvidersPanels(); }
 }
 
-/* ==========================
-   Config y utilidades
-========================== */
-const LS = {
-  VOCAB:'arslan_v34_vocab',
-  STORES:'arslan_v34_stores',
-  ASSIGN:'arslan_v34_assign',
-  ORDERS:'arslan_v34_orders'
-};
+/* =========================================================
+   Supabase (solo vocabulario)
+========================================================= */
+const SUPA_URL = "https://esvfgvfqttvjcrsnxufq.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmZndmZxdHR2amNyc254dWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTIwNjIsImV4cCI6MjA3NzgyODA2Mn0.SdtgaK6c7gJAxA8jH77w0K3ctMlvGx6g4YLYrI0PKuw";
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+// Tabla esperada: vocab (id UUID default, content TEXT)
 
+/* =========================================================
+   Config general + utilidades
+========================================================= */
+const LS = {
+  VOCAB:'arslan_v46_vocab',
+  STORES:'arslan_v46_stores',
+  ASSIGN:'arslan_v46_assign',
+  ORDERS:'arslan_v46_orders',
+  BUY:'arslan_v46_buy'
+};
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
+const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos','de','la','el'];
 
 const $ = s => document.querySelector(s);
 const byId = id => document.getElementById(id);
@@ -228,14 +261,14 @@ function stripGenericWords(s){
   return tokens.join(' ').trim();
 }
 
-/* ==========================
-   Vocabulario (editable + persistente)
-========================== */
+/* =========================================================
+   Vocabulario (editable + persistente + Supabase)
+========================================================= */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
 MANDARINA COLOMBE
 KIWI ZESPRI GOLD
-PARAGUAYO 
+PARAGUAYO
 KIWI TOMASIN PLANCHA
 PERA RINCON DEL SOTO
 MELOCOTON PRIMERA
@@ -428,23 +461,27 @@ function loadVocab(){
 }
 function saveVocab(){
   localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
-  alert('Vocabulario guardado.');
-  renderProvidersPanels();
-  unificarGlobal();
+  alert('Vocabulario guardado (local).');
 }
-function addNewWord(){
-  const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
-  if(!entry) return;
-  const current = toLines(byId('vocabTxt').value);
-  const added = toLines(entry);
-  const merged = uniqueVocab(current.concat(added));
-  byId('vocabTxt').value = merged.join('\n');
-  saveVocab();
+async function pullVocabSupabase(){
+  const { data, error } = await supa.from('vocab').select('content').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(error){ alert('Supabase (pull) error: '+error.message); return; }
+  if(!data){ alert('No hay vocab en Supabase.'); return; }
+  const list = uniqueVocab(toLines(data.content||''));
+  byId('vocabTxt').value = list.join('\n');
+  localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
+  alert('Vocabulario traído de Supabase.');
+}
+async function pushVocabSupabase(){
+  const content = byId('vocabTxt').value||'';
+  const { error } = await supa.from('vocab').insert({ content });
+  if(error){ alert('Supabase (push) error: '+error.message); return; }
+  alert('Vocabulario subido a Supabase.');
 }
 
-/* ==========================
-   Coincidencia aproximada (Dice + TokenSet)
-========================== */
+/* =========================================================
+   Similaridad (Dice + Jaro-Winkler simple) y helpers
+========================================================= */
 function bigrams(str){
   const s = stripGenericWords(str);
   const arr=[]; for(let i=0;i<s.length-1;i++){ if(s[i]!==' '&&s[i+1]!==' ') arr.push(s.slice(i,i+2)); }
@@ -457,34 +494,51 @@ function diceSim(a,b){
   A.forEach(bg=>{const idx=pool.indexOf(bg); if(idx>-1){hits++; pool.splice(idx,1);} });
   return (2*hits)/(A.length+B.length);
 }
-function tokenSetSim(a,b){
-  const A=new Set(stripGenericWords(a).split(' ').filter(Boolean));
-  const B=new Set(stripGenericWords(b).split(' ').filter(Boolean));
-  if(!A.size||!B.size) return 0;
-  let inter=0; A.forEach(x=>{ if(B.has(x)) inter++; });
-  return inter / Math.max(A.size,B.size);
+function jaroWinkler(a,b){
+  a=stripGenericWords(a); b=stripGenericWords(b);
+  const mDist=Math.floor(Math.max(a.length,b.length)/2)-1;
+  let m=0, t=0; const aMatches=[], bMatches=[];
+  for(let i=0;i<a.length;i++){
+    const start=Math.max(0,i-mDist), end=Math.min(i+mDist+1,b.length);
+    for(let j=start;j<end;j++){
+      if(bMatches[j]) continue;
+      if(a[i]===b[j]){ aMatches[i]=true; bMatches[j]=true; m++; break; }
+    }
+  }
+  if(m===0) return 0;
+  let k=0;
+  for(let i=0;i<a.length;i++){
+    if(!aMatches[i]) continue;
+    while(!bMatches[k]) k++;
+    if(a[i]!==b[k]) t++; k++;
+  }
+  t/=2;
+  const j = (m/a.length + m/b.length + (m-t)/m)/3;
+  const prefix = (()=>{ let l=0; for(let i=0;i<Math.min(4,a.length,b.length);i++){ if(a[i]===b[i]) l++; else break; } return l; })();
+  return j + prefix*0.1*(1-j);
 }
-function similarityScore(a,b){ return 0.7*diceSim(a,b) + 0.3*tokenSetSim(a,b); }
+function hybridSim(a,b){ return Math.max(diceSim(a,b), jaroWinkler(a,b)); }
 function bestMatch(query, vocabArr){
   const q = stripGenericWords(query);
   let best = {name:null, score:0};
   vocabArr.forEach(v=>{
-    const sc = similarityScore(q, v);
+    const sc = hybridSim(q, v);
     if(sc>best.score) best = {name:v, score:sc};
   });
   return best;
 }
 
-/* ==========================
-   Parser líneas (cantidad + nombre)
-========================== */
+/* =========================================================
+   Parseo de líneas (cantidad + nombre)
+========================================================= */
 function parseLine(raw){
   if(!raw) return null;
   let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
   s = s.replace(/^[-•*]\s*/,'');
   let qty=null, name=s;
 
-  const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
+  // multiplicador tipo "x 3" o "* 2"
+  const mX = s.match(/(?:x|\*)\s*(\d+[\.,]?\d*)\b/i);
   if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
   if(qty===null){
@@ -501,13 +555,14 @@ function parseLine(raw){
   return { original: removeDiacriticsUpper(s), name, qty };
 }
 
-/* ==========================
-   Estado
-========================== */
-const tiendaState = { sp:[], sl:[], st:[] }; // [{o,e,q,a}]
-let globalRows = [];                          // [{name,total}]
+/* =========================================================
+   Estado y persistencia
+========================================================= */
+const tiendaState = { sp:[], sl:[], st:[] }; // {o,e,q,a}
+let globalRows = [];                          // {name,total}
 let assignments = {};                         // { normKey(name) : proveedor }
 let orders = {};                              // { proveedor : [{name, qty}] }
+let compras = { comprado:[], pendiente:[] };  // control compras
 let ACTIVE_PROV = PROVEEDORES[0];
 
 function loadState(){
@@ -515,38 +570,33 @@ function loadState(){
     const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
     ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
   }catch{}
-  try{
-    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
-    assignments = a||{};
-  }catch{}
-  try{
-    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
-    orders = o||{};
-  }catch{}
+  try{ assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}')||{}; }catch{}
+  try{ orders = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}')||{}; }catch{}
   PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
+  try{
+    const b = JSON.parse(localStorage.getItem(LS.BUY)||'{}');
+    if(b && b.comprado && b.pendiente){ compras=b; }
+  }catch{}
 }
 function persistState(){
   localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
   localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
   localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
-}
-function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar todo?')){ localStorage.clear(); location.reload(); }
+  localStorage.setItem(LS.BUY, JSON.stringify(compras));
 }
 
-/* ==========================
-   Estandarizar por tienda
-========================== */
+/* =========================================================
+   Autocomplete
+========================================================= */
 let AC_ACTIVE = null;
 function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
-
 function attachAutocomplete(cell, onPick){
   cell.addEventListener('input', ()=>{
     const val = stripGenericWords(cell.innerText||'');
     closeAC();
     if(!val) return;
     const vocab = loadVocab();
-    const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
+    const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,10);
     if(!suggestions.length) return;
     const rect = cell.getBoundingClientRect();
     const box = document.createElement('div');
@@ -567,23 +617,27 @@ function attachAutocomplete(cell, onPick){
   document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
 }
 
+/* =========================================================
+   Render de tablas por tienda (OK a la izquierda)
+========================================================= */
 function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
   const rows = tiendaState[code]||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
-  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th></th><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
     html += `<tr>
+      <td class="row-actions"><button class="ok-btn" title="Asignar a ${ACTIVE_PROV}" onclick="asignarDesdeTienda('${code}',${i})">✓</button></td>
       <td>${r.o}</td>
       <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
       <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
       <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   wrap.innerHTML = html;
 
-  // editable handlers + autocomplete
+  // editable + autocomplete
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const i = Number(cell.dataset.i);
     const f = cell.dataset.f;
@@ -601,7 +655,7 @@ function renderTable(code){
       const val = cell.innerText.trim();
       if(f==='q'){
         tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
-      }else{ // nombre
+      }else{
         const cleaned = removeDiacriticsUpper(val);
         tiendaState[code][i].e = cleaned;
         const vocab = loadVocab();
@@ -615,6 +669,9 @@ function renderTable(code){
   });
 }
 
+/* =========================================================
+   Estandarizar y guardar por tienda
+========================================================= */
 function estandarizar(code){
   const vocab = loadVocab();
   const txt = byId('in_'+code).value;
@@ -626,322 +683,366 @@ function estandarizar(code){
     if(exact){ rows.push({o:p.original, e:exact, q:p.qty, a:false}); return; }
     const m = bestMatch(p.name, vocab);
     const chosen = m.name || p.name;
-    rows.push({o:p.original, e:chosen, q:p.qty, a:(normKey(chosen)!==normKey(p.name))});
+    rows.push({o:p.original, e:chosen, q:p.qty, a: normKey(chosen)!==normKey(p.name) });
   });
   tiendaState[code] = rows;
   renderTable(code);
   persistState();
 }
-
 function guardarTienda(code){
   const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
   byId('in_'+code).value = out;
   alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
 }
 
-function exportarTiendaTXT(code){
-  const tienda = tiendaState[code] || [];
-  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
-  const blob = new Blob([txt], {type:'text/plain'});
-  const a = document.createElement('a'); 
-  a.href = URL.createObjectURL(blob); 
-  a.download = `${code}_estandarizado_${today}.txt`; 
-  a.click();
-}
-
-/* ==========================
-   Unificar global + similares
-========================== */
+/* === CONTINÚA EN PARTE 2/3: Global, Proveedores/Compras, Reparto, Exportaciones, Botón Terminar, INIT === */
+</script>
+<script>
+/* =========================================================
+   UNIFICACIÓN GLOBAL
+========================================================= */
 function unificarGlobal(){
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  const map = new Map();
-  all.forEach(r=>{
-    const key = normKey(r.e);
-    if(!map.has(key)) map.set(key,{name:r.e,total:0});
-    map.get(key).total += (Number(r.q)||0);
+  const tmp = {};
+  ['sp','sl','st'].forEach(code=>{
+    (tiendaState[code]||[]).forEach(r=>{
+      const k = normKey(r.e);
+      if(!tmp[k]) tmp[k] = { name:r.e, total:0, rev:false };
+      tmp[k].total += r.q;
+      if(r.a) tmp[k].rev = true;
+    });
   });
-  const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
-  // detectar similares (score combinado)
-  const names = arr.map(x=>x.name);
-  const similarSet = new Set();
-  for(let i=0;i<names.length;i++){
-    for(let j=i+1;j<names.length;j++){
-      const s1 = names[i], s2 = names[j];
-      const sc = similarityScore(s1, s2);
-      if(sc>=0.86 && normKey(s1)!==normKey(s2)){
-        similarSet.add(s1); similarSet.add(s2);
-      }
+  const vocab = loadVocab();
+  globalRows = Object.values(tmp).map(row=>{
+    const exact = vocab.find(v=> normKey(v)===normKey(row.name));
+    if(exact) { row.name = exact; row.rev = row.rev || false; return row; }
+    const m = bestMatch(row.name, vocab);
+    if(m.score >= 0.85 && m.name){
+      row.name = m.name;
+      row.rev = row.rev || false;
+    }else{
+      row.rev = true;
     }
-  }
-  renderGlobalTable(arr, similarSet);
+    return row;
+  });
+
+  renderGlobal();
+  persistState();
 }
-
-/* ==========================
-   GLOBAL + Asignación a proveedor
-========================== */
-function renderGlobalTable(rows, similarSet){
-  const visible = rows.filter(r => !assignments[normKey(r.name)]);
-  globalRows = visible;
-
+function renderGlobal(){
   const wrap = byId('global_wrap');
-  if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>'; return; }
-
-  let html = `
-    <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
-    </div>
-    <div class="scroll-x"><table>
-      <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
-      <tbody>`;
-  visible.forEach((r,i)=>{
-    const isSimilar = similarSet.has(r.name);
-    html += `<tr data-i="${i}" class="${isSimilar?'dup':''}">
-      <td><button class="ok-assign" onclick="assignFromGlobal(${i})">✅</button></td>
-      <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
-      <td contenteditable="true" data-f="total">${r.total}</td>
-      <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
+  if(!globalRows.length){ wrap.innerHTML='<div class="hint">Sin datos.</div>'; return; }
+  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad total</th><th>Estado</th></tr></thead><tbody>';
+  globalRows.forEach((r,i)=>{
+    const red = r.rev? 'class="red"' : '';
+    html += `<tr>
+      <td class="row-actions"><button class="ok-btn" title="Asignar a ${ACTIVE_PROV}" onclick="asignarGlobal(${i})">✓</button></td>
+      <td contenteditable="true" data-i="${i}" data-f="name" ${red}>${r.name}</td>
+      <td contenteditable="true" data-i="${i}" data-f="total">${r.total}</td>
+      <td>${r.rev? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   wrap.innerHTML = html;
 
-  // Edición inline + autocomplete
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
-    const tr = cell.parentElement;
-    const idx = Number(tr.dataset.i);
+    const i = Number(cell.dataset.i);
     const f = cell.dataset.f;
     if(f==='name'){
-      attachAutocomplete(cell, (picked)=>{
+      attachAutocomplete(cell, picked=>{
         cell.innerText = picked;
-        globalRows[idx].name = picked;
-        tr.classList.remove('dup');
-        tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        globalRows[i].name = picked;
+        globalRows[i].rev = false;
+        cell.classList.remove('red');
+        cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        persistState();
       });
     }
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='total'){
-        globalRows[idx].total = Number(String(val).replace(',','.'))||0;
+        globalRows[i].total = Number(String(val).replace(',','.'))||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
-        globalRows[idx].name = cleaned;
+        globalRows[i].name = cleaned;
         const vocab = loadVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+        const tdState = cell.parentElement.querySelector('td:last-child');
         if(exact){
-          tr.classList.remove('dup');
-          tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+          globalRows[i].rev=false; cell.classList.remove('red');
+          tdState.innerHTML='<span class="pill ok">OK</span>';
         }else{
-          let dup = false;
-          for(let k=0;k<globalRows.length;k++){
-            if(k===idx) continue;
-            const sc = similarityScore(globalRows[idx].name, globalRows[k].name);
-            if(sc>=0.86 && normKey(globalRows[idx].name)!==normKey(globalRows[k].name)){ dup=true; break; }
-          }
-          if(dup){
-            tr.classList.add('dup');
-            tr.querySelector('td:last-child').innerHTML = '<span class="pill warn">Posible duplicado</span>';
-          }else{
-            tr.classList.remove('dup');
-            tr.querySelector('td:last-child').innerHTML = '<span class="pill">OK</span>';
-          }
+          globalRows[i].rev=true; cell.classList.add('red');
+          tdState.innerHTML='<span class="pill warn">Revisar</span>';
         }
       }
+      persistState();
     });
   });
 }
 
-function assignFromGlobal(idx){
-  const item = globalRows[idx];
-  if(!item) return;
-  const k = normKey(item.name);
-  assignments[k] = ACTIVE_PROV;
-
-  const list = orders[ACTIVE_PROV]||[];
-  const exIdx = list.findIndex(x=> normKey(x.name)===k);
-  if(exIdx>-1){ list[exIdx].qty += Number(item.total)||0; }
-  else{ list.push({name:item.name, qty:Number(item.total)||0}); }
-  orders[ACTIVE_PROV] = list;
-
+/* =========================================================
+   ASIGNACIÓN A PROVEEDORES
+========================================================= */
+function initProvBar(){
+  const bar = byId('provBar');
+  bar.innerHTML='';
+  PROVEEDORES.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.className='prov-btn'+(p===ACTIVE_PROV?' active':'');
+    btn.textContent=p;
+    btn.onclick=()=>{ ACTIVE_PROV=p; document.querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); };
+    bar.appendChild(btn);
+  });
+}
+function asignarDesdeTienda(code, idx){
+  const row = tiendaState[code][idx];
+  if(!row) return;
+  pushOrder(ACTIVE_PROV, row.e, row.q);
+}
+function asignarGlobal(i){
+  const row = globalRows[i];
+  if(!row) return;
+  pushOrder(ACTIVE_PROV, row.name, row.total);
+}
+function pushOrder(prov, name, qty){
+  if(!name || qty<=0) return;
+  const arr = orders[prov]||[];
+  const k = normKey(name);
+  const f = arr.find(x=> normKey(x.name)===k);
+  if(f){ f.qty += qty; } else { arr.push({name, qty}); }
+  orders[prov] = arr;
+  renderProveedores();
   persistState();
-  unificarGlobal();
-  renderProvidersPanels();
 }
 
-/* ==========================
-   Barra de proveedores + paneles
-========================== */
-function buildProvBar(){
-  const bar = byId('provBar'); bar.innerHTML='';
+/* =========================================================
+   RENDER PROVEEDORES + COMPRAS
+========================================================= */
+function renderProveedores(){
+  const panels = byId('provPanels');
+  let html='';
   PROVEEDORES.forEach(p=>{
-    const b = document.createElement('button');
-    b.className = 'prov-btn' + (p===ACTIVE_PROV?' active':'');
-    b.textContent = p;
-    b.onclick = ()=>{
-      ACTIVE_PROV = p;
-      buildProvBar();
-      unificarGlobal();
-    };
-    bar.appendChild(b);
-  });
-}
-
-function renderProvidersPanels(){
-  const cont = byId('provPanels'); cont.innerHTML='';
-  PROVEEDORES.forEach(p=>{
-    const list = orders[p]||[];
-    const card = document.createElement('div');
-    card.className='card';
-    const hd = document.createElement('div');
-    hd.className='hd';
-    hd.innerHTML = `<strong>${p}</strong>
-      <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
-      </div>`;
-    const bd = document.createElement('div');
-    bd.className='bd';
-
-    if(!list.length){
-      bd.innerHTML = '<div class="hint">Sin productos asignados.</div>';
-    }else{
-      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
-      list.forEach((it,ix)=>{
-        html += `<tr>
-          <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-          <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
-        </tr>`;
+    const items = orders[p]||[];
+    let sec = `<div class="card"><div class="hd">${p}</div><div class="bd">`;
+    if(!items.length){ sec+='<div class="hint">Sin productos.</div>'; }
+    else{
+      sec+='<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
+      items.forEach((it,idx)=>{
+        sec+=`<tr>
+           <td><button class="ok-btn outline" title="Marcar comprado" onclick="toggleComprado('${p}',${idx})">✓</button></td>
+           <td>${it.name}</td><td>${it.qty}</td>
+         </tr>`;
       });
-      html += '</tbody></table></div>';
-      bd.innerHTML = html;
-
-      // edición inline en panel proveedor
-      bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
-        const prov = cell.dataset.prov;
-        const idx = Number(cell.dataset.idx);
-        const f = cell.dataset.f;
-        if(f==='name'){
-          attachAutocomplete(cell, picked=>{
-            cell.innerText = picked;
-            orders[prov][idx].name = picked;
-            persistState();
-          });
-        }
-        cell.addEventListener('blur', ()=>{
-          const val = cell.innerText.trim();
-          if(f==='qty'){
-            orders[prov][idx].qty = Number(String(val).replace(',','.'))||0;
-          }else{
-            orders[prov][idx].name = removeDiacriticsUpper(val);
-          }
-          persistState();
-        });
-      });
+      sec+='</tbody></table>';
     }
-
-    card.appendChild(hd); card.appendChild(bd);
-    cont.appendChild(card);
+    sec+='</div></div>';
+    html+=sec;
   });
+  panels.innerHTML = html;
+  renderPendComprados();
 }
 
-function exportProvTXT(prov){
-  const list = orders[prov]||[];
-  if(!list.length){ alert('No hay líneas para ' + prov); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
-  const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
+/* =========================================================
+   COMPRAS (Comprados vs Pendientes)
+========================================================= */
+function toggleComprado(prov, idx){
+  const it = orders[prov][idx];
+  if(!it) return;
+  const listC = compras.comprado;
+  const listP = compras.pendiente;
+  const ck = normKey(it.name);
+  const foundC = listC.find(x=> normKey(x.name)===ck);
+  const foundP = listP.find(x=> normKey(x.name)===ck);
+
+  if(foundC){
+    compras.comprado = listC.filter(x=> normKey(x.name)!==ck);
+    compras.pendiente.push({name:it.name, qty:it.qty});
+  }else{
+    compras.comprado.push({name:it.name, qty:it.qty});
+    compras.pendiente = listP.filter(x=> normKey(x.name)!==ck);
+  }
+  persistState();
+  renderPendComprados();
+}
+function renderPendComprados(){
+  const pList = byId('pendientesList');
+  const cList = byId('compradosList');
+  const pArr = compras.pendiente||[];
+  const cArr = compras.comprado||[];
+
+  pList.innerHTML = '<h4>Pendientes</h4>';
+  if(!pArr.length){ pList.innerHTML+='<div class="hint">Ninguno</div>'; }
+  else{
+    pList.innerHTML+='<ul>'+pArr.map(x=>`<li>${x.name} (${x.qty})</li>`).join('')+'</ul>';
+  }
+  cList.innerHTML = '<h4>Comprados</h4>';
+  if(!cArr.length){ cList.innerHTML+='<div class="hint">Ninguno</div>'; }
+  else{
+    cList.innerHTML+='<ul>'+cArr.map(x=>`<li>${x.name} (${x.qty})</li>`).join('')+'</ul>';
+  }
+}
+function recalcularPendientes(){
+  const all = [];
+  PROVEEDORES.forEach(p=>{
+    (orders[p]||[]).forEach(it=> all.push({...it}));
+  });
+  const cArr = compras.comprado||[];
+  const cMap = {};
+  cArr.forEach(x=> cMap[normKey(x.name)] = (cMap[normKey(x.name)]||0) + x.qty);
+
+  compras.pendiente = [];
+  all.forEach(it=>{
+    const k = normKey(it.name);
+    const rest = it.qty - (cMap[k]||0);
+    if(rest>0) compras.pendiente.push({name:it.name, qty:rest});
+  });
+  persistState();
+  renderPendComprados();
 }
 
-/* ==========================
-   Exportación Global
-========================== */
+/* =========================================================
+   REPARTO (excluye comprados)
+========================================================= */
+function renderReparto(){
+  const noCompr = compras.pendiente||[];
+
+  function makeSection(code,title){
+    let html = `<h4>${title}</h4>`;
+    const rows = tiendaState[code]||[];
+    if(!rows.length){ return html+'<div class="hint">Sin datos</div>'; }
+    const mp = {};
+    noCompr.forEach(x=> mp[normKey(x.name)]=x.qty);
+    const out=[];
+    rows.forEach(r=>{
+      const k = normKey(r.e);
+      if(mp[k] && mp[k]>0){
+        let qty = Math.min(r.q, mp[k]);
+        if(qty>0){
+          out.push({name:r.e, qty});
+          mp[k]-=qty;
+        }
+      }
+    });
+    if(!out.length){ html+='<div class="hint">Sin reparto</div>'; }
+    else{
+      html+='<table><thead><tr><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
+      out.forEach(x=>{ html+=`<tr><td>${x.name}</td><td>${x.qty}</td></tr>`; });
+      html+='</tbody></table>';
+    }
+    return html;
+  }
+  byId('repartoSP').innerHTML = makeSection('sp','San Pablo');
+  byId('repartoSL').innerHTML = makeSection('sl','San Lesmes');
+  byId('repartoST').innerHTML = makeSection('st','Santiago');
+}
+
+/* =========================================================
+   EXPORTACIONES (TXT, WhatsApp, Excel)
+========================================================= */
 function copiarGlobal(){
-  if(!globalRows.length) return;
-  const txt = globalRows.map(r=>`- ${r.total} ${r.name}`).join('\n');
-  navigator.clipboard.writeText(txt);
-  alert('Lista global copiada.');
+  let t=''; globalRows.forEach(r=> t+=`${r.name} ${r.total}\n`); navigator.clipboard.writeText(t); alert('Copiado.');
 }
 function exportarGlobalTXT(){
-  if(!globalRows.length){ alert('No hay datos.'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const txt = globalRows.map(r=>`${r.total}\t${r.name}`).join('\n');
-  const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
+  let t='GLOBAL:\n';
+  globalRows.forEach(r=> t+=`${r.name} ${r.total}\n`);
+  downloadTXT('global.txt', t);
 }
 function exportarGlobalXLSX(){
-  if(!globalRows.length){ alert('No hay datos.'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([['Producto','Total'], ...globalRows.map(r=>[r.name,r.total])]);
-  XLSX.utils.book_append_sheet(wb, ws, 'Global');
-  XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
+  const ws = XLSX.utils.json_to_sheet(globalRows.map(r=>({Producto:r.name, Cantidad:r.total})));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Global');
+  XLSX.writeFile(wb,'global.xlsx');
+}
+function exportarGlobalWhatsApp(){
+  let t='GLOBAL:\n';
+  globalRows.forEach(r=> t+=`${r.name} ${r.total}\n`);
+  const url='https://wa.me/?text='+encodeURIComponent(t);
+  window.open(url,'_blank');
 }
 
-/* ==========================
-   TXT Global (asignados + pendientes)
-========================== */
-function exportResumenGlobalTXT(){
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  const totalMap = {};
-  all.forEach(r=>{
-    const k = normKey(r.e);
-    if(!totalMap[k]) totalMap[k] = {name:r.e, total:0};
-    totalMap[k].total += (Number(r.q)||0);
-  });
-
-  const byProv = {}; PROVEEDORES.forEach(p=>byProv[p]=[]);
-  const unassigned = [];
-  Object.values(totalMap).forEach(it=>{
-    const k = normKey(it.name);
-    const prov = assignments[k];
-    if(prov && PROVEEDORES.includes(prov)){
-      byProv[prov].push({name:it.name, qty:it.total});
-    }else{
-      unassigned.push({name:it.name, qty:it.total});
-    }
-  });
-
-  let out = `📦 PEDIDOS POR PROVEEDOR\n\n`;
+function exportarResumenTXT(){
+  let t='PENDIENTES DE COMPRAR:\n';
+  (compras.pendiente||[]).forEach(x=> t+=`${x.name} ${x.qty}\n`);
+  t+='\n=== PROVEEDORES ===\n';
   PROVEEDORES.forEach(p=>{
-    out += `> ${p}:\n`;
-    if(byProv[p].length){
-      byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-    }else{
-      out += `- (sin líneas)\n`;
+    const arr = orders[p]||[];
+    if(arr.length){
+      t+=`[${p}]\n`; arr.forEach(it=> t+=`${it.name} ${it.qty}\n`); t+='\n';
     }
-    out += `\n`;
   });
-
-  out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
-  if(unassigned.length){
-    unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-  }else{
-    out += `- (sin líneas)\n`;
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-  const blob = new Blob([out],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`resumen_pedidos_${today}.txt`; a.click();
+  downloadTXT('resumen.txt',t);
+}
+function exportarResumenWhatsApp(){
+  let t='PENDIENTES DE COMPRAR:\n';
+  (compras.pendiente||[]).forEach(x=> t+=`${x.name} ${x.qty}\n`);
+  t+='\n=== PROVEEDORES ===\n';
+  PROVEEDORES.forEach(p=>{
+    const arr = orders[p]||[];
+    if(arr.length){
+      t+=`[${p}]\n`; arr.forEach(it=> t+=`${it.name} ${it.qty}\n`); t+='\n';
+    }
+  });
+  const url='https://wa.me/?text='+encodeURIComponent(t);
+  window.open(url,'_blank');
 }
 
-/* ==========================
+/* Exportar tienda individual ( WhatsApp / TXT ) */
+function exportarTiendaWhatsApp(code){
+  const rows = tiendaState[code]||[]; if(!rows.length){alert('No hay datos.'); return;}
+  let t=`${code.toUpperCase()}:\n`;
+  rows.forEach(r=> t+=`${r.e} ${r.q}\n`);
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+}
+function exportarTiendaTXT(code){
+  const rows = tiendaState[code]||[]; if(!rows.length){alert('No hay datos.'); return;}
+  let t=`${code.toUpperCase()}:\n`;
+  rows.forEach(r=> t+=`${r.e} ${r.q}\n`);
+  downloadTXT(`${code}.txt`, t);
+}
+
+/* =========================================================
+   BOTÓN TERMINAR
+========================================================= */
+function terminar(){
+  if(!confirm('¿Seguro? Se borrarán datos de tiendas, global, proveedores y compras (NO vocabulario).')) return;
+  tiendaState.sp=[]; tiendaState.sl=[]; tiendaState.st=[];
+  globalRows=[]; assignments={}; orders={}; compras={comprado:[],pendiente:[]};
+  PROVEEDORES.forEach(p=> orders[p]=[]);
+  persistState();
+  ['sp','sl','st'].forEach(renderTable);
+  byId('global_wrap').innerHTML=''; renderProveedores();
+  byId('repartoSP').innerHTML=''; byId('repartoSL').innerHTML=''; byId('repartoST').innerHTML='';
+  alert('Datos reiniciados.');
+}
+
+/* =========================================================
+   UTILS
+========================================================= */
+function downloadTXT(fname, text){
+  const blob = new Blob([text],{type:'text/plain'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; a.click();
+}
+
+/* =========================================================
    INIT
-========================== */
-(function init(){
-  showTab('dic');        // pestaña inicial
-  loadVocab();           // carga vocab (o el guardado)
-  loadState();           // tiendas + assignments + orders
-  ['sp','sl','st'].forEach(code=> renderTable(code));
-  buildProvBar();
-  renderProvidersPanels();
-  unificarGlobal();      // pintar global inicial si hay datos
-})();
+========================================================= */
+function init(){
+  loadVocab(); loadState(); initProvBar();
+  ['sp','sl','st'].forEach(renderTable);
+  renderGlobal(); renderProveedores(); renderPendComprados(); renderReparto();
+
+  byId('btnSaveVocab').onclick = saveVocab;
+  byId('btnPullVocab').onclick = pullVocabSupabase;
+  byId('btnPushVocab').onclick = pushVocabSupabase;
+  byId('btnTerminar').onclick = terminar;
+
+  document.addEventListener('click', ()=>{
+    renderPendComprados(); renderProveedores(); renderReparto();
+  });
+}
+document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- FIN DE PARTE 2/3 -->
 </body>
 </html>
