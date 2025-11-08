@@ -3,493 +3,273 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
+<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root{
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff;
+  :root {
+    --ink: #111827;
+    --muted: #6b7280;
+    --kiwi: #16a34a;
+    --kiwi-2: #15803d;
+    --border: #e5e7eb;
+    --panel: #f8fafc;
+    --bad: #dc2626;
+    --ok: #16a34a;
+    --warn: #f59e0b;
+    --bg: #ffffff;
   }
-  *{box-sizing:border-box}
-  <script>
-/* ===========================================================
-   KIWI v3.4 – Patch funcional (compras auto, reset, precios)
-   ➜ Colocar al final del HTML (tras los otros <script>)
-=========================================================== */
-
-/* ---------- 1) Botón "Reiniciar todo" (mantener vocab) ---------- */
-(function addResetButKeepVocab(){
-  const header = document.querySelector('#tab-dic .card .hd .toolbar');
-  if(!header) return;
-  const btn = document.createElement('button');
-  btn.className = 'btn muted';
-  btn.textContent = '♻️ Reiniciar todo (mantener vocab)';
-  btn.title = 'Limpia tiendas, global, asignaciones, pedidos, compras y reparto. Mantiene el vocabulario.';
-  btn.onclick = ()=>{
-    const vocab = localStorage.getItem(LS.VOCAB) || '';
-    if(!confirm('¿Seguro que quieres reiniciar todo (manteniendo vocabulario)?')) return;
-    // Limpieza selectiva
-    const keep = vocab;
-    localStorage.clear();
-    localStorage.setItem(LS.VOCAB, keep);
-    alert('Reiniciado. El vocabulario se ha conservado.');
-    location.reload();
-  };
-  header.appendChild(btn);
-})();
-
-/* ---------- 2) Al ENVIAR a proveedor ⇒ COMPRADO automático ---------- */
-/* Hook para WhatsApp */
-(function patchWhatsAppAutoPurchase(){
-  if(!window.renderProvidersPanels) return;
-  const originalRender = window.renderProvidersPanels;
-  window.renderProvidersPanels = function(){
-    originalRender && originalRender();
-
-    // Eliminar inputs "Comprado" inline (evitar introducir uds al mandar)
-    document.querySelectorAll('#provPanels .comprado-wrap')?.forEach(n=>n.remove());
-
-    // Reinyectar handlers en los botones WhatsApp y TXT para auto-comprar
-    document.querySelectorAll('#provPanels .card').forEach(card=>{
-      const prov = (card.querySelector('.hd strong')?.innerText||'').trim();
-      const toolbar = card.querySelector('.hd .toolbar');
-      if(!prov || !toolbar) return;
-
-      // Asegurar botón WhatsApp existe (ya lo añade tu extensión). Reasignar handler:
-      const btnWhats = toolbar.querySelector('.btn.whats');
-      if(btnWhats && !btnWhats._patched){
-        btnWhats._patched = true;
-        btnWhats.onclick = ()=>{
-          const txt = buildPedidoTextoSeguro(prov);
-          if(!txt){ alert('Sin líneas para enviar.'); return; }
-          const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
-          window.open(url, '_blank');
-
-          // ✔️ Marcar comprado automáticamente = qty del pedido
-          marcarCompradoTotalDeProveedor_sinConfirm(prov);
-        };
-      }
-
-      // Añadir/Parchear botón TXT proveedor (descarga + comprado auto)
-      let btnTxt = toolbar.querySelector('.btn.small.txtprov');
-      if(!btnTxt){
-        btnTxt = document.createElement('button');
-        btnTxt.className = 'btn small muted txtprov';
-        btnTxt.textContent = '📄 TXT + comprado';
-        toolbar.appendChild(btnTxt);
-      }
-      if(!btnTxt._patched){
-        btnTxt._patched = true;
-        btnTxt.onclick = ()=>{
-          // Exportar TXT del proveedor según orders[prov]
-          const list = (window.orders?.[prov]||[]);
-          if(!list.length){ alert('No hay líneas para ' + prov); return; }
-          const today = new Date().toISOString().split('T')[0];
-          const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
-          const blob = new Blob([txt],{type:'text/plain'});
-          const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
-
-          // ✔️ Marcar comprado automáticamente
-          marcarCompradoTotalDeProveedor_sinConfirm(prov);
-        };
-      }
-    });
-  };
-
-  function buildPedidoTextoSeguro(prov){
-    const list = (window.orders?.[prov]||[]);
-    if(!list.length) return '';
-    let out = `PEDIDO ${prov}\n`;
-    list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
-    return out.trim();
+  * {
+    box-sizing: border-box;
   }
-
-  // Versión sin confirmación (compra automática)
-  function marcarCompradoTotalDeProveedor_sinConfirm(prov){
-    if(!Array.isArray(window.__purchases?.[prov])) window.__purchases[prov]=[];
-    (window.orders?.[prov]||[]).forEach(it=>{
-      const idx = window.__purchases[prov].findIndex(x=> window.normKey(x.name) === window.normKey(it.name));
-      if (idx>-1) window.__purchases[prov][idx].purchased = Number(it.qty)||0;
-      else window.__purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
-    });
-    // guardar + refrescar
-    localStorage.setItem('arslan_v34_purchases', JSON.stringify(window.__purchases||{}));
-    window.persistState && window.persistState();
-    // refresco de Compras/Reparto si están a la vista
-    const comprasActive = document.getElementById('btn-compras')?.classList.contains('active');
-    const repartoActive = document.getElementById('btn-reparto')?.classList.contains('active');
-    if(comprasActive && window.showTab) window.showTab('compras');
-    if(repartoActive && window.showTab) window.showTab('reparto');
-    alert(`Pedido de ${prov} marcado como COMPRADO automáticamente.`);
+  body {
+    font-family: 'Poppins', sans-serif;
+    color: var(--ink);
+    background: #fff;
+    margin: 0;
   }
-})();
-
-/* ---------- 3) "Compras" también muestra NO ASIGNADOS ---------- */
-(function patchComprasToIncludeUnassigned(){
-  if(!window.showTab) return;
-
-  // Extendemos renderCompras existente si existe
-  const comprasWrap = document.getElementById('compras-wrap');
-  if(!comprasWrap) return;
-
-  // Utilidades
-  function totalSolicitadoPorNombre(){
-    const all = [].concat(window.tiendaState?.sp||[], window.tiendaState?.sl||[], window.tiendaState?.st||[]);
-    const map = {};
-    all.forEach(r=>{
-      const k = window.normKey(r.e);
-      map[k] = (map[k]||0) + (Number(r.q)||0);
-    });
-    const byName = {};
-    Object.keys(map).forEach(k=>{
-      const row = all.find(r=>window.normKey(r.e)===k);
-      byName[row?row.e:k] = map[k];
-    });
-    return byName;
+  h1 {
+    font-size: 18px;
+    margin: 0;
+    color: var(--ink);
   }
-
-  function unassignedTotals(){
-    const totals = totalSolicitadoPorNombre();
-    const out = [];
-    Object.keys(totals).forEach(name=>{
-      const k = window.normKey(name);
-      const prov = (window.assignments||{})[k];
-      if(!prov){ out.push({name, qty: Number(totals[name])||0}); }
-    });
-    out.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-    return out;
+  .container {
+    padding: 12px 12px 76px;
   }
-
-  // Inyectamos un panel para "Sin proveedor" bajo la tabla existente
-  const origRenderCompras = window.renderCompras;
-  window.renderCompras = function(){
-    origRenderCompras && origRenderCompras();
-
-    // Panel "Sin proveedor asignado"
-    const cont = document.getElementById('compras-wrap');
-    if(!cont) return;
-
-    // Evitar panel duplicado
-    if(cont.querySelector('.card-unassigned')) return;
-
-    const sinProv = unassignedTotals();
-    const section = document.createElement('div');
-    section.className = 'card card-unassigned';
-    section.innerHTML = `
-      <div class="hd"><strong>🛒 Sin proveedor asignado</strong></div>
-      <div class="bd">
-        ${sinProv.length? `
-        <table><thead><tr><th>Producto</th><th>Solicitado</th><th>Comprado</th><th></th></tr></thead><tbody>
-          ${sinProv.map((it,ix)=>`
-            <tr data-name="${it.name}">
-              <td class="c-name" contenteditable="true">${it.name}</td>
-              <td>${it.qty}</td>
-              <td><input class="c-qty" type="number" min="0" step="0.01" value="0" style="width:110px"></td>
-              <td><button class="btn small">Guardar</button></td>
-            </tr>
-          `).join('')}
-        </tbody></table>` : `<div class="hint">No hay productos sin asignar.</div>`}
-      </div>`;
-    cont.appendChild(section);
-
-    // Guardar compras sin proveedor (se almacenan bajo prov virtual "_SIN_PROV_")
-    section.querySelectorAll('tr[data-name]').forEach(tr=>{
-      const nameEl = tr.querySelector('.c-name');
-      const qtyEl  = tr.querySelector('.c-qty');
-      const btn    = tr.querySelector('.btn');
-      btn.addEventListener('click', ()=>{
-        const name = window.removeDiacriticsUpper(nameEl.innerText.trim());
-        const qty  = Number(qtyEl.value)||0;
-        if(!window.__purchases) window.__purchases = {};
-        if(!Array.isArray(window.__purchases['_SIN_PROV_'])) window.__purchases['_SIN_PROV_']=[];
-        const idx = window.__purchases['_SIN_PROV_'].findIndex(x=> window.normKey(x.name)===window.normKey(name));
-        if(idx>-1) window.__purchases['_SIN_PROV_'][idx].purchased = qty;
-        else window.__purchases['_SIN_PROV_'].push({name, purchased:qty});
-        localStorage.setItem('arslan_v34_purchases', JSON.stringify(window.__purchases));
-        window.persistState && window.persistState();
-        alert('Compra guardada sin proveedor.');
-      });
-    });
-  };
-})();
-
-/* ---------- 4) Nueva pestaña "📊 Precios" ---------- */
-(function addPricesTab(){
-  const LS_PRICE = 'arslan_v34_prices';  // { "<prov>||<normKey>" : {prov,name,price} }
-  function getPrices(){
-    try{ return JSON.parse(localStorage.getItem(LS_PRICE)||'{}')||{}; }catch{ return {}; }
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
   }
-  function setPrices(obj){
-    localStorage.setItem(LS_PRICE, JSON.stringify(obj||{}));
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    margin-bottom: 12px;
   }
-  function priceKey(prov,name){ return `${prov}||${window.normKey(name)}`; }
-
-  // Añadir botón y sección
-  const tabbar = document.querySelector('.tabbar');
-  const btn = document.createElement('button');
-  btn.id='btn-precios'; btn.innerHTML='📊<span>Precios</span>'; btn.onclick=()=>showTabExt('precios');
-  tabbar.appendChild(btn);
-
-  const sec = document.createElement('section');
-  sec.className='tab'; sec.id='tab-precios'; sec.style.display='none';
-  sec.innerHTML = `
-    <div class="card">
-      <div class="hd">
-        <strong>📊 Precios (por proveedor)</strong>
-        <div class="toolbar">
-          <button class="btn small" id="precios-send">✉️ Enviar cambios por WhatsApp</button>
-          <button class="btn small muted" id="precios-save">💾 Guardar</button>
-        </div>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
-        <div id="precios-wrap" class="scroll-x"></div>
-      </div>
-    </div>`;
-  document.querySelector('.container').appendChild(sec);
-
-  // Hook showTab para activar render
-  const origShow = window.showTab;
-  window.showTab = function(key){
-    origShow && origShow(key);
-    const active = (key==='precios');
-    document.getElementById('tab-precios').style.display = active?'block':'none';
-    document.getElementById('btn-precios').classList.toggle('active', active);
-    if(active) renderPrecios();
-  };
-
-  // Fuente de datos: COMPRADOS (__purchases) + ORDERS (para proveedores)
-  function productosCompradosPorProveedor(){
-    const out = {};
-    (window.PROVEEDORES||[]).forEach(p=> out[p]=[]);
-    // Del carrito de compras por proveedor
-    const purchases = window.__purchases||{};
-    Object.keys(purchases).forEach(prov=>{
-      (purchases[prov]||[]).forEach(it=>{
-        if(prov==='_SIN_PROV_') return; // omite sin proveedor en módulo de precios
-        if((Number(it.purchased)||0)<=0) return;
-        if(!out[prov]) out[prov]=[];
-        const exists = out[prov].some(x=> window.normKey(x.name)===window.normKey(it.name));
-        if(!exists) out[prov].push({name:it.name});
-      });
-    });
-    return out;
+  .card .hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
   }
-
-  function renderPrecios(){
-    const cont = document.getElementById('precios-wrap');
-    const prices = getPrices();
-    const data = productosCompradosPorProveedor();
-    let html = '';
-    const provs = Object.keys(data);
-    if(!provs.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; return; }
-
-    provs.forEach(prov=>{
-      const list = data[prov]||[];
-      html += `<div class="card" style="margin-bottom:10px">
-        <div class="hd"><strong>${prov}</strong></div>
-        <div class="bd">`;
-      if(!list.length){
-        html += `<div class="hint">Sin productos comprados para ${prov}.</div>`;
-      }else{
-        html += `<table><thead><tr><th>Producto</th><th>Precio anterior</th><th>Precio nuevo</th><th>Acción</th></tr></thead><tbody>`;
-        list.sort((a,b)=>a.name.localeCompare(b.name,'es')).forEach((it,ix)=>{
-          const k = priceKey(prov, it.name);
-          const prev = prices[k]?.price ?? '';
-          html += `<tr data-prov="${prov}" data-name="${it.name}">
-            <td>${it.name}</td>
-            <td>${prev!==''? prev : '<span class="hint">—</span>'}</td>
-            <td><input class="p-new" type="number" min="0" step="0.01" value="${prev!==''?prev:''}" style="width:130px"></td>
-            <td>
-              <button class="btn small muted p-save">Guardar</button>
-              <button class="btn small p-equal">✅ Igual</button>
-            </td>
-          </tr>`;
-        });
-        html += `</tbody></table>`;
-      }
-      html += `</div></div>`;
-    });
-    cont.innerHTML = html;
-
-    // Handlers
-    cont.querySelectorAll('.p-save').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const tr = btn.closest('tr');
-        const prov = tr.dataset.prov;
-        const name = tr.dataset.name;
-        const val  = Number(tr.querySelector('.p-new').value);
-        const k = priceKey(prov, name);
-        const obj = getPrices();
-        obj[k] = {prov, name, price: isFinite(val)? val : null};
-        setPrices(obj);
-        alert('Precio guardado.');
-      });
-    });
-    cont.querySelectorAll('.p-equal').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const tr = btn.closest('tr');
-        const prov = tr.dataset.prov;
-        const name = tr.dataset.name;
-        const k = priceKey(prov, name);
-        const obj = getPrices();
-        // "Igual": mantenemos el precio anterior, no generamos cambio
-        if(obj[k] && obj[k].price!=null){
-          tr.querySelector('.p-new').value = obj[k].price;
-        }else{
-          tr.querySelector('.p-new').value = '';
-        }
-        // Marcamos visualmente, sin forzar envío
-        tr.style.background = '#f6ffed';
-      });
-    });
-
-    // Barra superior de la pestaña
-    document.getElementById('precios-save').onclick = ()=>{
-      // ya se van guardando por fila; aquí solo feedback
-      alert('Los cambios de precio por fila ya quedan guardados al pulsar "Guardar".');
-    };
-    document.getElementById('precios-send').onclick = ()=>{
-      const obj = getPrices();
-      // Recolectar "cambios" (precio nuevo distinto del anterior guardado justo antes)
-      const changesByProv = {};
-      document.querySelectorAll('#precios-wrap tr[data-prov]').forEach(tr=>{
-        const prov = tr.dataset.prov;
-        const name = tr.dataset.name;
-        const inputVal = tr.querySelector('.p-new').value;
-        if(inputVal==='') return; // sin cambio explícito
-        const newPrice = Number(inputVal);
-        if(!isFinite(newPrice)) return;
-
-        const k = priceKey(prov, name);
-        const prev = obj[k]?.price ?? null;
-
-        // Consideramos "cambio" si no hay precio previo o si difiere
-        if(prev===null || Number(prev) !== newPrice){
-          if(!changesByProv[prov]) changesByProv[prov] = [];
-          changesByProv[prov].push({name, prev, next:newPrice});
-          // Persistimos nuevo como "precio anterior" para la próxima vez
-          obj[k] = {prov, name, price:newPrice};
-        }
-      });
-      setPrices(obj);
-
-      if(!Object.keys(changesByProv).length){
-        alert('No hay cambios de precio para enviar.');
-        return;
-      }
-
-      // Generar un WhatsApp por proveedor
-      Object.keys(changesByProv).forEach(prov=>{
-        const lines = changesByProv[prov].map(r=>{
-          const prevTxt = (r.prev===null || r.prev===undefined || r.prev==='')? '—' : r.prev;
-          return `- ${r.name}: ${prevTxt} → ${r.next}`;
-        }).join('\n');
-        const msg = `CAMBIOS DE PRECIOS (${prov})\n${lines}`;
-        const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
-        window.open(url, '_blank');
-      });
-    };
+  .card .bd {
+    padding: 10px 12px;
   }
-})();
-
-/* ---------- 5) (Opcional) Extiende Supabase para "prices" ---------- */
-(function extendSupabaseSyncForPrices(){
-  const LS_PRICE = 'arslan_v34_prices';
-  // Solo si existe supabase client
-  if(!window.supabase) return;
-  const SUPA_URL = localStorage.getItem('SUPA_URL') || '';
-  const SUPA_KEY = localStorage.getItem('SUPA_KEY') || '';
-  const supa = (SUPA_URL && SUPA_KEY) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
-  if(!supa) return;
-
-  // Parchear persistState/loadState para incluir prices
-  const _persist = window.persistState;
-  const _load    = window.loadState;
-
-  window.persistState = async function(){
-    _persist && _persist();
-    try{
-      const obj = JSON.parse(localStorage.getItem(LS_PRICE)||'{}')||{};
-      await supa.from('prices').delete().neq('prov','');
-      const rows = Object.values(obj).map(it=>({prov:it.prov, name:it.name, price:Number(it.price)||0}));
-      if(rows.length) await supa.from('prices').insert(rows);
-    }catch(e){ console.warn('Supabase up prices:', e.message||e); }
-  };
-
-  window.loadState = async function(){
-    _load && _load();
-    try{
-      const { data } = await supa.from('prices').select('prov,name,price');
-      if(Array.isArray(data)){
-        const obj={};
-        data.forEach(r=>{
-          const k = `${r.prov}||${window.normKey(r.name)}`;
-          obj[k] = {prov:r.prov, name:r.name, price:Number(r.price)||0};
-        });
-        localStorage.setItem(LS_PRICE, JSON.stringify(obj));
-      }
-    }catch(e){ console.warn('Supabase down prices:', e.message||e); }
-  };
-
-  // 📌 Recuerda crear la tabla:
-  // create table if not exists prices ( prov text not null, name text not null, price numeric, primary key (prov,name) );
-})();
-</script>
-
-  body{font-family:'Poppins',sans-serif;color:var(--ink);background:#fff;margin:0}
-  h1{font-size:18px;margin:0;color:var(--ink)}
-  .container{padding:12px 12px 76px} /* bottom space for tabbar */
-  .hint{font-size:12px;color:var(--muted)}
-  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
-  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
-  .card .bd{padding:10px 12px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px}
-  .btn.ghost{background:#fff;color:var(--kiwi);border:1px solid var(--kiwi)}
-  .btn.muted{background:#fff;border:1px solid var(--border);color:var(--ink)}
-  .btn.small{padding:6px 10px;font-size:13px}
-  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px}
-  table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
-  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
-  .pill.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
-  .pill.warn{border-color:#fecaca;background:#fee2e2;color:#991b1b}
-  .red{color:var(--bad);font-weight:700}
-  .green{color:var(--ok);font-weight:700}
-  .ac-box{position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 16px rgba(0,0,0,.08);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
-  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
-  .ac-item:hover{background:#f3f4f6}
-  .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
-  .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:#fff;color:var(--kiwi);cursor:pointer;font-size:13px}
-  .prov-btn.active{background:var(--kiwi);color:#fff}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
-  .dup{background:#fff5f5}
-  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--kiwi);
+    background: linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn.ghost {
+    background: #fff;
+    color: var(--kiwi);
+    border: 1px solid var(--kiwi);
+  }
+  .btn.muted {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .btn.small {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    resize: vertical;
+    font-size: 14px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th,td {
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+    text-align: left;
+    font-size: 14px;
+    vertical-align: top;
+  }
+  th {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .pill.ok {
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+    color: #166534;
+  }
+  .pill.warn {
+    border-color: #fecaca;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .red {
+    color: var(--bad);
+    font-weight: 700;
+  }
+  .green {
+    color: var(--ok);
+    font-weight: 700;
+  }
+  .ac-box {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,.08);
+    z-index: 9999;
+    overflow: hidden;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .ac-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .ac-item:hover {
+    background: #f3f4f6;
+  }
+  .prov-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .prov-btn {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--kiwi);
+    background: #fff;
+    color: var(--kiwi);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .prov-btn.active {
+    background: var(--kiwi);
+    color: #fff;
+  }
+  .ok-assign {
+    border: 1px solid var(--kiwi);
+    background: #ecfdf5;
+    color: #166534;
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .dup {
+    background: #fff5f5;
+  }
+  .dup .flag {
+    color: #b91c1c;
+    font-weight: 700;
+    margin-left: 6px;
+  }
   /* Tabbar móvil fija */
-  .tabbar{
-    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
-    display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
+  .tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 56px;
+    z-index: 999;
   }
-  .tabbar button{
-    background:#fff;border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer
+  .tabbar button {
+    background: #fff;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
   }
-  .tabbar button.active{color:var(--kiwi)}
-  .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
+  .tabbar button.active {
+    color: var(--kiwi);
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media(min-width:980px){
+    .grid-3 {
+      grid-template-columns: repeat(3,1fr);
+    }
+  }
+  /* ===== Estado global superior ===== */
+  #global-status {
+    padding: 12px;
+    margin: 8px 0 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  #global-status strong {
+    font-size: 13px;
+    display: block;
+    margin-bottom: 4px;
+  }
 </style>
 </head>
+
 <body>
   <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
+      <h1>🍈 ARSLAN LISTAS v3.5 — KIWI MOBILE TABS + ESTADO GLOBAL</h1>
       <span class="pill">Modo móvil optimizado</span>
     </div>
-    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT)</div>
 
+    <!-- ======= Estado Global Superior ======= -->
+    <div id="global-status">
+      <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
+      <span id="status-assign">🧾 Sin asignar: 0</span> &nbsp;&nbsp;
+      <span id="status-buy">🛒 Sin comprar: 0</span> &nbsp;&nbsp;
+      <span id="status-sent">✅ Pedidos enviados: 0</span><br>
+      <span id="status-bought">📦 Comprados: 0 uds</span> &nbsp;&nbsp;
+      <span id="status-distribute">🚚 Reparto pendiente: 0</span> &nbsp;&nbsp;
+      <span id="status-prices">📊 Cambios precio: 0</span>
+    </div>
+
+    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Compras/Reparto → Precios</div>
     <!-- ========== TAB: Diccionario ========== -->
     <section class="tab" id="tab-dic">
       <div class="card">
@@ -499,6 +279,7 @@
             <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
             <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
             <button class="btn muted" onclick="resetAll()">🧹 Limpiar todo</button>
+            <button class="btn muted" onclick="resetAllButKeepVocab()">♻️ Reiniciar todo (mantener vocab)</button>
           </div>
         </div>
         <div class="bd">
@@ -572,7 +353,10 @@
           </div>
         </div>
         <div class="bd">
-          <div class="hint">✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).</div>
+          <div class="hint">
+            ✅ a la izquierda asigna al proveedor activo.
+            Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
+          </div>
           <div class="card" style="margin-top:8px">
             <div class="bd">
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -595,7 +379,57 @@
         </div>
       </div>
     </section>
-  </div>
+
+    <!-- ========== TAB: Compras ========== -->
+    <section class="tab" id="tab-compras" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>🛒 Compras (por proveedor o sin asignar)</strong>
+          <div class="toolbar">
+            <button class="btn small" id="compras-add">+ Añadir compra</button>
+            <button class="btn small muted" id="compras-sync">☁️ Sincronizar</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecerán en Reparto.</div>
+          <div id="compras-wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TAB: Reparto ========== -->
+    <section class="tab" id="tab-reparto" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>🚚 Reparto (solo productos COMPRADOS)</strong>
+          <div class="toolbar">
+            <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div id="reparto-wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TAB: Precios ========== -->
+    <section class="tab" id="tab-precios" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>📊 Precios (por proveedor)</strong>
+          <div class="toolbar">
+            <button class="btn small" id="precios-send">✉️ Enviar cambios por WhatsApp</button>
+            <button class="btn small muted" id="precios-save">💾 Guardar</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
+          <div id="precios-wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
+
+  </div> <!-- End .container -->
 
   <!-- Tabbar móvil -->
   <nav class="tabbar">
@@ -603,31 +437,43 @@
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
     <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
     <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
+    <button id="btn-compras" onclick="showTab('compras')">🛒<span>Compras</span></button>
+    <button id="btn-reparto" onclick="showTab('reparto')">🚚<span>Reparto</span></button>
+    <button id="btn-precios" onclick="showTab('precios')">📊<span>Precios</span></button>
   </nav>
-
 <script>
 /* ==========================
-   Tabs (móvil)
+   Tabs (móvil) + Estado Global
 ========================== */
 function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores'];
+  const ids = ['dic','tiendas','global','proveedores','compras','reparto','precios'];
   ids.forEach(k=>{
-    document.getElementById('tab-'+k).style.display = (k===key)?'block':'none';
-    document.getElementById('btn-'+k).classList.toggle('active', k===key);
+    const sec = document.getElementById('tab-'+k);
+    const btn = document.getElementById('btn-'+k);
+    if(sec) sec.style.display = (k===key)?'block':'none';
+    if(btn) btn.classList.toggle('active', k===key);
   });
-  // pequeños refrescos
+
   if(key==='global'){ unificarGlobal(); buildProvBar(); }
   if(key==='proveedores'){ renderProvidersPanels(); }
+  if(key==='compras'){ renderCompras(); }
+  if(key==='reparto'){ renderReparto(); }
+  if(key==='precios'){ renderPrecios(); }
+
+  updateGlobalStatus();
 }
 
 /* ==========================
-   Config y utilidades
+   Configuración y utilidades
 ========================== */
 const LS = {
-  VOCAB:'arslan_v34_vocab',
-  STORES:'arslan_v34_stores',
-  ASSIGN:'arslan_v34_assign',
-  ORDERS:'arslan_v34_orders'
+  VOCAB: 'arslan_v34_vocab',
+  STORES: 'arslan_v34_stores',
+  ASSIGN: 'arslan_v34_assign',
+  ORDERS: 'arslan_v34_orders',
+  PURCHASES: 'arslan_v34_purchases',
+  REPARTO: 'arslan_v34_reparto',
+  PRICES: 'arslan_v34_prices'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
@@ -857,6 +703,7 @@ function saveVocab(){
   alert('Vocabulario guardado.');
   renderProvidersPanels();
   unificarGlobal();
+  updateGlobalStatus();
 }
 function addNewWord(){
   const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
@@ -936,6 +783,18 @@ let assignments = {};                         // { normKey(name) : proveedor }
 let orders = {};                              // { proveedor : [{name, qty}] }
 let ACTIVE_PROV = PROVEEDORES[0];
 
+// Compras y reparto (compartido con extensiones)
+let __purchases = {};                         // { prov : [{name, purchased}] , "_SIN_PROV_": [...] }
+let __reparto = {};                           // { name : {sp, sl, st} }
+
+// Precios
+function getPrices(){ try{ return JSON.parse(localStorage.getItem(LS.PRICES)||'{}')||{}; }catch{ return {}; } }
+function setPrices(obj){ localStorage.setItem(LS.PRICES, JSON.stringify(obj||{})); }
+function priceKey(prov,name){ return `${prov}||${normKey(name)}`; }
+
+/* ==========================
+   Carga y persistencia
+========================== */
 function loadState(){
   try{
     const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
@@ -949,15 +808,33 @@ function loadState(){
     const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
     orders = o||{};
   }catch{}
+  try{
+    __purchases = JSON.parse(localStorage.getItem(LS.PURCHASES)||'{}')||{};
+  }catch{ __purchases={}; }
+  try{
+    __reparto = JSON.parse(localStorage.getItem(LS.REPARTO)||'{}')||{};
+  }catch{ __reparto={}; }
+
   PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
 }
 function persistState(){
   localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
   localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
   localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.PURCHASES, JSON.stringify(__purchases||{}));
+  localStorage.setItem(LS.REPARTO, JSON.stringify(__reparto||{}));
+  updateGlobalStatus();
 }
 function resetAll(){
   if(confirm('¿Seguro que quieres limpiar todo?')){ localStorage.clear(); location.reload(); }
+}
+function resetAllButKeepVocab(){
+  const vocab = localStorage.getItem(LS.VOCAB) || '';
+  if(!confirm('¿Seguro que quieres reiniciar todo (manteniendo vocabulario)?')) return;
+  localStorage.clear();
+  localStorage.setItem(LS.VOCAB, vocab);
+  alert('Reiniciado. El vocabulario se ha conservado.');
+  location.reload();
 }
 
 /* ==========================
@@ -1057,26 +934,13 @@ function estandarizar(code){
   tiendaState[code] = rows;
   renderTable(code);
   persistState();
+  updateGlobalStatus();
 }
 
 function guardarTienda(code){
   const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
   byId('in_'+code).value = out;
   alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
-}
-
-function exportarTiendaTXT(code){
-  const tienda = tiendaState[code] || [];
-  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
-  const blob = new Blob([txt], {type:'text/plain'});
-  const a = document.createElement('a'); 
-  a.href = URL.createObjectURL(blob); 
-  a.download = `${code}_estandarizado_${today}.txt`; 
-  a.click();
 }
 
 /* ==========================
@@ -1105,6 +969,7 @@ function unificarGlobal(){
     }
   }
   renderGlobalTable(arr, similarSet);
+  updateGlobalStatus();
 }
 
 /* ==========================
@@ -1196,13 +1061,15 @@ function assignFromGlobal(idx){
   persistState();
   unificarGlobal();
   renderProvidersPanels();
+  updateGlobalStatus();
 }
 
 /* ==========================
    Barra de proveedores + paneles
 ========================== */
 function buildProvBar(){
-  const bar = byId('provBar'); bar.innerHTML='';
+  const bar = byId('provBar'); if(!bar) return;
+  bar.innerHTML='';
   PROVEEDORES.forEach(p=>{
     const b = document.createElement('button');
     b.className = 'prov-btn' + (p===ACTIVE_PROV?' active':'');
@@ -1217,7 +1084,8 @@ function buildProvBar(){
 }
 
 function renderProvidersPanels(){
-  const cont = byId('provPanels'); cont.innerHTML='';
+  const cont = byId('provPanels'); if(!cont) return;
+  cont.innerHTML='';
   PROVEEDORES.forEach(p=>{
     const list = orders[p]||[];
     const card = document.createElement('div');
@@ -1226,7 +1094,8 @@ function renderProvidersPanels(){
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
+        <button class="btn small whats">🟢 WhatsApp</button>
+        <button class="btn small muted txtprov">📄 TXT + comprado</button>
       </div>`;
     const bd = document.createElement('div');
     bd.className='bd';
@@ -1270,16 +1139,54 @@ function renderProvidersPanels(){
 
     card.appendChild(hd); card.appendChild(bd);
     cont.appendChild(card);
+
+    // Handlers de envío que marcan comprado automáticamente (sin introducir unidades)
+    const btnWhats = hd.querySelector('.btn.whats');
+    if(btnWhats){
+      btnWhats.onclick = ()=>{
+        const txt = getPedidoTexto(p);
+        if(!txt){ alert('Sin líneas para enviar.'); return; }
+        const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+        window.open(url, '_blank');
+        marcarCompradoTotalDeProveedor(p); // automático
+      };
+    }
+    const btnTxt = hd.querySelector('.btn.txtprov');
+    if(btnTxt){
+      btnTxt.onclick = ()=>{
+        const listNow = (orders[p]||[]);
+        if(!listNow.length){ alert('No hay líneas para ' + p); return; }
+        const today = new Date().toISOString().split('T')[0];
+        const txt = listNow.map(x=> `${x.qty} ${x.name}`).join('\n');
+        const blob = new Blob([txt],{type:'text/plain'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${p}_${today}.txt`; a.click();
+        marcarCompradoTotalDeProveedor(p); // automático
+      };
+    }
   });
+  updateGlobalStatus();
 }
 
-function exportProvTXT(prov){
-  const list = orders[prov]||[];
-  if(!list.length){ alert('No hay líneas para ' + prov); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
-  const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
+function getPedidoTexto(prov){
+  const list = (orders?.[prov]||[]);
+  if(!list.length) return '';
+  let out = `PEDIDO ${prov}\n`;
+  list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
+  return out.trim();
+}
+
+function marcarCompradoTotalDeProveedor(prov){
+  if(!Array.isArray(__purchases[prov])) __purchases[prov]=[];
+  (orders?.[prov]||[]).forEach(it=>{
+    const idx = __purchases[prov].findIndex(x=> normKey(x.name) === normKey(it.name));
+    if (idx>-1) __purchases[prov][idx].purchased = Number(it.qty)||0;
+    else __purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
+  });
+  persistState();
+  // refrescos contextuales
+  if(byId('btn-compras')?.classList.contains('active')) renderCompras();
+  if(byId('btn-reparto')?.classList.contains('active')) renderReparto();
+  alert(`Pedido de ${prov} marcado como COMPRADO automáticamente.`);
 }
 
 /* ==========================
@@ -1357,552 +1264,546 @@ function exportResumenGlobalTXT(){
 }
 
 /* ==========================
+   Compras
+========================== */
+function renderCompras(){
+  const cont = byId('compras-wrap'); if(!cont) return;
+  const purchases = __purchases || {};
+  let html = '<table><thead><tr><th>Proveedor</th><th>Producto</th><th>Comprado</th><th>Acciones</th></tr></thead><tbody>';
+  const vendors = PROVEEDORES||[];
+  vendors.forEach(p=>{
+    const list = purchases[p]||[];
+    if(!list.length){
+      html += `<tr><td>${p}</td><td colspan="3" class="hint">Sin compras</td></tr>`;
+    }else{
+      list.forEach((it,ix)=>{
+        html += `<tr data-prov="${p}" data-idx="${ix}">
+          <td>${p}</td>
+          <td contenteditable="true" class="c-name">${it.name}</td>
+          <td><input class="c-qty" type="number" min="0" step="0.01" value="${Number(it.purchased)||0}" style="width:100px"></td>
+          <td>
+            <button class="btn small muted c-save">Guardar</button>
+            <button class="btn small c-del">Eliminar</button>
+          </td>
+        </tr>`;
+      });
+    }
+  });
+  html += '</tbody></table>';
+
+  // Panel sin proveedor
+  const sinProv = unassignedTotals();
+  html += `<div class="card" style="margin-top:10px">
+    <div class="hd"><strong>🛒 Sin proveedor asignado</strong></div>
+    <div class="bd">${
+      sinProv.length? `
+      <table><thead><tr><th>Producto</th><th>Solicitado</th><th>Comprado</th><th></th></tr></thead><tbody>
+        ${sinProv.map((it,ix)=>`
+          <tr data-sp-name="${it.name}">
+            <td class="c-name" contenteditable="true">${it.name}</td>
+            <td>${it.qty}</td>
+            <td><input class="c-qty" type="number" min="0" step="0.01" value="0" style="width:110px"></td>
+            <td><button class="btn small">Guardar</button></td>
+          </tr>
+        `).join('')}
+      </tbody></table>` : `<div class="hint">No hay productos sin asignar.</div>`
+    }</div>
+  </div>`;
+
+  cont.innerHTML = html;
+
+  // Handlers compras por proveedor
+  cont.querySelectorAll('.c-save').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tr = btn.closest('tr');
+      const p = tr.dataset.prov, ix = Number(tr.dataset.idx);
+      const name = tr.querySelector('.c-name').innerText.trim();
+      const qty  = Number(tr.querySelector('.c-qty').value)||0;
+      __purchases[p][ix] = {name, purchased:qty};
+      persistState();
+      renderCompras();
+    });
+  });
+  cont.querySelectorAll('.c-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tr = btn.closest('tr');
+      const p = tr.dataset.prov, ix = Number(tr.dataset.idx);
+      __purchases[p].splice(ix,1);
+      persistState();
+      renderCompras();
+    });
+  });
+
+  // Guardar compras sin proveedor
+  cont.querySelectorAll('tr[data-sp-name]').forEach(tr=>{
+    const nameEl = tr.querySelector('.c-name');
+    const qtyEl  = tr.querySelector('.c-qty');
+    const btn    = tr.querySelector('.btn');
+    btn.addEventListener('click', ()=>{
+      const name = removeDiacriticsUpper(nameEl.innerText.trim());
+      const qty  = Number(qtyEl.value)||0;
+      if(!Array.isArray(__purchases['_SIN_PROV_'])) __purchases['_SIN_PROV_']=[];
+      const idx = __purchases['_SIN_PROV_'].findIndex(x=> normKey(x.name)===normKey(name));
+      if(idx>-1) __purchases['_SIN_PROV_'][idx].purchased = qty;
+      else __purchases['_SIN_PROV_'].push({name, purchased:qty});
+      persistState();
+      alert('Compra guardada sin proveedor.');
+      renderCompras();
+    });
+  });
+
+  // Acciones barra
+  byId('compras-add').onclick = ()=>{
+    const prov = prompt('Proveedor (exacto como en la lista):\n' + (PROVEEDORES||[]).join(', '));
+    if(!prov){return;}
+    const name = prompt('Producto (usa nombres del diccionario si es posible):');
+    if(!name){return;}
+    const qty = Number(prompt('Cantidad comprada:')||'0')||0;
+    if(!__purchases[prov]) __purchases[prov]=[];
+    __purchases[prov].push({name:removeDiacriticsUpper(name), purchased:qty});
+    persistState();
+    renderCompras();
+  };
+  byId('compras-sync').onclick = ()=>{
+    persistState();
+    alert('Sincronizado.');
+  };
+
+  updateGlobalStatus();
+}
+
+function totalSolicitadoPorNombre(){
+  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const map = {};
+  all.forEach(r=>{
+    const k = normKey(r.e);
+    map[k] = (map[k]||0) + (Number(r.q)||0);
+  });
+  const byName={};
+  Object.keys(map).forEach(k=>{
+    const row = all.find(r=>normKey(r.e)===k);
+    byName[row?row.e:k] = map[k];
+  });
+  return byName;
+}
+function unassignedTotals(){
+  const totals = totalSolicitadoPorNombre();
+  const out = [];
+  Object.keys(totals).forEach(name=>{
+    const k = normKey(name);
+    const prov = (assignments||{})[k];
+    if(!prov){ out.push({name, qty: Number(totals[name])||0}); }
+  });
+  out.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  return out;
+}
+
+/* ==========================
+   Reparto
+========================== */
+function solicitadoPorTienda(name){
+  const nk = normKey(name);
+  const S = {sp:0, sl:0, st:0};
+  (tiendaState?.sp||[]).forEach(r=>{ if(normKey(r.e)===nk) S.sp += Number(r.q)||0; });
+  (tiendaState?.sl||[]).forEach(r=>{ if(normKey(r.e)===nk) S.sl += Number(r.q)||0; });
+  (tiendaState?.st||[]).forEach(r=>{ if(normKey(r.e)===nk) S.st += Number(r.q)||0; });
+  return S;
+}
+function totalComprado(){
+  const map={};
+  (PROVEEDORES||[]).forEach(p=>{
+    (__purchases[p]||[]).forEach(it=>{
+      map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
+    });
+  });
+  // incluir _SIN_PROV_
+  (__purchases['_SIN_PROV_']||[]).forEach(it=>{
+    map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
+  });
+  return map;
+}
+function totalSolicitado(){
+  const all = [].concat(tiendaState?.sp||[], tiendaState?.sl||[], tiendaState?.st||[]);
+  const map = {};
+  all.forEach(r=>{
+    const k = normKey(r.e);
+    map[k] = (map[k]||0) + (Number(r.q)||0);
+  });
+  const byName={};
+  Object.keys(map).forEach(k=>{
+    const row = all.find(r=>normKey(r.e)===k);
+    byName[row?row.e:k] = map[k];
+  });
+  return byName;
+}
+function autoExceso(sol, comp){
+  const ex = Math.max(0, comp - sol);
+  return {sp: +(ex*0.50).toFixed(2), sl: +(ex*0.20).toFixed(2), st: +(ex*0.30).toFixed(2)};
+}
+
+function renderReparto(){
+  const cont = byId('reparto-wrap'); if(!cont) return;
+  const rep = __reparto || {};
+  const comprado = totalComprado();
+  const solicitado = totalSolicitado();
+
+  const productos = Object.keys(comprado).sort((a,b)=>a.localeCompare(b,'es'));
+  if(!productos.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; updateGlobalStatus(); return;}
+
+  let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Restante global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th></tr></thead><tbody>';
+  productos.forEach(name=>{
+    const comp = +(Number(comprado[name])||0).toFixed(2);
+    const sol  = +(Number(solicitado[name])||0).toFixed(2);
+    if(comp<=0) return;
+
+    const base = solicitadoPorTienda(name);
+    const exceso = autoExceso(sol, comp);
+    const objetivo = { sp: base.sp+exceso.sp, sl: base.sl+exceso.sl, st: base.st+exceso.st };
+    const entregado = rep[name] || {sp:0,sl:0,st:0};
+
+    const rest = {
+      sp: Math.max(0, +(objetivo.sp - (entregado.sp||0)).toFixed(2)),
+      sl: Math.max(0, +(objetivo.sl - (entregado.sl||0)).toFixed(2)),
+      st: Math.max(0, +(objetivo.st - (entregado.st||0)).toFixed(2)),
+    };
+    const restGlobal = Math.max(0, +(comp - ((entregado.sp||0)+(entregado.sl||0)+(entregado.st||0))).toFixed(2));
+
+    html += `<tr data-name="${name}">
+      <td>${name}</td>
+      <td>${comp}</td>
+      <td>${sol}</td>
+      <td>${restGlobal}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn small muted r-dec" data-t="sp">-</button>
+          <input class="r-val r-sp" type="number" min="0" step="0.01" value="${entregado.sp||0}" style="width:90px">
+          <button class="btn small muted r-inc" data-t="sp">+</button>
+          <span class="pill">${rest.sp} restantes</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn small muted r-dec" data-t="sl">-</button>
+          <input class="r-val r-sl" type="number" min="0" step="0.01" value="${entregado.sl||0}" style="width:90px">
+          <button class="btn small muted r-inc" data-t="sl">+</button>
+          <span class="pill">${rest.sl} restantes</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn small muted r-dec" data-t="st">-</button>
+          <input class="r-val r-st" type="number" min="0" step="0.01" value="${entregado.st||0}" style="width:90px">
+          <button class="btn small muted r-inc" data-t="st">+</button>
+          <span class="pill">${rest.st} restantes</span>
+        </div>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+
+  // Handlers por fila
+  cont.querySelectorAll('tr[data-name]').forEach(tr=>{
+    const name = tr.dataset.name;
+    const apply = (t,delta)=>{
+      const cur = __reparto;
+      if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
+      cur[name][t] = Math.max(0, +( (Number(cur[name][t]||0) + delta) ).toFixed(2));
+      persistState();
+      renderReparto();
+    };
+    tr.querySelectorAll('.r-inc').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, +1)));
+    tr.querySelectorAll('.r-dec').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, -1)));
+    ['sp','sl','st'].forEach(t=>{
+      tr.querySelector('.r-'+t)?.addEventListener('change', (e)=>{
+        const cur = __reparto;
+        if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
+        cur[name][t] = Math.max(0, +(Number(e.target.value)||0).toFixed(2));
+        persistState(); renderReparto();
+      });
+    });
+  });
+
+  byId('reparto-save').onclick = ()=>{
+    persistState();
+    alert('Reparto guardado.');
+  };
+
+  updateGlobalStatus();
+}
+
+/* ==========================
+   Precios (pestaña nueva)
+========================== */
+function productosCompradosPorProveedor(){
+  const out = {};
+  (PROVEEDORES||[]).forEach(p=> out[p]=[]);
+  // Del carrito de compras por proveedor
+  const purchases = __purchases||{};
+  Object.keys(purchases).forEach(prov=>{
+    (purchases[prov]||[]).forEach(it=>{
+      if(prov==='_SIN_PROV_') return; // omite sin proveedor en módulo de precios
+      if((Number(it.purchased)||0)<=0) return;
+      if(!out[prov]) out[prov]=[];
+      const exists = out[prov].some(x=> normKey(x.name)===normKey(it.name));
+      if(!exists) out[prov].push({name:it.name});
+    });
+  });
+  return out;
+}
+function renderPrecios(){
+  const cont = byId('precios-wrap'); if(!cont) return;
+  const prices = getPrices();
+  const data = productosCompradosPorProveedor();
+  let html = '';
+  const provs = Object.keys(data);
+  if(!provs.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; return; }
+
+  provs.forEach(prov=>{
+    const list = data[prov]||[];
+    html += `<div class="card" style="margin-bottom:10px">
+      <div class="hd"><strong>${prov}</strong></div>
+      <div class="bd">`;
+    if(!list.length){
+      html += `<div class="hint">Sin productos comprados para ${prov}.</div>`;
+    }else{
+      html += `<table><thead><tr><th>Producto</th><th>Precio anterior</th><th>Precio nuevo</th><th>Acción</th></tr></thead><tbody>`;
+      list.sort((a,b)=>a.name.localeCompare(b.name,'es')).forEach((it)=>{
+        const k = priceKey(prov, it.name);
+        const prev = prices[k]?.price ?? '';
+        html += `<tr data-prov="${prov}" data-name="${it.name}">
+          <td>${it.name}</td>
+          <td>${prev!==''? prev : '<span class="hint">—</span>'}</td>
+          <td><input class="p-new" type="number" min="0" step="0.01" value="${prev!==''?prev:''}" style="width:130px"></td>
+          <td>
+            <button class="btn small muted p-save">Guardar</button>
+            <button class="btn small p-equal">✅ Igual</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+    html += `</div></div>`;
+  });
+  cont.innerHTML = html;
+
+  // Handlers
+  cont.querySelectorAll('.p-save').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tr = btn.closest('tr');
+      const prov = tr.dataset.prov;
+      const name = tr.dataset.name;
+      const val  = Number(tr.querySelector('.p-new').value);
+      const k = priceKey(prov, name);
+      const obj = getPrices();
+      obj[k] = {prov, name, price: isFinite(val)? val : null};
+      setPrices(obj);
+      alert('Precio guardado.');
+      updateGlobalStatus();
+    });
+  });
+  cont.querySelectorAll('.p-equal').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tr = btn.closest('tr');
+      const prov = tr.dataset.prov;
+      const name = tr.dataset.name;
+      const k = priceKey(prov, name);
+      const obj = getPrices();
+      if(obj[k] && obj[k].price!=null){
+        tr.querySelector('.p-new').value = obj[k].price;
+      }else{
+        tr.querySelector('.p-new').value = '';
+      }
+      tr.style.background = '#f6ffed';
+    });
+  });
+
+  // Barra superior de la pestaña
+  byId('precios-save').onclick = ()=>{
+    alert('Los cambios de precio por fila ya quedan guardados al pulsar "Guardar".');
+  };
+  byId('precios-send').onclick = ()=>{
+    const obj = getPrices();
+    const changesByProv = {};
+    document.querySelectorAll('#precios-wrap tr[data-prov]').forEach(tr=>{
+      const prov = tr.dataset.prov;
+      const name = tr.dataset.name;
+      const inputVal = tr.querySelector('.p-new').value;
+      if(inputVal==='') return;
+      const newPrice = Number(inputVal);
+      if(!isFinite(newPrice)) return;
+
+      const k = priceKey(prov, name);
+      const prev = obj[k]?.price ?? null;
+
+      if(prev===null || Number(prev) !== newPrice){
+        if(!changesByProv[prov]) changesByProv[prov] = [];
+        changesByProv[prov].push({name, prev, next:newPrice});
+        obj[k] = {prov, name, price:newPrice};
+      }
+    });
+    setPrices(obj);
+
+    if(!Object.keys(changesByProv).length){
+      alert('No hay cambios de precio para enviar.');
+      return;
+    }
+
+    Object.keys(changesByProv).forEach(prov=>{
+      const lines = changesByProv[prov].map(r=>{
+        const prevTxt = (r.prev===null || r.prev===undefined || r.prev==='')? '—' : r.prev;
+        return `- ${r.name}: ${prevTxt} → ${r.next}`;
+      }).join('\n');
+      const msg = `CAMBIOS DE PRECIOS (${prov})\n${lines}`;
+      const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+      window.open(url, '_blank');
+    });
+
+    updateGlobalStatus();
+  };
+}
+
+/* ==========================
+   Estado Global Superior
+========================== */
+function updateGlobalStatus(){
+  // Sin asignar (por nombre unificado)
+  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const totalMap = {};
+  all.forEach(r=>{
+    const k = normKey(r.e);
+    if(!totalMap[k]) totalMap[k] = {name:r.e, total:0};
+    totalMap[k].total += (Number(r.q)||0);
+  });
+  const unassignedKeys = Object.keys(totalMap).filter(k=> !assignments[k]);
+  const sinAsignar = unassignedKeys.length;
+
+  // Pedidos enviados: consideramos proveedores con líneas en orders
+  const pedidosEnviados = Object.values(orders||{}).filter(list => list && list.length).length;
+
+  // Comprados totales (uds)
+  let compradosUds = 0;
+  Object.values(__purchases||{}).forEach(list=>{
+    (list||[]).forEach(it=> compradosUds += (Number(it.purchased)||0));
+  });
+
+  // Sin comprar: aproximación = líneas totales en orders - líneas con purchased>0 (por producto y prov)
+  let lineasOrders = 0;
+  Object.values(orders||{}).forEach(list=> lineasOrders += (list||[]).length);
+  let lineasCompradas = 0;
+  Object.values(__purchases||{}).forEach(list=> lineasCompradas += (list||[]).filter(it=> (Number(it.purchased)||0)>0).length);
+  const sinComprar = Math.max(0, lineasOrders - lineasCompradas);
+
+  // Reparto pendiente: suma de cantidades asignadas menos entregadas (aprox por existencia en __reparto)
+  let pendienteReparto = 0;
+  const compradoPorNombre = totalComprado();
+  Object.keys(compradoPorNombre).forEach(name=>{
+    const entreg = __reparto[name] ? (Number(__reparto[name].sp||0)+Number(__reparto[name].sl||0)+Number(__reparto[name].st||0)) : 0;
+    const rest = Math.max(0, Number(compradoPorNombre[name]) - entreg);
+    pendienteReparto += rest;
+  });
+
+  // Cambios de precio por revisar: entradas sin precio establecido
+  const pricesObj = getPrices();
+  let cambiosPrecio = 0;
+  // Consideramos "por revisar" cuando no hay precio guardado todavía
+  // y existe producto comprado en ese proveedor (ya visible en la pestaña Precios)
+  const compradosProv = productosCompradosPorProveedor();
+  Object.keys(compradosProv).forEach(prov=>{
+    compradosProv[prov].forEach(it=>{
+      const k = priceKey(prov, it.name);
+      if(!(k in pricesObj)) cambiosPrecio++;
+    });
+  });
+
+  byId('status-assign').textContent = `🧾 Sin asignar: ${sinAsignar}`;
+  byId('status-buy').textContent = `🛒 Sin comprar: ${sinComprar}`;
+  byId('status-sent').textContent = `✅ Pedidos enviados: ${pedidosEnviados}`;
+  byId('status-bought').textContent = `📦 Comprados: ${compradosUds} uds`;
+  byId('status-distribute').textContent = `🚚 Reparto pendiente: ${pendienteReparto}`;
+  byId('status-prices').textContent = `📊 Cambios precio: ${cambiosPrecio}`;
+}
+
+/* ==========================
    INIT
 ========================== */
 (function init(){
   showTab('dic');        // pestaña inicial
   loadVocab();           // carga vocab (o el guardado)
-  loadState();           // tiendas + assignments + orders
+  loadState();           // tiendas + assignments + orders + compras + reparto
   ['sp','sl','st'].forEach(code=> renderTable(code));
   buildProvBar();
   renderProvidersPanels();
   unificarGlobal();      // pintar global inicial si hay datos
+  updateGlobalStatus();
+
+  // Acciones extra de la cabecera del diccionario ya incluidas en HTML:
+  // - resetAll()
+  // - resetAllButKeepVocab()
 })();
 </script>
-
-<!-- 🔽 EXTENSIÓN: Inyecta tabs "Compras" y "Reparto" sin tocar tu HTML -->
+<!-- ==========================
+     Extensión opcional: Supabase sync
+     (Si quieres sincronizar vocabulario, tiendas, asignaciones, pedidos,
+     compras, reparto y precios con tu base de datos Supabase).
+     Requiere que crees las tablas correspondientes y establezcas los valores
+     SUPA_URL y SUPA_KEY en localStorage.
+========================== -->
 <script>
-(function(){
-  // Crear secciones invisibles
-  const compras = document.createElement('section');
-  compras.className = 'tab'; compras.id = 'tab-compras'; compras.style.display='none';
-  compras.innerHTML = `
-    <div class="card">
-      <div class="hd">
-        <strong>🛒 Compras (por proveedor)</strong>
-        <div class="toolbar">
-          <button class="btn small" id="compras-add">+ Añadir compra</button>
-          <button class="btn small muted" id="compras-sync">☁️ Sincronizar</button>
-        </div>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecerán en Reparto.</div>
-        <div id="compras-wrap" class="scroll-x"></div>
-      </div>
-    </div>`;
-  document.querySelector('.container').appendChild(compras);
+// Comprueba si Supabase está disponible
+if (typeof window.supabase !== "undefined") {
+  const SUPA_URL = localStorage.getItem("SUPA_URL");
+  const SUPA_KEY = localStorage.getItem("SUPA_KEY");
+  if (SUPA_URL && SUPA_KEY) {
+    const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
-  const reparto = document.createElement('section');
-  reparto.className = 'tab'; reparto.id = 'tab-reparto'; reparto.style.display='none';
-  reparto.innerHTML = `
-    <div class="card">
-      <div class="hd">
-        <strong>🚚 Reparto (solo productos COMPRADOS)</strong>
-        <div class="toolbar">
-          <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
-        </div>
-      </div>
-      <div class="bd">
-        <div id="reparto-wrap" class="scroll-x"></div>
-      </div>
-    </div>`;
-  document.querySelector('.container').appendChild(reparto);
-
-  // Añadir botones a la tabbar
-  const tabbar = document.querySelector('.tabbar');
-  const btnCompras = document.createElement('button');
-  btnCompras.id='btn-compras'; btnCompras.innerHTML='🛒<span>Compras</span>'; btnCompras.onclick=()=>showTabExt('compras');
-  const btnReparto = document.createElement('button');
-  btnReparto.id='btn-reparto'; btnReparto.innerHTML='🚚<span>Reparto</span>'; btnReparto.onclick=()=>showTabExt('reparto');
-  tabbar.appendChild(btnCompras);
-  tabbar.appendChild(btnReparto);
-
-  // Wrapper para no tocar showTab original
-  const origShowTab = window.showTab;
-  window.showTab = function(key){
-    origShowTab && origShowTab(key);
-    // desactivar nuevos
-    ['compras','reparto'].forEach(k=>{
-      const tab = document.getElementById('tab-'+k);
-      const btn = document.getElementById('btn-'+k);
-      const active = (k===key);
-      if (tab) tab.style.display = active?'block':'none';
-      if (btn) btn.classList.toggle('active', active);
-    });
-    if(key==='compras'){ renderCompras(); }
-    if(key==='reparto'){ renderReparto(); }
-  };
-  window.showTabExt = window.showTab; // alias
-
-  // ======= Estado extra (compartido con la otra extensión) =======
-  const LS_PUR = 'arslan_v34_purchases';
-  const LS_REP = 'arslan_v34_reparto';
-  function getPurchases(){
-    try{ return JSON.parse(localStorage.getItem(LS_PUR)||'{}')||{}; }catch{ return {}; }
-  }
-  function setPurchases(obj){
-    localStorage.setItem(LS_PUR, JSON.stringify(obj||{}));
-    window.persistState && window.persistState();
-  }
-  function getReparto(){
-    try{ return JSON.parse(localStorage.getItem(LS_REP)||'{}')||{}; }catch{ return {}; }
-  }
-  function setReparto(obj){
-    localStorage.setItem(LS_REP, JSON.stringify(obj||{}));
-    window.persistState && window.persistState();
-  }
-
-  // ======= Render Compras =======
-  function renderCompras(){
-    const cont = document.getElementById('compras-wrap');
-    const purchases = getPurchases();
-    let html = '<table><thead><tr><th>Proveedor</th><th>Producto</th><th>Comprado</th><th>Acciones</th></tr></thead><tbody>';
-    const vendors = window.PROVEEDORES||[];
-    vendors.forEach(p=>{
-      const list = purchases[p]||[];
-      if(!list.length){
-        html += `<tr><td>${p}</td><td colspan="3" class="hint">Sin compras</td></tr>`;
-      }else{
-        list.forEach((it,ix)=>{
-          html += `<tr data-prov="${p}" data-idx="${ix}">
-            <td>${p}</td>
-            <td contenteditable="true" class="c-name">${it.name}</td>
-            <td><input class="c-qty" type="number" min="0" step="0.01" value="${Number(it.purchased)||0}" style="width:100px"></td>
-            <td>
-              <button class="btn small muted c-save">Guardar</button>
-              <button class="btn small c-del">Eliminar</button>
-            </td>
-          </tr>`;
-        });
+    // Función para enviar estado a Supabase
+    async function syncToSupabase() {
+      try {
+        await supa.from('vocab').upsert(
+          toLines(byId('vocabTxt').value).map((v, i) => ({ id: i + 1, palabra: v }))
+        );
+        await supa.from('tienda_sp').upsert(tiendaState.sp.map((r, i) => ({ id: i + 1, ...r })));
+        await supa.from('tienda_sl').upsert(tiendaState.sl.map((r, i) => ({ id: i + 1, ...r })));
+        await supa.from('tienda_st').upsert(tiendaState.st.map((r, i) => ({ id: i + 1, ...r })));
+        await supa.from('assignments').upsert(Object.entries(assignments).map(([k, v]) => ({ producto: k, proveedor: v })));
+        await supa.from('orders').upsert(
+          Object.entries(orders).flatMap(([p, list]) => list.map((item, i) => ({
+            id: `${p}-${i}`, proveedor: p, ...item
+          })))
+        );
+        await supa.from('purchases').upsert(
+          Object.entries(__purchases).flatMap(([p, list]) => list.map((item, i) => ({
+            id: `${p}-${i}`, proveedor: p, ...item
+          })))
+        );
+        await supa.from('reparto').upsert(
+          Object.entries(__reparto).map(([name, dist]) => ({
+            producto: name, ...dist
+          }))
+        );
+        await supa.from('prices').upsert(
+          Object.values(getPrices()).map((pr, i) => ({
+            id: i + 1, ...pr
+          }))
+        );
+        alert("Sincronizado con Supabase correctamente.");
+      } catch (e) {
+        console.warn("Error en sincronización:", e);
+        alert("Hubo un problema al sincronizar con Supabase.");
       }
-    });
-    html += '</tbody></table>';
-    cont.innerHTML = html;
+    }
 
-    // handlers
-    cont.querySelectorAll('.c-save').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const tr = btn.closest('tr');
-        const p = tr.dataset.prov, ix = Number(tr.dataset.idx);
-        const name = tr.querySelector('.c-name').innerText.trim();
-        const qty  = Number(tr.querySelector('.c-qty').value)||0;
-        purchases[p][ix] = {name, purchased:qty};
-        setPurchases(purchases);
-        alert('Compra guardada');
-      });
-    });
-    cont.querySelectorAll('.c-del').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const tr = btn.closest('tr');
-        const p = tr.dataset.prov, ix = Number(tr.dataset.idx);
-        purchases[p].splice(ix,1);
-        setPurchases(purchases);
-        renderCompras();
-      });
-    });
-
-    // añadir compra
-    document.getElementById('compras-add').onclick = ()=>{
-      const prov = prompt('Proveedor (exacto como en la lista):\n' + (window.PROVEEDORES||[]).join(', '));
-      if(!prov){return;}
-      const name = prompt('Producto (usa nombres del diccionario si es posible):');
-      if(!name){return;}
-      const qty = Number(prompt('Cantidad comprada:')||'0')||0;
-      if(!purchases[prov]) purchases[prov]=[];
-      purchases[prov].push({name:window.removeDiacriticsUpper(name), purchased:qty});
-      setPurchases(purchases);
-      renderCompras();
-    };
-    // sincronizar
-    document.getElementById('compras-sync').onclick = ()=>{
-      window.persistState && window.persistState();
-      alert('Solicitada sincronización.');
-    };
+    // Botón de sincronización global (si lo necesitas en interfaz)
+    const syncBtn = document.createElement("button");
+    syncBtn.className = "btn small muted";
+    syncBtn.textContent = "☁️ Sincronizar Supabase";
+    syncBtn.style.marginTop = "10px";
+    syncBtn.onclick = syncToSupabase;
+    document.querySelector(".container").appendChild(syncBtn);
   }
-
-  // ======= Aux para Reparto =======
-  function solicitadoPorTienda(name){
-    const nk = window.normKey(name);
-    const S = {sp:0, sl:0, st:0};
-    (window.tiendaState?.sp||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.sp += Number(r.q)||0; });
-    (window.tiendaState?.sl||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.sl += Number(r.q)||0; });
-    (window.tiendaState?.st||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.st += Number(r.q)||0; });
-    return S;
-  }
-  function totalSolicitado(){
-    const all = [].concat(window.tiendaState?.sp||[], window.tiendaState?.sl||[], window.tiendaState?.st||[]);
-    const map = {};
-    all.forEach(r=>{
-      const k = window.normKey(r.e);
-      map[k] = (map[k]||0) + (Number(r.q)||0);
-    });
-    const byName={};
-    Object.keys(map).forEach(k=>{
-      const row = all.find(r=>window.normKey(r.e)===k);
-      byName[row?row.e:k] = map[k];
-    });
-    return byName;
-  }
-  function totalComprado(){
-    const purchases = getPurchases();
-    const map={};
-    (window.PROVEEDORES||[]).forEach(p=>{
-      (purchases[p]||[]).forEach(it=>{
-        map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
-      });
-    });
-    return map;
-  }
-  function autoExceso(sol, comp){
-    const ex = Math.max(0, comp - sol);
-    return {sp: +(ex*0.50).toFixed(2), sl: +(ex*0.20).toFixed(2), st: +(ex*0.30).toFixed(2)};
-  }
-
-  // ======= Render Reparto =======
-  function renderReparto(){
-    const cont = document.getElementById('reparto-wrap');
-    const rep = getReparto();
-    const comprado = totalComprado();
-    const solicitado = totalSolicitado();
-
-    const productos = Object.keys(comprado).sort((a,b)=>a.localeCompare(b,'es'));
-    if(!productos.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; return;}
-
-    let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Restante global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th></tr></thead><tbody>';
-    productos.forEach(name=>{
-      const comp = +(Number(comprado[name])||0).toFixed(2);
-      const sol  = +(Number(solicitado[name])||0).toFixed(2);
-      if(comp<=0) return;
-
-      const base = solicitadoPorTienda(name);
-      const exceso = autoExceso(sol, comp);
-      const objetivo = { sp: base.sp+exceso.sp, sl: base.sl+exceso.sl, st: base.st+exceso.st };
-      const entregado = rep[name] || {sp:0,sl:0,st:0};
-
-      const rest = {
-        sp: Math.max(0, +(objetivo.sp - (entregado.sp||0)).toFixed(2)),
-        sl: Math.max(0, +(objetivo.sl - (entregado.sl||0)).toFixed(2)),
-        st: Math.max(0, +(objetivo.st - (entregado.st||0)).toFixed(2)),
-      };
-      const restGlobal = Math.max(0, +(comp - ((entregado.sp||0)+(entregado.sl||0)+(entregado.st||0))).toFixed(2));
-
-      html += `<tr data-name="${name}">
-        <td>${name}</td>
-        <td>${comp}</td>
-        <td>${sol}</td>
-        <td>${restGlobal}</td>
-        <td>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn small muted r-dec" data-t="sp">-</button>
-            <input class="r-val r-sp" type="number" min="0" step="0.01" value="${entregado.sp||0}" style="width:90px">
-            <button class="btn small muted r-inc" data-t="sp">+</button>
-            <span class="pill">${rest.sp} restantes</span>
-          </div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn small muted r-dec" data-t="sl">-</button>
-            <input class="r-val r-sl" type="number" min="0" step="0.01" value="${entregado.sl||0}" style="width:90px">
-            <button class="btn small muted r-inc" data-t="sl">+</button>
-            <span class="pill">${rest.sl} restantes</span>
-          </div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn small muted r-dec" data-t="st">-</button>
-            <input class="r-val r-st" type="number" min="0" step="0.01" value="${entregado.st||0}" style="width:90px">
-            <button class="btn small muted r-inc" data-t="st">+</button>
-            <span class="pill">${rest.st} restantes</span>
-          </div>
-        </td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    cont.innerHTML = html;
-
-    // Handlers por fila
-    cont.querySelectorAll('tr[data-name]').forEach(tr=>{
-      const name = tr.dataset.name;
-      const apply = (t,delta)=>{
-        const cur = getReparto();
-        if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
-        cur[name][t] = Math.max(0, +( (Number(cur[name][t]||0) + delta) ).toFixed(2));
-        setReparto(cur);
-        renderReparto();
-      };
-      tr.querySelectorAll('.r-inc').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, +1)));
-      tr.querySelectorAll('.r-dec').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, -1)));
-      ['sp','sl','st'].forEach(t=>{
-        tr.querySelector('.r-'+t)?.addEventListener('change', (e)=>{
-          const cur = getReparto();
-          if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
-          cur[name][t] = Math.max(0, +(Number(e.target.value)||0).toFixed(2));
-          setReparto(cur); renderReparto();
-        });
-      });
-    });
-
-    document.getElementById('reparto-save').onclick = ()=>{
-      window.persistState && window.persistState();
-      alert('Reparto guardado (local + supabase si está configurado).');
-    };
-  }
-
-})();
+}
 </script>
 
-<!-- 🔽 EXTENSIONES KIWI v3.4 (Supabase + WhatsApp + Comprado) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-/*
-==========================================
-KIWI EXTENSIONS v3.4 (overlay no intrusivo)
-- NO MODIFICA NADA DEL CÓDIGO EXISTENTE
-- Añade: Supabase sync, WhatsApp envío,
-         Comprados, Reparto tab (50/20/30),
-         Vocab sincronizable, Compras tab.
-==========================================
-
-🗄️ ESQUEMA SQL SUGERIDO (ejecutar en SQL Editor):
---------------------------------------------------
-create table if not exists vocab_items ( name text primary key );
-create table if not exists stores ( id text primary key, data jsonb not null, updated_at timestamptz default now() );
-create table if not exists assignments ( key text primary key, prov text not null );
-create table if not exists orders ( prov text not null, name text not null, qty numeric not null default 0, primary key (prov,name) );
-create table if not exists purchases ( prov text not null, name text not null, purchased numeric not null default 0, primary key (prov,name) );
-create table if not exists reparto ( name text primary key, sp numeric not null default 0, sl numeric not null default 0, st numeric not null default 0 );
--- Activa RLS según tu seguridad. Para pruebas, permite anon.
---------------------------------------------------
-*/
-(() => {
-  const SUPA_URL = localStorage.getItem('SUPA_URL') || '';
-  const SUPA_KEY = localStorage.getItem('SUPA_KEY') || '';
-  const supa = (SUPA_URL && SUPA_KEY && window.supabase) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
-
-  const LS_PUR = 'arslan_v34_purchases';
-  const LS_REP = 'arslan_v34_reparto';
-
-  function loadExtras() {
-    try{ window.__purchases = JSON.parse(localStorage.getItem(LS_PUR)||'{}')||{}; }catch{ window.__purchases = {}; }
-    try{ window.__reparto   = JSON.parse(localStorage.getItem(LS_REP)||'{}')||{}; }catch{ window.__reparto   = {}; }
-    (window.PROVEEDORES||[]).forEach(p=>{ if(!Array.isArray(window.__purchases[p])) window.__purchases[p]=[]; });
-  }
-  function saveExtras() {
-    localStorage.setItem(LS_PUR, JSON.stringify(window.__purchases||{}));
-    localStorage.setItem(LS_REP, JSON.stringify(window.__reparto||{}));
-  }
-
-  const _persist = window.persistState;
-  const _load    = window.loadState;
-
-  window.persistState = async function() {
-    _persist && _persist();
-    saveExtras();
-    if (!supa) return;
-    try { await supaUpAll(); } catch(e){ console.warn('Supabase up error:', e.message||e); }
-  };
-
-  window.loadState = async function() {
-    _load && _load();
-    loadExtras();
-    if (!supa) return;
-    try { await supaDownAll(); } catch(e){ console.warn('Supabase down error:', e.message||e); }
-  };
-
-  // ======= WhatsApp + compra auto =======
-  function getPedidoTexto(prov){
-    const list = (window.orders?.[prov]||[]);
-    if(!list.length) return '';
-    let out = `PEDIDO ${prov}\n`;
-    list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
-    return out.trim();
-  }
-  function marcarCompradoTotalDeProveedor(prov){
-    const list = (window.orders?.[prov]||[]);
-    if(!Array.isArray(window.__purchases[prov])) window.__purchases[prov]=[];
-    list.forEach(it=>{
-      const idx = window.__purchases[prov].findIndex(x=> window.normKey(x.name) === window.normKey(it.name));
-      if (idx>-1) window.__purchases[prov][idx].purchased = Number(it.qty)||0;
-      else window.__purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
-    });
-    saveExtras();
-    window.persistState();
-  }
-  const _renderProvPanels = window.renderProvidersPanels;
-  window.renderProvidersPanels = function(){
-    _renderProvPanels && _renderProvPanels();
-    const cont = document.getElementById('provPanels');
-    if(!cont) return;
-    cont.querySelectorAll('.card').forEach(card=>{
-      const title = card.querySelector('.hd strong')?.innerText || '';
-      const prov = title.trim();
-      const toolbar = card.querySelector('.hd .toolbar');
-      if (!toolbar) return;
-
-      if (!toolbar.querySelector('.btn.whats')) {
-        const b = document.createElement('button');
-        b.className = 'btn small whats';
-        b.textContent = '🟢 WhatsApp';
-        b.onclick = ()=>{
-          const txt = getPedidoTexto(prov);
-          if(!txt){ alert('Sin líneas para enviar.'); return; }
-          const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
-          window.open(url, '_blank');
-          if (confirm('¿Marcar todo este pedido como COMPRADO?')) {
-            marcarCompradoTotalDeProveedor(prov);
-          }
-        };
-        toolbar.appendChild(b);
-      }
-      if (!toolbar.querySelector('.btn.markall')) {
-        const b2 = document.createElement('button');
-        b2.className = 'btn small markall';
-        b2.textContent = '✅ Marcar todo comprado';
-        b2.onclick = ()=> {
-          if (confirm(`Marcar TODO ${prov} como COMPRADO (cantidad igual al pedido)?`)) {
-            marcarCompradoTotalDeProveedor(prov);
-          }
-        };
-        toolbar.appendChild(b2);
-      }
-
-      // controles por línea
-      const rows = card.querySelectorAll('tbody tr');
-      rows.forEach(tr=>{
-        const tds = tr.querySelectorAll('td');
-        if (tds.length<2) return;
-        if (tr.querySelector('.comprado-wrap')) return;
-        const name = tds[0].innerText.trim();
-        const qtyTd = tds[1];
-
-        const wrap = document.createElement('div');
-        wrap.className = 'comprado-wrap';
-        wrap.style.marginTop = '6px';
-        wrap.innerHTML = `
-          <span class="hint">Comprado:</span>
-          <input type="number" min="0" step="0.01" style="width:90px;margin:0 6px" value="0" />
-          <button class="btn small muted">OK</button>
-        `;
-        const input = wrap.querySelector('input');
-        const btn   = wrap.querySelector('button');
-        btn.onclick = ()=>{
-          const val = Number(input.value)||0;
-          if(!Array.isArray(window.__purchases[prov])) window.__purchases[prov]=[];
-          const idx = window.__purchases[prov].findIndex(x=> window.normKey(x.name)===window.normKey(name));
-          if(idx>-1) window.__purchases[prov][idx].purchased = val;
-          else window.__purchases[prov].push({name, purchased:val});
-          saveExtras();
-          window.persistState();
-          alert('Marcado como comprado.');
-        };
-        qtyTd.appendChild(wrap);
-      });
-    });
-  };
-
-  // ======= Supabase Sync =======
-  async function supaUpAll(){
-    // vocab
-    const vocab = (document.getElementById('vocabTxt')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-    if (vocab.length) {
-      await supa.from('vocab_items').delete().neq('name','');
-      const payload = vocab.map(name=>({name}));
-      if (payload.length) await supa.from('vocab_items').insert(payload);
-    }
-    // stores
-    const storesPayload = [
-      {id:'sp', data: window.tiendaState?.sp||[]},
-      {id:'sl', data: window.tiendaState?.sl||[]},
-      {id:'st', data: window.tiendaState?.st||[]},
-    ];
-    for (const row of storesPayload) await supa.from('stores').upsert(row);
-    // assignments
-    const ass = window.assignments || {};
-    await supa.from('assignments').delete().neq('key','');
-    const assRows = Object.keys(ass).map(k=>({key:k, prov: ass[k]}));
-    if (assRows.length) await supa.from('assignments').insert(assRows);
-    // orders
-    await supa.from('orders').delete().neq('prov','');
-    for (const p of window.PROVEEDORES||[]) {
-      const list = (window.orders?.[p]||[]);
-      if (list.length){
-        await supa.from('orders').insert(list.map(it=>({prov:p, name:it.name, qty:Number(it.qty)||0})));
-      }
-    }
-    // purchases
-    await supa.from('purchases').delete().neq('prov','');
-    for (const p of window.PROVEEDORES||[]) {
-      const list = window.__purchases[p]||[];
-      if (list.length){
-        await supa.from('purchases').insert(list.map(it=>({prov:p, name:it.name, purchased:Number(it.purchased)||0})));
-      }
-    }
-    // reparto
-    await supa.from('reparto').delete().neq('name','');
-    const repRows = Object.keys(window.__reparto||{}).map(n=>({name:n, sp:window.__reparto[n].sp||0, sl:window.__reparto[n].sl||0, st:window.__reparto[n].st||0}));
-    if (repRows.length) await supa.from('reparto').insert(repRows);
-  }
-
-  async function supaDownAll(){
-    // vocab
-    const { data: vocabRows } = await supa.from('vocab_items').select('name');
-    if (Array.isArray(vocabRows) && vocabRows.length){
-      const list = vocabRows.map(r=>String(r.name||'').toUpperCase()).filter(Boolean);
-      const merged = Array.from(new Set(list)).sort();
-      const ta = document.getElementById('vocabTxt');
-      if (ta) ta.value = merged.join('\n');
-      localStorage.setItem(window.LS.VOCAB, ta.value);
-    }
-    // stores
-    const { data: sRows } = await supa.from('stores').select('id,data');
-    if (Array.isArray(sRows) && sRows.length){
-      const map = {};
-      sRows.forEach(r=>{ map[r.id]=r.data||[]; });
-      localStorage.setItem(window.LS.STORES, JSON.stringify(map));
-      ['sp','sl','st'].forEach(k=>{ if(Array.isArray(map[k])) window.tiendaState[k]=map[k]; });
-    }
-    // assignments
-    const { data: aRows } = await supa.from('assignments').select('key,prov');
-    if (Array.isArray(aRows)){
-      const obj = {}; aRows.forEach(r=> obj[r.key]=r.prov );
-      window.assignments = obj;
-      localStorage.setItem(window.LS.ASSIGN, JSON.stringify(obj));
-    }
-    // orders
-    const { data: oRows } = await supa.from('orders').select('prov,name,qty');
-    if (Array.isArray(oRows)){
-      const obj = {}; (window.PROVEEDORES||[]).forEach(p=>obj[p]=[]);
-      oRows.forEach(r=>{
-        if(!obj[r.prov]) obj[r.prov]=[];
-        obj[r.prov].push({name:r.name, qty:Number(r.qty)||0});
-      });
-      window.orders = obj;
-      localStorage.setItem(window.LS.ORDERS, JSON.stringify(obj));
-    }
-    // purchases
-    const { data: pRows } = await supa.from('purchases').select('prov,name,purchased');
-    if (Array.isArray(pRows)){
-      const obj = {}; (window.PROVEEDORES||[]).forEach(p=>obj[p]=[]);
-      pRows.forEach(r=>{
-        if(!obj[r.prov]) obj[r.prov]=[];
-        obj[r.prov].push({name:r.name, purchased:Number(r.purchased)||0});
-      });
-      window.__purchases = obj; saveExtras();
-    }
-    // reparto
-    const { data: rRows } = await supa.from('reparto').select('name,sp,sl,st');
-    if (Array.isArray(rRows)){
-      const obj = {}; rRows.forEach(r=> obj[r.name] = {sp:Number(r.sp)||0, sl:Number(r.sl)||0, st:Number(r.st)||0});
-      window.__reparto = obj; saveExtras();
-    }
-  }
-
-  // Hook inicial para asegurar sync al cargar
-  document.addEventListener('DOMContentLoaded', ()=>{
-    if (supa) { window.loadState && window.loadState(); }
-  });
-
-})();
-</script>
 </body>
 </html>
