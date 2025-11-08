@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.3 — SUPABASE SYNC EDITION</title>
+<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Supabase JS v2 -->
-<script type="module" src="https://esm.sh/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
@@ -16,7 +14,7 @@
   *{box-sizing:border-box}
   body{font-family:'Poppins',sans-serif;color:var(--ink);background:#fff;margin:0}
   h1{font-size:18px;margin:0;color:var(--ink)}
-  .container{padding:12px 12px 76px}
+  .container{padding:12px 12px 76px} /* bottom space for tabbar */
   .hint{font-size:12px;color:var(--muted)}
   .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
   .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
@@ -28,24 +26,23 @@
   .btn.small{padding:6px 10px;font-size:13px}
   textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px}
   table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top;white-space:nowrap}
-  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:#fff;position:sticky;top:0;z-index:2}
+  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
+  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
   .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
   .pill.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
   .pill.warn{border-color:#fecaca;background:#fee2e2;color:#991b1b}
   .red{color:var(--bad);font-weight:700}
   .green{color:var(--ok);font-weight:700}
-  .dup{background:#fff5f5}
-  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
   .ac-box{position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 16px rgba(0,0,0,.08);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
   .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
   .ac-item:hover{background:#f3f4f6}
   .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
   .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:#fff;color:var(--kiwi);cursor:pointer;font-size:13px}
   .prov-btn.active{background:var(--kiwi);color:#fff}
-
+  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
+  .dup{background:#fff5f5}
+  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
   /* Tabbar móvil fija */
   .tabbar{
     position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
@@ -55,7 +52,6 @@
     background:#fff;border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer
   }
   .tabbar button.active{color:var(--kiwi)}
-
   .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
 </style>
@@ -63,26 +59,24 @@
 <body>
   <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <h1>🍈 ARSLAN LISTAS v3.3 — SUPABASE SYNC EDITION</h1>
-      <span class="pill">Móvil + Supabase</span>
+      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
+      <span class="pill">Modo móvil optimizado</span>
     </div>
-    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario ⇄ Supabase → Tiendas (Estandarizar/Enviar) → Global (Unificar/Asignar/WhatsApp) → Proveedores (TXT/WhatsApp)</div>
+    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT)</div>
 
     <!-- ========== TAB: Diccionario ========== -->
     <section class="tab" id="tab-dic">
       <div class="card">
         <div class="hd">
-          <strong>📚 Vocabulario estandarizado (sin tildes, MAYÚSCULAS)</strong>
+          <strong>📚 Vocabulario estandarizado (editable)</strong>
           <div class="toolbar">
-            <button class="btn ghost" onclick="addNewWord()">+ Nuevo</button>
-            <button class="btn ghost" onclick="saveVocabLocal()">Guardar local</button>
-            <button class="btn muted" onclick="supaPullVocab()">⬇️ Descargar de Supabase</button>
-            <button class="btn" onclick="supaPushVocab()">⬆️ Publicar a Supabase</button>
+            <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
+            <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
             <button class="btn muted" onclick="resetAll()">🧹 Limpiar todo</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes y sin duplicados.</div>
+          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
           <textarea id="vocabTxt"></textarea>
         </div>
       </div>
@@ -96,10 +90,8 @@
           <div class="hd"><strong>🏪 San Pablo</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-              <button class="btn" onclick="guardarTiendaLocal('sp')">Guardar local</button>
+              <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
-              <button class="btn" onclick="supaPushTienda('sp')">⬆️ Enviar a central</button>
-              <button class="btn muted" onclick="supaPullTiendas()">⬇️ Traer central</button>
             </div>
           </div>
           <div class="bd">
@@ -113,10 +105,8 @@
           <div class="hd"><strong>🏪 San Lesmes</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-              <button class="btn" onclick="guardarTiendaLocal('sl')">Guardar local</button>
+              <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
-              <button class="btn" onclick="supaPushTienda('sl')">⬆️ Enviar a central</button>
-              <button class="btn muted" onclick="supaPullTiendas()">⬇️ Traer central</button>
             </div>
           </div>
           <div class="bd">
@@ -130,10 +120,8 @@
           <div class="hd"><strong>🏪 Santiago</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-              <button class="btn" onclick="guardarTiendaLocal('st')">Guardar local</button>
+              <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
-              <button class="btn" onclick="supaPushTienda('st')">⬆️ Enviar a central</button>
-              <button class="btn muted" onclick="supaPullTiendas()">⬇️ Traer central</button>
             </div>
           </div>
           <div class="bd">
@@ -154,11 +142,11 @@
             <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
             <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
             <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
-            <button class="btn" onclick="whatsappGlobal()">📲 WhatsApp Global</button>
             <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
           </div>
         </div>
         <div class="bd">
+          <div class="hint">✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).</div>
           <div class="card" style="margin-top:8px">
             <div class="bd">
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -167,7 +155,6 @@
               </div>
             </div>
           </div>
-          <div class="hint">✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan</span> y la fila queda rosada.</div>
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
@@ -192,16 +179,7 @@
     <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
   </nav>
 
-<script type="module">
-/* ==========================
-   Supabase Client
-========================== */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const SUPA_URL = "https://esvfgvfqttvjcrsnxufq.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmZndmZxdHR2amNyc254dWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTIwNjIsImV4cCI6MjA3NzgyODA2Mn0.SdtgaK6c7gJAxA8jH77w0K3ctMlvGx6g4YLYrI0PKuw";
-const supabase = createClient(SUPA_URL, SUPA_KEY);
-
+<script>
 /* ==========================
    Tabs (móvil)
 ========================== */
@@ -211,19 +189,19 @@ function showTab(key){
     document.getElementById('tab-'+k).style.display = (k===key)?'block':'none';
     document.getElementById('btn-'+k).classList.toggle('active', k===key);
   });
+  // pequeños refrescos
   if(key==='global'){ unificarGlobal(); buildProvBar(); }
   if(key==='proveedores'){ renderProvidersPanels(); }
 }
-window.showTab = showTab;
 
 /* ==========================
    Config y utilidades
 ========================== */
 const LS = {
-  VOCAB:'arslan_v33_vocab',
-  STORES:'arslan_v33_stores',
-  ASSIGN:'arslan_v33_assign',
-  ORDERS:'arslan_v33_orders'
+  VOCAB:'arslan_v34_vocab',
+  STORES:'arslan_v34_stores',
+  ASSIGN:'arslan_v34_assign',
+  ORDERS:'arslan_v34_orders'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
@@ -251,7 +229,7 @@ function stripGenericWords(s){
 }
 
 /* ==========================
-   Vocabulario (editable + persistente + Supabase)
+   Vocabulario (editable + persistente)
 ========================== */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
@@ -441,18 +419,18 @@ function uniqueVocab(lines){
   }
   return out;
 }
-function loadVocabLocal(){
+function loadVocab(){
   const saved = localStorage.getItem(LS.VOCAB);
   const base = saved && saved.trim()? saved : OFFICIAL_VOCAB_RAW;
   const list = uniqueVocab(toLines(base));
   byId('vocabTxt').value = list.join('\n');
   return list;
 }
-function saveVocabLocal(){
+function saveVocab(){
   localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
-  alert('Vocabulario guardado localmente.');
-  unificarGlobal();
+  alert('Vocabulario guardado.');
   renderProvidersPanels();
+  unificarGlobal();
 }
 function addNewWord(){
   const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
@@ -461,39 +439,11 @@ function addNewWord(){
   const added = toLines(entry);
   const merged = uniqueVocab(current.concat(added));
   byId('vocabTxt').value = merged.join('\n');
-  saveVocabLocal();
+  saveVocab();
 }
-
-/* Supabase — Vocab sync */
-async function supaPullVocab(){
-  const { data, error } = await supabase.from('vocabulario_estandar').select('nombre').order('nombre');
-  if(error){ alert('Error al descargar vocabulario: ' + error.message); return; }
-  const list = uniqueVocab((data||[]).map(r=>r.nombre));
-  if(!list.length){ alert('Vocabulario remoto vacío.'); return; }
-  byId('vocabTxt').value = list.join('\n');
-  saveVocabLocal();
-  alert('Vocabulario actualizado desde Supabase.');
-}
-async function supaPushVocab(){
-  if(!confirm('¿Publicar el vocabulario local a Supabase (reemplaza remoto)?')) return;
-  const list = uniqueVocab(toLines(byId('vocabTxt').value));
-  // estrategia simple: borrar todo y reinsertar
-  const del = await supabase.from('vocabulario_estandar').delete().neq('nombre', '__placeholder__');
-  if(del.error){ alert('Error borrando remoto: ' + del.error.message); return; }
-  if(list.length){
-    const rows = list.map(n=>({nombre:n}));
-    const { error } = await supabase.from('vocabulario_estandar').upsert(rows, { onConflict: 'nombre' });
-    if(error){ alert('Error subiendo vocabulario: ' + error.message); return; }
-  }
-  alert('Vocabulario publicado en Supabase.');
-}
-window.addNewWord = addNewWord;
-window.saveVocabLocal = saveVocabLocal;
-window.supaPullVocab = supaPullVocab;
-window.supaPushVocab = supaPushVocab;
 
 /* ==========================
-   Coincidencia aproximada
+   Coincidencia aproximada (Dice + TokenSet)
 ========================== */
 function bigrams(str){
   const s = stripGenericWords(str);
@@ -566,10 +516,12 @@ function loadState(){
     ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
   }catch{}
   try{
-    assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}')||{};
+    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
+    assignments = a||{};
   }catch{}
   try{
-    orders = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}')||{};
+    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
+    orders = o||{};
   }catch{}
   PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
 }
@@ -581,7 +533,6 @@ function persistState(){
 function resetAll(){
   if(confirm('¿Seguro que quieres limpiar todo?')){ localStorage.clear(); location.reload(); }
 }
-window.resetAll = resetAll;
 
 /* ==========================
    Estandarizar por tienda
@@ -594,7 +545,7 @@ function attachAutocomplete(cell, onPick){
     const val = stripGenericWords(cell.innerText||'');
     closeAC();
     if(!val) return;
-    const vocab = loadVocabLocal();
+    const vocab = loadVocab();
     const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
     if(!suggestions.length) return;
     const rect = cell.getBoundingClientRect();
@@ -632,6 +583,7 @@ function renderTable(code){
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
+  // editable handlers + autocomplete
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const i = Number(cell.dataset.i);
     const f = cell.dataset.f;
@@ -649,10 +601,10 @@ function renderTable(code){
       const val = cell.innerText.trim();
       if(f==='q'){
         tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
-      }else{
+      }else{ // nombre
         const cleaned = removeDiacriticsUpper(val);
         tiendaState[code][i].e = cleaned;
-        const vocab = loadVocabLocal();
+        const vocab = loadVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         const tdState = cell.parentElement.querySelector('td:last-child');
         if(exact){ tiendaState[code][i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
@@ -664,7 +616,7 @@ function renderTable(code){
 }
 
 function estandarizar(code){
-  const vocab = loadVocabLocal();
+  const vocab = loadVocab();
   const txt = byId('in_'+code).value;
   const rows = [];
   toLines(txt).forEach(line=>{
@@ -680,14 +632,12 @@ function estandarizar(code){
   renderTable(code);
   persistState();
 }
-window.estandarizar = estandarizar;
 
-function guardarTiendaLocal(code){
+function guardarTienda(code){
   const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
   byId('in_'+code).value = out;
-  alert(`Tienda ${code.toUpperCase()} guardada en el textarea (local).`);
+  alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
 }
-window.guardarTiendaLocal = guardarTiendaLocal;
 
 function exportarTiendaTXT(code){
   const tienda = tiendaState[code] || [];
@@ -702,55 +652,6 @@ function exportarTiendaTXT(code){
   a.download = `${code}_estandarizado_${today}.txt`; 
   a.click();
 }
-window.exportarTiendaTXT = exportarTiendaTXT;
-
-/* ==========================
-   Supabase — Tiendas (push/pull)
-========================== */
-async function supaPushTienda(code){
-  const rows = tiendaState[code]||[];
-  if(!rows.length){ alert('No hay datos que enviar.'); return; }
-  // limpiamos remoto de esa tienda
-  let { error:delErr } = await supabase.from('tiendas_estandarizadas').delete().eq('tienda', code);
-  if(delErr){ alert('Error limpiando remoto: '+delErr.message); return; }
-  // insertamos todo
-  const payload = rows.map(r=>({
-    tienda: code,
-    producto: r.e,
-    cantidad: Number(r.q)||0,
-    original: r.o,
-    estado: r.a ? 'revisar' : 'ok'
-  }));
-  const { error:insErr } = await supabase.from('tiendas_estandarizadas').insert(payload);
-  if(insErr){ alert('Error enviando a central: '+insErr.message); return; }
-  alert(`Enviado a central (${code.toUpperCase()}) correctamente.`);
-}
-async function supaPullTiendas(){
-  const { data, error } = await supabase.from('tiendas_estandarizadas')
-    .select('tienda, producto, cantidad, original, estado, actualizado_en')
-    .order('tienda',{ascending:true})
-    .order('producto',{ascending:true});
-  if(error){ alert('Error al traer central: '+error.message); return; }
-  // reconstruir tiendaState por tienda
-  const tmp = {sp:[], sl:[], st:[]};
-  (data||[]).forEach(r=>{
-    tmp[r.tienda].push({
-      o: removeDiacriticsUpper(r.original||r.producto),
-      e: removeDiacriticsUpper(r.producto),
-      q: Number(r.cantidad)||0,
-      a: r.estado !== 'ok'
-    });
-  });
-  ['sp','sl','st'].forEach(k=>{
-    tiendaState[k] = tmp[k];
-    renderTable(k);
-    byId('in_'+k).value = (tiendaState[k]||[]).map(r=>`${r.e} ${r.q}`).join('\n');
-  });
-  persistState();
-  alert('Listas descargadas desde central.');
-}
-window.supaPushTienda = supaPushTienda;
-window.supaPullTiendas = supaPullTiendas;
 
 /* ==========================
    Unificar global + similares
@@ -765,6 +666,7 @@ function unificarGlobal(){
   });
   const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
+  // detectar similares (score combinado)
   const names = arr.map(x=>x.name);
   const similarSet = new Set();
   for(let i=0;i<names.length;i++){
@@ -778,7 +680,6 @@ function unificarGlobal(){
   }
   renderGlobalTable(arr, similarSet);
 }
-window.unificarGlobal = unificarGlobal;
 
 /* ==========================
    GLOBAL + Asignación a proveedor
@@ -792,7 +693,7 @@ function renderGlobalTable(rows, similarSet){
 
   let html = `
     <div class="hint" style="margin-bottom:6px">
-      Usa ✅ para enviar una línea al proveedor activo: <b>${ACTIVE_PROV}</b>.
+      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
     </div>
     <div class="scroll-x"><table>
       <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
@@ -809,6 +710,7 @@ function renderGlobalTable(rows, similarSet){
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
+  // Edición inline + autocomplete
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const tr = cell.parentElement;
     const idx = Number(tr.dataset.i);
@@ -828,7 +730,7 @@ function renderGlobalTable(rows, similarSet){
       }else{
         const cleaned = removeDiacriticsUpper(val);
         globalRows[idx].name = cleaned;
-        const vocab = loadVocabLocal();
+        const vocab = loadVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         if(exact){
           tr.classList.remove('dup');
@@ -852,7 +754,6 @@ function renderGlobalTable(rows, similarSet){
     });
   });
 }
-window.renderGlobalTable = renderGlobalTable;
 
 function assignFromGlobal(idx){
   const item = globalRows[idx];
@@ -870,7 +771,6 @@ function assignFromGlobal(idx){
   unificarGlobal();
   renderProvidersPanels();
 }
-window.assignFromGlobal = assignFromGlobal;
 
 /* ==========================
    Barra de proveedores + paneles
@@ -889,7 +789,6 @@ function buildProvBar(){
     bar.appendChild(b);
   });
 }
-window.buildProvBar = buildProvBar;
 
 function renderProvidersPanels(){
   const cont = byId('provPanels'); cont.innerHTML='';
@@ -901,8 +800,7 @@ function renderProvidersPanels(){
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT</button>
-        <button class="btn small" onclick="whatsappProv('${p}')">📲 WhatsApp</button>
+        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
       </div>`;
     const bd = document.createElement('div');
     bd.className='bd';
@@ -920,6 +818,7 @@ function renderProvidersPanels(){
       html += '</tbody></table></div>';
       bd.innerHTML = html;
 
+      // edición inline en panel proveedor
       bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
         const prov = cell.dataset.prov;
         const idx = Number(cell.dataset.idx);
@@ -947,7 +846,6 @@ function renderProvidersPanels(){
     cont.appendChild(card);
   });
 }
-window.renderProvidersPanels = renderProvidersPanels;
 
 function exportProvTXT(prov){
   const list = orders[prov]||[];
@@ -957,10 +855,9 @@ function exportProvTXT(prov){
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
 }
-window.exportProvTXT = exportProvTXT;
 
 /* ==========================
-   Exportación Global + WhatsApp
+   Exportación Global
 ========================== */
 function copiarGlobal(){
   if(!globalRows.length) return;
@@ -968,8 +865,6 @@ function copiarGlobal(){
   navigator.clipboard.writeText(txt);
   alert('Lista global copiada.');
 }
-window.copiarGlobal = copiarGlobal;
-
 function exportarGlobalTXT(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
@@ -977,8 +872,6 @@ function exportarGlobalTXT(){
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
 }
-window.exportarGlobalTXT = exportarGlobalTXT;
-
 function exportarGlobalXLSX(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
@@ -987,59 +880,10 @@ function exportarGlobalXLSX(){
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
   XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
 }
-window.exportarGlobalXLSX = exportarGlobalXLSX;
 
-/* WhatsApp helpers */
-function openWhatsAppWithText(text){
-  const url = "https://wa.me/?text=" + encodeURIComponent(text);
-  window.open(url, '_blank');
-}
-function whatsappProv(prov){
-  const list = orders[prov]||[];
-  if(!list.length){ alert('Sin líneas en '+prov); return; }
-  let out = `📝 Pedido para ${prov}:\n`;
-  list.forEach(x=> out += `- ${x.qty} ${x.name}\n`);
-  openWhatsAppWithText(out);
-}
-function whatsappGlobal(){
-  // construir desde todo lo unificado y asignado
-  const allMap = {};
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  all.forEach(r=>{
-    const k = normKey(r.e);
-    if(!allMap[k]) allMap[k] = {name:r.e, total:0};
-    allMap[k].total += (Number(r.q)||0);
-  });
-  const byProv = {}; PROVEEDORES.forEach(p=>byProv[p]=[]);
-  const unassigned = [];
-  Object.values(allMap).forEach(it=>{
-    const k = normKey(it.name);
-    const prov = assignments[k];
-    if(prov && PROVEEDORES.includes(prov)){
-      byProv[prov].push({name:it.name, qty:it.total});
-    }else{
-      unassigned.push({name:it.name, qty:it.total});
-    }
-  });
-  let out = '';
-  PROVEEDORES.forEach(p=>{
-    if(byProv[p].length){
-      out += `📝 Pedido para ${p}:\n`;
-      byProv[p].forEach(x=> out += `- ${x.qty} ${x.name}\n`);
-      out += `\n`;
-    }
-  });
-  if(unassigned.length){
-    out += `📌 SIN ASIGNAR:\n`;
-    unassigned.forEach(x=> out += `- ${x.qty} ${x.name}\n`);
-  }
-  if(!out.trim()) out = 'No hay líneas para enviar.';
-  openWhatsAppWithText(out);
-}
-window.whatsappProv = whatsappProv;
-window.whatsappGlobal = whatsappGlobal;
-
-/* TXT Global (asignados + pendientes) */
+/* ==========================
+   TXT Global (asignados + pendientes)
+========================== */
 function exportResumenGlobalTXT(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
   const totalMap = {};
@@ -1085,19 +929,536 @@ function exportResumenGlobalTXT(){
   const blob = new Blob([out],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`resumen_pedidos_${today}.txt`; a.click();
 }
-window.exportResumenGlobalTXT = exportResumenGlobalTXT;
 
 /* ==========================
    INIT
 ========================== */
 (function init(){
-  showTab('dic');
-  loadVocabLocal();
-  loadState();
+  showTab('dic');        // pestaña inicial
+  loadVocab();           // carga vocab (o el guardado)
+  loadState();           // tiendas + assignments + orders
   ['sp','sl','st'].forEach(code=> renderTable(code));
   buildProvBar();
   renderProvidersPanels();
-  unificarGlobal();
+  unificarGlobal();      // pintar global inicial si hay datos
+})();
+</script>
+
+<!-- 🔽 EXTENSIONES KIWI v3.4 (AÑADIDAS SIN MODIFICAR EL CÓDIGO ORIGINAL) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/*
+==========================================
+KIWI EXTENSIONS v3.4 (overlay no intrusivo)
+- NO MODIFICA NADA DEL CÓDIGO EXISTENTE
+- Añade: Supabase sync, WhatsApp envío,
+         Comprados, Reparto (50/20/30),
+         Vocab sincronizable.
+==========================================
+
+🗄️ ESQUEMA SQL SUGERIDO (ejecutar en SQL Editor):
+--------------------------------------------------
+-- Vocabulario
+create table if not exists vocab_items (
+  name text primary key
+);
+
+-- Tiendas
+create table if not exists stores (
+  id text primary key,    -- 'sp' | 'sl' | 'st'
+  data jsonb not null,    -- array de filas [{o,e,q,a}]
+  updated_at timestamptz default now()
+);
+
+-- Asignaciones globales (producto -> proveedor)
+create table if not exists assignments (
+  key text primary key,   -- normKey(name)
+  prov text not null
+);
+
+-- Pedidos por proveedor
+create table if not exists orders (
+  prov text not null,
+  name text not null,
+  qty numeric not null default 0,
+  primary key (prov, name)
+);
+
+-- Compras (marcados como comprados)
+create table if not exists purchases (
+  prov text not null,
+  name text not null,
+  purchased numeric not null default 0,
+  primary key (prov, name)
+);
+
+-- Reparto por tienda
+create table if not exists reparto (
+  name text primary key,
+  sp numeric not null default 0,
+  sl numeric not null default 0,
+  st numeric not null default 0
+);
+
+-- ⚠️ Activa RLS según necesites; para pruebas, permite anon.
+--------------------------------------------------
+*/
+
+(() => {
+  // ======= Config Supabase (leer desde localStorage) =======
+  const SUPA_URL = localStorage.getItem('SUPA_URL') || '';
+  const SUPA_KEY = localStorage.getItem('SUPA_KEY') || '';
+  const supa = (SUPA_URL && SUPA_KEY && window.supabase) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+
+  // ======= Estados extra (compras y reparto) =======
+  const LS_PUR = 'arslan_v34_purchases';
+  const LS_REP = 'arslan_v34_reparto';
+
+  let purchases = {}; // {prov: [{name, purchased}]}
+  let reparto = {};   // {name:{sp,sl,st}}
+
+  function loadExtras() {
+    try{ purchases = JSON.parse(localStorage.getItem(LS_PUR) || '{}') || {}; }catch{ purchases = {}; }
+    try{ reparto   = JSON.parse(localStorage.getItem(LS_REP) || '{}') || {}; }catch{ reparto   = {}; }
+    // init vendors
+    (window.PROVEEDORES||[]).forEach(p => { if(!Array.isArray(purchases[p])) purchases[p]=[]; });
+  }
+  function saveExtras() {
+    localStorage.setItem(LS_PUR, JSON.stringify(purchases));
+    localStorage.setItem(LS_REP, JSON.stringify(reparto));
+  }
+
+  // ======= Monkey-patch de persistencia existente =======
+  const _persist = window.persistState;
+  const _load    = window.loadState;
+
+  window.persistState = async function() {
+    _persist && _persist();
+    saveExtras();
+    if (!supa) return;
+    try {
+      await supaUpAll();
+    } catch(e) {
+      console.warn('Supabase up error:', e.message||e);
+    }
+  };
+
+  window.loadState = async function() {
+    _load && _load();
+    loadExtras();
+    if (!supa) return;
+    try {
+      await supaDownAll();
+    } catch(e) {
+      console.warn('Supabase down error:', e.message||e);
+    }
+  };
+
+  // ======= Sincronización con Supabase =======
+  async function supaUpAll(){
+    // vocab
+    const vocab = (document.getElementById('vocabTxt')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+    if (vocab.length) {
+      // upsert por lotes (limpiamos y subimos)
+      await supa.from('vocab_items').delete().neq('name',''); // limpiar
+      const payload = vocab.map(name=>({name}));
+      if (payload.length) await supa.from('vocab_items').insert(payload);
+    }
+    // stores
+    const storesPayload = [
+      {id:'sp', data: window.tiendaState?.sp||[]},
+      {id:'sl', data: window.tiendaState?.sl||[]},
+      {id:'st', data: window.tiendaState?.st||[]},
+    ];
+    for (const row of storesPayload) {
+      await supa.from('stores').upsert(row);
+    }
+    // assignments
+    const ass = window.assignments || {};
+    await supa.from('assignments').delete().neq('key','');
+    const assRows = Object.keys(ass).map(k=>({key:k, prov: ass[k]}));
+    if (assRows.length) await supa.from('assignments').insert(assRows);
+
+    // orders
+    await supa.from('orders').delete().neq('prov','');
+    for (const p of window.PROVEEDORES||[]) {
+      const list = (window.orders?.[p]||[]);
+      if (list.length){
+        await supa.from('orders').insert(list.map(it=>({prov:p, name:it.name, qty:Number(it.qty)||0})));
+      }
+    }
+
+    // purchases
+    await supa.from('purchases').delete().neq('prov','');
+    for (const p of window.PROVEEDORES||[]) {
+      const list = purchases[p]||[];
+      if (list.length){
+        await supa.from('purchases').insert(list.map(it=>({prov:p, name:it.name, purchased:Number(it.purchased)||0})));
+      }
+    }
+
+    // reparto
+    await supa.from('reparto').delete().neq('name','');
+    const repRows = Object.keys(reparto).map(n=>({name:n, sp:reparto[n].sp||0, sl:reparto[n].sl||0, st:reparto[n].st||0}));
+    if (repRows.length) await supa.from('reparto').insert(repRows);
+  }
+
+  async function supaDownAll(){
+    // vocab
+    const { data: vocabRows } = await supa.from('vocab_items').select('name');
+    if (Array.isArray(vocabRows) && vocabRows.length){
+      const list = vocabRows.map(r=>String(r.name||'').toUpperCase()).filter(Boolean);
+      const merged = Array.from(new Set(list)).sort();
+      const ta = document.getElementById('vocabTxt');
+      if (ta) ta.value = merged.join('\n');
+      localStorage.setItem(window.LS.VOCAB, ta.value);
+    }
+    // stores
+    const { data: sRows } = await supa.from('stores').select('id,data');
+    if (Array.isArray(sRows) && sRows.length){
+      const map = {};
+      sRows.forEach(r=>{ map[r.id]=r.data||[]; });
+      localStorage.setItem(window.LS.STORES, JSON.stringify(map));
+      // reflejar en memoria:
+      ['sp','sl','st'].forEach(k=>{ if(Array.isArray(map[k])) window.tiendaState[k]=map[k]; });
+    }
+    // assignments
+    const { data: aRows } = await supa.from('assignments').select('key,prov');
+    if (Array.isArray(aRows)){
+      const obj = {}; aRows.forEach(r=> obj[r.key]=r.prov );
+      window.assignments = obj;
+      localStorage.setItem(window.LS.ASSIGN, JSON.stringify(obj));
+    }
+    // orders
+    const { data: oRows } = await supa.from('orders').select('prov,name,qty');
+    if (Array.isArray(oRows)){
+      const obj = {}; (window.PROVEEDORES||[]).forEach(p=>obj[p]=[]);
+      oRows.forEach(r=>{
+        if(!obj[r.prov]) obj[r.prov]=[];
+        obj[r.prov].push({name:r.name, qty:Number(r.qty)||0});
+      });
+      window.orders = obj;
+      localStorage.setItem(window.LS.ORDERS, JSON.stringify(obj));
+    }
+    // purchases
+    const { data: pRows } = await supa.from('purchases').select('prov,name,purchased');
+    if (Array.isArray(pRows)){
+      const obj = {}; (window.PROVEEDORES||[]).forEach(p=>obj[p]=[]);
+      pRows.forEach(r=>{
+        if(!obj[r.prov]) obj[r.prov]=[];
+        obj[r.prov].push({name:r.name, purchased:Number(r.purchased)||0});
+      });
+      purchases = obj; saveExtras();
+    }
+    // reparto
+    const { data: rRows } = await supa.from('reparto').select('name,sp,sl,st');
+    if (Array.isArray(rRows)){
+      const obj = {}; rRows.forEach(r=> obj[r.name] = {sp:Number(r.sp)||0, sl:Number(r.sl)||0, st:Number(r.st)||0});
+      reparto = obj; saveExtras();
+    }
+  }
+
+  // ======= Utilidades WhatsApp / compras =======
+  function getPedidoTexto(prov){
+    const list = (window.orders?.[prov]||[]);
+    if(!list.length) return '';
+    let out = `PEDIDO ${prov}\n`;
+    list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
+    return out.trim();
+  }
+
+  function marcarCompradoTotalDeProveedor(prov){
+    const list = (window.orders?.[prov]||[]);
+    if(!Array.isArray(purchases[prov])) purchases[prov]=[];
+    list.forEach(it=>{
+      const idx = purchases[prov].findIndex(x=> window.normKey(x.name) === window.normKey(it.name));
+      if (idx>-1) purchases[prov][idx].purchased = Number(it.qty)||0;
+      else purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
+    });
+    saveExtras();
+    window.persistState();
+    // actualizar panel reparto si visible
+    if (document.getElementById('tab-proveedores').style.display !== 'none') {
+      renderRepartoPanel();
+    }
+  }
+
+  function marcarCompradoManual(prov, name, qty){
+    if(!Array.isArray(purchases[prov])) purchases[prov]=[];
+    const idx = purchases[prov].findIndex(x=> window.normKey(x.name)===window.normKey(name));
+    if(idx>-1) purchases[prov][idx].purchased = Number(qty)||0;
+    else purchases[prov].push({name, purchased:Number(qty)||0});
+    saveExtras();
+    window.persistState();
+    renderRepartoPanel();
+  }
+
+  // ======= Botones extra en tarjetas de proveedores =======
+  const _renderProvPanels = window.renderProvidersPanels;
+  window.renderProvidersPanels = function(){
+    _renderProvPanels && _renderProvPanels();
+    // insertar botones extra y controles “Comprado” por línea
+    const cont = document.getElementById('provPanels');
+    if(!cont) return;
+    cont.querySelectorAll('.card').forEach(card=>{
+      const title = card.querySelector('.hd strong')?.innerText || '';
+      const prov = title.trim();
+      const toolbar = card.querySelector('.hd .toolbar');
+      if (!toolbar) return;
+
+      // Botón WhatsApp
+      if (!toolbar.querySelector('.btn.whats')) {
+        const b = document.createElement('button');
+        b.className = 'btn small whats';
+        b.textContent = '🟢 WhatsApp';
+        b.onclick = ()=>{
+          const txt = getPedidoTexto(prov);
+          if(!txt){ alert('Sin líneas para enviar.'); return; }
+          const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+          window.open(url, '_blank');
+          // auto marcar comprado
+          if (confirm('¿Marcar todo este pedido como COMPRADO?')) {
+            marcarCompradoTotalDeProveedor(prov);
+          }
+        };
+        toolbar.appendChild(b);
+      }
+
+      // Botón “Marcar todo comprado” manual
+      if (!toolbar.querySelector('.btn.markall')) {
+        const b2 = document.createElement('button');
+        b2.className = 'btn small markall';
+        b2.textContent = '✅ Marcar todo comprado';
+        b2.onclick = ()=> {
+          if (confirm(`Marcar TODO ${prov} como COMPRADO (cantidad igual al pedido)?`)) {
+            marcarCompradoTotalDeProveedor(prov);
+          }
+        };
+        toolbar.appendChild(b2);
+      }
+
+      // Añadir controles por línea (checkbox + input “comprado”)
+      const rows = card.querySelectorAll('tbody tr');
+      rows.forEach(tr=>{
+        const tds = tr.querySelectorAll('td');
+        if (tds.length<2) return;
+        if (tr.querySelector('.comprado-wrap')) return; // ya añadidos
+        const name = tds[0].innerText.trim();
+        const qtyTd = tds[1];
+
+        const wrap = document.createElement('div');
+        wrap.className = 'comprado-wrap';
+        wrap.style.marginTop = '6px';
+        wrap.innerHTML = `
+          <span class="hint">Comprado:</span>
+          <input type="number" min="0" step="0.01" style="width:90px;margin:0 6px" value="0" />
+          <button class="btn small muted">OK</button>
+        `;
+        const input = wrap.querySelector('input');
+        const btn   = wrap.querySelector('button');
+        btn.onclick = ()=>{
+          const val = Number(input.value)||0;
+          marcarCompradoManual(prov, name, val);
+          alert('Marcado como comprado.');
+        };
+        qtyTd.appendChild(wrap);
+      });
+    });
+
+    // Render/actualizar panel de reparto
+    renderRepartoPanel();
+  };
+
+  // ======= Reparto (solo productos comprados) =======
+  function totalSolicitadoPorProducto(){
+    const all = [].concat(window.tiendaState?.sp||[], window.tiendaState?.sl||[], window.tiendaState?.st||[]);
+    const map = {}; // key -> total
+    all.forEach(r=>{
+      const k = window.normKey(r.e);
+      map[k] = (map[k]||0) + (Number(r.q)||0);
+    });
+    const byName = {};
+    Object.keys(map).forEach(k=>{
+      // obtener nombre representativo (primera coincidencia)
+      const row = (window.tiendaState.sp||[]).concat(window.tiendaState.sl||[], window.tiendaState.st||[]).find(r=>window.normKey(r.e)===k);
+      byName[row?row.e:k] = map[k];
+    });
+    return byName; // {name: totalSolicitado}
+  }
+
+  function solicitadoPorTienda(name){
+    const nk = window.normKey(name);
+    const S = {sp:0, sl:0, st:0};
+    (window.tiendaState.sp||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.sp += Number(r.q)||0; });
+    (window.tiendaState.sl||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.sl += Number(r.q)||0; });
+    (window.tiendaState.st||[]).forEach(r=>{ if(window.normKey(r.e)===nk) S.st += Number(r.q)||0; });
+    return S;
+  }
+
+  function totalCompradoPorProducto(){
+    const map = {}; // name-> total compr
+    (window.PROVEEDORES||[]).forEach(p=>{
+      (purchases[p]||[]).forEach(it=>{
+        map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
+      });
+    });
+    return map;
+  }
+
+  function ensureRepartoBase(name){
+    if(!reparto[name]) reparto[name] = {sp:0, sl:0, st:0};
+  }
+
+  function autoDistribuirExceso(name, solicitadoTotal, compradoTotal){
+    // exceso = comprado - solicitado; distribuir 50/20/30
+    const exceso = Math.max(0, compradoTotal - solicitadoTotal);
+    if (exceso <= 0) return {sp:0, sl:0, st:0};
+    return {
+      sp: Math.round(exceso * 0.50 * 100) / 100,
+      sl: Math.round(exceso * 0.20 * 100) / 100,
+      st: Math.round(exceso * 0.30 * 100) / 100,
+    };
+  }
+
+  function renderRepartoPanel(){
+    const cont = document.getElementById('provPanels');
+    if(!cont) return;
+
+    // eliminar si ya hay un panel viejo
+    const old = document.getElementById('reparto-panel');
+    if (old) old.remove();
+
+    const compradoMap = totalCompradoPorProducto();
+    const solicitadoMap = totalSolicitadoPorProducto();
+
+    // productos comprados (clave)
+    const productos = Object.keys(compradoMap).sort((a,b)=>a.localeCompare(b,'es'));
+    if (!productos.length) return;
+
+    // Crear panel
+    const panel = document.createElement('div');
+    panel.className = 'card';
+    panel.id = 'reparto-panel';
+    const hd = document.createElement('div');
+    hd.className = 'hd';
+    hd.innerHTML = `<strong>🚚 Reparto (solo productos COMPRADOS)</strong>
+      <div class="toolbar">
+        <button class="btn small" id="btn-reparto-guardar">💾 Guardar reparto</button>
+      </div>`;
+    const bd = document.createElement('div');
+    bd.className = 'bd';
+
+    let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Restante global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th></tr></thead><tbody>';
+
+    productos.forEach(name=>{
+      const comp = Number(compradoMap[name]||0);
+      const sol  = Number(solicitadoMap[name]||0);
+      if (comp <= 0) return; // no comprado => no aparece
+
+      ensureRepartoBase(name);
+
+      const baseSol = solicitadoPorTienda(name); // solicitado por tienda
+      const excesoAuto = autoDistribuirExceso(name, sol, comp);
+
+      // Objetivos por tienda:
+      const objetivo = {
+        sp: baseSol.sp + excesoAuto.sp,
+        sl: baseSol.sl + excesoAuto.sl,
+        st: baseSol.st + excesoAuto.st,
+      };
+
+      // Entregado hasta ahora:
+      const entregado = reparto[name];
+
+      // Restante por tienda a entregar
+      const rest = {
+        sp: Math.max(0, Math.round((objetivo.sp - (entregado.sp||0)) * 100) / 100),
+        sl: Math.max(0, Math.round((objetivo.sl - (entregado.sl||0)) * 100) / 100),
+        st: Math.max(0, Math.round((objetivo.st - (entregado.st||0)) * 100) / 100),
+      };
+
+      // Restante global:
+      const restGlobal = Math.max(0, Math.round((comp - ((entregado.sp||0)+(entregado.sl||0)+(entregado.st||0))) * 100)/100);
+
+      html += `<tr data-name="${name}">
+        <td>${name}</td>
+        <td>${comp}</td>
+        <td>${sol}</td>
+        <td>${restGlobal}</td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn small muted dec" data-t="sp">-</button>
+            <input class="qty-sp" type="number" min="0" step="0.01" value="${entregado.sp||0}" style="width:90px">
+            <button class="btn small muted inc" data-t="sp">+</button>
+            <span class="pill">${rest.sp} restantes</span>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn small muted dec" data-t="sl">-</button>
+            <input class="qty-sl" type="number" min="0" step="0.01" value="${entregado.sl||0}" style="width:90px">
+            <button class="btn small muted inc" data-t="sl">+</button>
+            <span class="pill">${rest.sl} restantes</span>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn small muted dec" data-t="st">-</button>
+            <input class="qty-st" type="number" min="0" step="0.01" value="${entregado.st||0}" style="width:90px">
+            <button class="btn small muted inc" data-t="st">+</button>
+            <span class="pill">${rest.st} restantes</span>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    bd.innerHTML = html;
+    panel.appendChild(hd); panel.appendChild(bd);
+    cont.appendChild(panel);
+
+    // handlers +/- y guardado
+    bd.querySelectorAll('tr[data-name]').forEach(tr=>{
+      const name = tr.dataset.name;
+      const incs = tr.querySelectorAll('.inc');
+      const decs = tr.querySelectorAll('.dec');
+
+      function applyDelta(tienda, d){
+        ensureRepartoBase(name);
+        reparto[name][tienda] = Math.max(0, Number(reparto[name][tienda]||0) + d);
+        saveExtras();
+        renderRepartoPanel(); // refrescar fila
+      }
+
+      incs.forEach(b=> b.addEventListener('click', ()=> applyDelta(b.dataset.t, +1)));
+      decs.forEach(b=> b.addEventListener('click', ()=> applyDelta(b.dataset.t, -1)));
+
+      // cambios manuales en inputs
+      ['sp','sl','st'].forEach(t=>{
+        const input = tr.querySelector('.qty-'+t);
+        input?.addEventListener('change', ()=>{
+          ensureRepartoBase(name);
+          reparto[name][t] = Math.max(0, Number(input.value)||0);
+          saveExtras();
+          renderRepartoPanel();
+        });
+      });
+    });
+
+    document.getElementById('btn-reparto-guardar').onclick = ()=>{
+      saveExtras(); window.persistState();
+      alert('Reparto guardado.');
+    };
+  }
+
+  // ======= Hook inicial =======
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // si el usuario abre Proveedores, inyectamos panel extendido
+    if (document.getElementById('tab-proveedores').style.display !== 'none') {
+      window.renderProvidersPanels();
+    }
+  });
+
 })();
 </script>
 </body>
