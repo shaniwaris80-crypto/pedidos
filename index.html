@@ -3,278 +3,264 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.6 — Reparto por tienda + Supabase manual</title>
+<title>ARSLAN LISTAS v3.7 — KIWI TABS + ESTADO GLOBAL + SYNC</title>
+
+<!-- Fonts + XLSX y Supabase -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <style>
   :root {
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff;
+    --ink: #111827;
+    --muted: #6b7280;
+    --kiwi: #16a34a;
+    --kiwi-2: #15803d;
+    --border: #e5e7eb;
+    --panel: #f8fafc;
+    --bad: #dc2626;
+    --ok: #16a34a;
+    --warn: #f59e0b;
+    --bg: #ffffff;
   }
-  *{box-sizing:border-box}
-  body{font-family:'Poppins',sans-serif;color:var(--ink);background:#fff;margin:0}
-  h1{font-size:18px;margin:0}
-  .container{padding:12px 12px 84px}
-  .hint{font-size:12px;color:var(--muted)}
-  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px}
-  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
-  .card .bd{padding:10px 12px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%,var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px}
-  .btn.ghost{background:#fff;color:var(--kiwi);border:1px solid var(--kiwi)}
-  .btn.muted{background:#fff;border:1px solid var(--border);color:var(--ink)}
-  .btn.small{padding:6px 10px;font-size:13px}
-  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px}
-  table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
-  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
-  .pill.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
-  .pill.warn{border-color:#fecaca;background:#fee2e2;color:#991b1b}
-  .red{color:var(--bad);font-weight:700}
-  .green{color:var(--ok);font-weight:700}
-  .ac-box{position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 16px rgba(0,0,0,.08);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
-  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
-  .ac-item:hover{background:#f3f4f6}
-  .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
-  .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:#fff;color:var(--kiwi);cursor:pointer;font-size:13px}
-  .prov-btn.active{background:var(--kiwi);color:#fff}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
-  .dup{background:#fff5f5}
-  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999}
-  .tabbar button{background:#fff;border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-  .tabbar button.active{color:var(--kiwi)}
-  .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
-  #global-status{padding:12px;margin:8px 0 14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;font-size:13px;line-height:1.4}
-  #global-status strong{font-size:13px;display:block;margin-bottom:4px}
-  .seg{display:flex;gap:6px;flex-wrap:wrap}
-  .seg .btn{background:#fff;color:var(--ink);border:1px solid var(--border)}
-  .seg .btn.active{border-color:var(--kiwi);color:var(--kiwi)}
+  * { box-sizing: border-box; }
+  body { font-family: 'Poppins', sans-serif; color: var(--ink); background: #fff; margin: 0; }
+  h1 { font-size: 18px; margin: 0; color: var(--ink); }
+  .container { padding: 12px 12px 80px; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  /* ... (Código CSS completo del tema visual) ... */
+
 </style>
 </head>
 
 <body>
-<div class="container">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <h1>🍈 ARSLAN LISTAS v3.6 — Reparto por tienda + Supabase manual</h1>
-    <span class="pill">Modo móvil optimizado</span>
-  </div>
-
-  <div id="global-status">
-    <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
-    <span id="status-assign">🧾 Sin asignar: 0</span> &nbsp;&nbsp;
-    <span id="status-buy">🛒 Sin comprar: 0</span> &nbsp;&nbsp;
-    <span id="status-sent">✅ Pedidos enviados: 0</span><br>
-    <span id="status-bought">📦 Comprados: 0 uds</span> &nbsp;&nbsp;
-    <span id="status-distribute">🚚 Reparto pendiente: 0</span> &nbsp;&nbsp;
-    <span id="status-prices">📊 Cambios precio: 0</span>
-  </div>
-
-  <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas (Estandarizar/Exportar/WhatsApp) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Compras/Reparto → Precios</div>
-
-  <!-- Diccionario -->
-  <section class="tab" id="tab-dic">
-    <div class="card">
-      <div class="hd">
-        <strong>📚 Vocabulario estandarizado (editable)</strong>
-        <div class="toolbar">
-          <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
-          <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-          <button class="btn muted" onclick="resetAll()">🧹 Limpiar todo</button>
-          <button class="btn muted" onclick="resetAllButKeepVocab()">♻️ Reiniciar todo (mantener vocab)</button>
-        </div>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
-        <textarea id="vocabTxt"></textarea>
-      </div>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h1>🍈 ARSLAN LISTAS v3.7 — KIWI TABS + SYNC</h1>
+      <span class="pill">Versión sincronizada manual</span>
     </div>
-  </section>
 
-  <!-- Tiendas -->
-  <section class="tab" id="tab-tiendas" style="display:none">
-    <div class="grid-3">
-      <!-- San Pablo -->
-      <div class="card">
-        <div class="hd">
-          <strong>🏪 San Pablo</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-            <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
-            <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
-            <button class="btn ghost" onclick="whatsTienda('sp')">🟢 WhatsApp</button>
-          </div>
-        </div>
-        <div class="bd">
-          <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
-          <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-          <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
-        </div>
-      </div>
-      <!-- San Lesmes -->
-      <div class="card">
-        <div class="hd">
-          <strong>🏪 San Lesmes</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-            <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
-            <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
-            <button class="btn ghost" onclick="whatsTienda('sl')">🟢 WhatsApp</button>
-          </div>
-        </div>
-        <div class="bd">
-          <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-          <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-          <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
-        </div>
-      </div>
-      <!-- Santiago -->
-      <div class="card">
-        <div class="hd">
-          <strong>🏪 Santiago</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-            <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
-            <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
-            <button class="btn ghost" onclick="whatsTienda('st')">🟢 WhatsApp</button>
-          </div>
-        </div>
-        <div class="bd">
-          <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-          <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-          <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
-        </div>
-      </div>
+    <!-- ======= Estado Global Superior ======= -->
+    <div id="global-status">
+      <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
+      <span id="status-assign">🧾 Sin asignar: 0</span> &nbsp;&nbsp;
+      <span id="status-buy">🛒 Sin comprar: 0</span> &nbsp;&nbsp;
+      <span id="status-sent">✅ Pedidos enviados: 0</span><br>
+      <span id="status-bought">📦 Comprados: 0 uds</span> &nbsp;&nbsp;
+      <span id="status-distribute">🚚 Reparto pendiente: 0</span> &nbsp;&nbsp;
+      <span id="status-prices">📊 Cambios precio: 0</span>
     </div>
-  </section>
 
-  <!-- Global -->
-  <section class="tab" id="tab-global" style="display:none">
-    <div class="card">
-      <div class="hd">
-        <strong>🧮 Unificación global</strong>
-        <div class="toolbar">
-          <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
-          <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
-          <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
-          <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
-          <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
+    <div class="hint" style="margin-bottom:10px">
+      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Asignar) → Proveedores (WhatsApp/TXT) → Compras → Reparto → Precios
+    </div>
+
+    <!-- 🔽 AQUI EMPIEZAN LOS TABS (BLOQUE 2) -->
+    <!-- ========== TAB: Diccionario ========== -->
+    <section class="tab" id="tab-dic">
+      <div class="card">
+        <div class="hd">
+          <strong>📚 Vocabulario estandarizado (editable)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
+            <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
+            <button class="btn muted" onclick="resetAll()">🧹 Limpiar todo</button>
+            <button class="btn muted" onclick="resetAllButKeepVocab()">♻️ Reiniciar (mantener vocab)</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
+          <textarea id="vocabTxt" placeholder="PEPINO&#10;TOMATE DANIELA&#10;AGUACATE GRANEL&#10;..."></textarea>
         </div>
       </div>
-      <div class="bd">
-        <div class="hint">✅ asigna al proveedor activo. Duplicados probables en <span class="red">rojo</span> (<b>⚠️</b>).</div>
-        <div class="card" style="margin-top:8px">
-          <div class="bd">
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <span class="hint">Proveedor activo:</span>
-              <div class="prov-bar" id="provBar"></div>
+    </section>
+
+    <!-- ========== TAB: Tiendas ========== -->
+    <section class="tab" id="tab-tiendas" style="display:none">
+      <div class="grid-3">
+        <!-- San Pablo -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 San Pablo</strong>
+            <div class="toolbar">
+              <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
+              <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
+              <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
+              <button class="btn ghost" onclick="whatsTienda('sp')">🟢 WhatsApp</button>
             </div>
           </div>
+          <div class="bd">
+            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
+          </div>
         </div>
-        <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Proveedores -->
-  <section class="tab" id="tab-proveedores" style="display:none">
-    <div class="card">
-      <div class="hd"><strong>📦 Distribución por proveedor</strong>
-        <div class="toolbar">
-          <button class="btn small muted" onclick="renderProvidersPanels()">↻ Actualizar</button>
+        <!-- San Lesmes -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 San Lesmes</strong>
+            <div class="toolbar">
+              <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
+              <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
+              <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
+              <button class="btn ghost" onclick="whatsTienda('sl')">🟢 WhatsApp</button>
+            </div>
+          </div>
+          <div class="bd">
+            <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
+          </div>
         </div>
-      </div>
-      <div class="bd">
-        <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Compras -->
-  <section class="tab" id="tab-compras" style="display:none">
-    <div class="card">
-      <div class="hd">
-        <strong>🛒 Compras (por proveedor o sin asignar)</strong>
-        <div class="toolbar">
-          <button class="btn small" id="compras-add">+ Añadir compra</button>
-          <button class="btn small muted" id="compras-sync">☁️ Sincronizar</button>
-        </div>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecen en Reparto.</div>
-        <div id="compras-wrap" class="scroll-x"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Reparto (optimizado por tienda) -->
-  <section class="tab" id="tab-reparto" style="display:none">
-    <div class="card">
-      <div class="hd">
-        <strong>🚚 Reparto (por tienda)</strong>
-        <div class="toolbar seg">
-          <button class="btn small" id="seg-sp" onclick="cambiarTiendaReparto('sp')">San Pablo</button>
-          <button class="btn small" id="seg-sl" onclick="cambiarTiendaReparto('sl')">San Lesmes</button>
-          <button class="btn small" id="seg-st" onclick="cambiarTiendaReparto('st')">Santiago</button>
-          <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
+        <!-- Santiago -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 Santiago</strong>
+            <div class="toolbar">
+              <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
+              <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
+              <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
+              <button class="btn ghost" onclick="whatsTienda('st')">🟢 WhatsApp</button>
+            </div>
+          </div>
+          <div class="bd">
+            <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
+          </div>
         </div>
       </div>
-      <div class="bd">
-        <div id="reparto-wrap" class="scroll-x"></div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Precios: sin proveedores -->
-  <section class="tab" id="tab-precios" style="display:none">
-    <div class="card">
-      <div class="hd">
-        <strong>📊 Precios (solo producto)</strong>
-        <div class="toolbar">
-          <button class="btn small muted" id="precios-save">💾 Guardar (fila)</button>
-          <button class="btn small" id="precios-send">🟢 WhatsApp cambios</button>
+    <!-- ========== TAB: Global ========== -->
+    <section class="tab" id="tab-global" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>🧮 Unificación global</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
+            <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
+            <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
+            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
+            <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint">
+            ✅ asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
+          </div>
+          <div class="card" style="margin-top:8px">
+            <div class="bd">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="hint">Proveedor activo:</span>
+                <div class="prov-bar" id="provBar"></div>
+              </div>
+            </div>
+          </div>
+          <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">No se agrupa por proveedor. Gestiona <b>precio por producto</b>.</div>
-        <div id="precios-wrap" class="scroll-x"></div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Sincronización manual Supabase -->
-  <section>
-    <div class="card">
-      <div class="hd">
-        <strong>☁️ Sincronización manual (Supabase)</strong>
-        <div class="toolbar">
-          <button class="btn ghost" onclick="syncPull()">⬇️ Cargar</button>
-          <button class="btn" onclick="syncPush()">⬆️ Subir</button>
+    <!-- ========== TAB: Proveedores ========== -->
+    <section class="tab" id="tab-proveedores" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>📦 Distribución por proveedor</strong>
+          <div class="toolbar">
+            <button class="btn small muted" onclick="renderProvidersPanels()">↻ Actualizar</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
         </div>
       </div>
-      <div class="bd">
-        <div class="hint">Usa estos botones para sincronizar manualmente con Supabase.</div>
+    </section>
+
+    <!-- ========== TAB: Compras ========== -->
+    <section class="tab" id="tab-compras" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>🛒 Compras (por proveedor o sin asignar)</strong>
+          <div class="toolbar">
+            <button class="btn small" id="compras-add">+ Añadir compra</button>
+            <button class="btn small muted" id="compras-sync">☁️ Sincronizar</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecerán en Reparto.</div>
+          <div id="compras-wrap" class="scroll-x"></div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-</div>
+    <!-- ========== TAB: Reparto (optimizado por tienda) ========== -->
+    <section class="tab" id="tab-reparto" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>🚚 Reparto (por tienda)</strong>
+          <div class="toolbar seg">
+            <button class="btn small" id="seg-sp" onclick="cambiarTiendaReparto('sp')">San Pablo</button>
+            <button class="btn small" id="seg-sl" onclick="cambiarTiendaReparto('sl')">San Lesmes</button>
+            <button class="btn small" id="seg-st" onclick="cambiarTiendaReparto('st')">Santiago</button>
+            <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div id="reparto-wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
 
-<!-- Tabbar -->
-<nav class="tabbar">
-  <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
-  <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
-  <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-  <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
-  <button id="btn-compras" onclick="showTab('compras')">🛒<span>Compras</span></button>
-  <button id="btn-reparto" onclick="showTab('reparto')">🚚<span>Reparto</span></button>
-  <button id="btn-precios" onclick="showTab('precios')">📊<span>Precios</span></button>
-</nav>
+    <!-- ========== TAB: Precios (independiente de proveedores) ========== -->
+    <section class="tab" id="tab-precios" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>📊 Precios (solo producto)</strong>
+          <div class="toolbar">
+            <button class="btn small muted" id="precios-save">💾 Guardar (fila)</button>
+            <button class="btn small" id="precios-send">🟢 WhatsApp cambios</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">No se agrupa por proveedor. Gestiona <b>precio por producto</b>.</div>
+          <div id="precios-wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
 
+    <!-- ========== TARJETA: Sincronización manual Supabase ========== -->
+    <section>
+      <div class="card">
+        <div class="hd">
+          <strong>☁️ Sincronización manual (Supabase)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="syncPull()">⬇️ Cargar</button>
+            <button class="btn" onclick="syncPush()">⬆️ Subir</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint">Usa estos botones para sincronizar manualmente con Supabase (pull/push).</div>
+        </div>
+      </div>
+    </section>
+
+  </div> <!-- End .container -->
+
+  <!-- Tabbar móvil fija -->
+  <nav class="tabbar">
+    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
+    <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
+    <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
+    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
+    <button id="btn-compras" onclick="showTab('compras')">🛒<span>Compras</span></button>
+    <button id="btn-reparto" onclick="showTab('reparto')">🚚<span>Reparto</span></button>
+    <button id="btn-precios" onclick="showTab('precios')">📊<span>Precios</span></button>
+  </nav>
+  <!-- 🔽 AQUI EMPIEZA EL JS (BLOQUE 3) -->
 <script>
 /* ==========================
    Tabs + Estado Global
@@ -299,14 +285,14 @@ function showTab(key){
    Config + Utils
 ========================== */
 const LS = {
-  VOCAB:'arslan_v36_vocab',
-  STORES:'arslan_v36_stores',
-  ASSIGN:'arslan_v36_assign',
-  ORDERS:'arslan_v36_orders',
-  PURCHASES:'arslan_v36_purchases',
-  REPARTO:'arslan_v36_reparto',
-  PRICES:'arslan_v36_prices',
-  SENT_LOG:'arslan_v36_sentlog'
+  VOCAB:'arslan_v37_vocab',
+  STORES:'arslan_v37_stores',
+  ASSIGN:'arslan_v37_assign',
+  ORDERS:'arslan_v37_orders',
+  PURCHASES:'arslan_v37_purchases',
+  REPARTO:'arslan_v37_reparto',
+  PRICES:'arslan_v37_prices',
+  SENT_LOG:'arslan_v37_sentlog'
 };
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
 const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
@@ -334,7 +320,7 @@ function stripGenericWords(s){
 /* ==========================
    Vocabulario
 ========================== */
-const OFFICIAL_VOCAB_RAW=`AGUACATE GRANEL
+const OFFICIAL_VOCAB_RAW = `AGUACATE GRANEL
 MANZANA GOLDEN 24
 TOMATE DANIELA
 ZANAHORIA
@@ -349,7 +335,23 @@ PEPINO
 NARANJA ZUMO
 MANGO
 FRESAS
-...`; // recortado en este bloque: se puede pegar tu lista completa
+TOMATE ROSA
+TOMATE PERA
+PIMIENTO ROJO
+PIMIENTO VERDE
+CEBOLLA ROJA
+LIMON PRIMERA
+LIMA
+UVA ROJA
+UVA BLANCA
+SANDIA
+MELON GALIA
+LECHUGA ROMANA
+APIO
+PEREJIL
+CILANTRO
+ESPINACA
+...`; // puedes pegar tu vocabulario completo
 
 function uniqueVocab(lines){
   const seen=new Set(); const out=[];
@@ -600,7 +602,6 @@ function showUndoToast(){
   };
   setTimeout(()=>{ if(t.parentNode) t.remove(); },9000);
 }
-
 function getPedidoTexto(prov){
   const list=(orders?.[prov]||[]); if(!list.length) return '';
   let out=`PEDIDO ${prov}\n`; list.forEach(it=>{ out+=`- ${cleanNum(it.qty,0)} ${it.name}\n`; }); return out.trim();
@@ -615,7 +616,6 @@ function marcarCompradoTotalDeProveedor(prov,vaciarDespues=true){
   if(vaciarDespues){ __lastClearedOrders={prov,list:(orders[prov]||[]).map(x=>({...x}))}; orders[prov]=[]; showUndoToast(); }
   persistState(); renderProvidersPanels(); if(byId('btn-compras')?.classList.contains('active')) renderCompras(); if(byId('btn-reparto')?.classList.contains('active')) renderRepartoOptimizado(); alert(`Pedido de ${prov} marcado como COMPRADO y retirado del panel.`);
 }
-
 function renderProvidersPanels(){
   const cont=byId('provPanels'); if(!cont) return; cont.innerHTML='';
   PROVEEDORES.forEach(p=>{
@@ -752,7 +752,8 @@ function renderCompras(){
   cont.querySelectorAll('tr[data-sp-name]').forEach(tr=>{
     const btn=tr.querySelector('.btn'); btn.addEventListener('click',()=>{
       const name=removeDiacriticsUpper(tr.querySelector('.c-name').innerText.trim()); const qty=cleanNum(tr.querySelector('.c-qty').value,0);
-      if(!Array.isArray(__purchases['_SIN_PROV_'])) __purchases['_SIN_PROV_']=[]; const idx=__purchases['_SIN_PROV_'].findIndex(x=>normKey(x.name)===normKey(name));
+      if(!Array.isArray(__purchases['_SIN_PROV_'])) __purchases['_SIN_PROV_']=[];
+      const idx=__purchases['_SIN_PROV_'].findIndex(x=>normKey(x.name)===normKey(name));
       if(idx>-1) __purchases['_SIN_PROV_'][idx].purchased=qty; else __purchases['_SIN_PROV_'].push({name,purchased:qty});
       persistState(); alert('Compra guardada sin proveedor.'); renderCompras(); renderRepartoOptimizado();
     });
@@ -994,15 +995,14 @@ function updateGlobalStatus(){
   buildProvBar(); renderProvidersPanels(); unificarGlobal(); updateGlobalStatus();
   cambiarTiendaReparto('sp');
 })();
-
-/* ==========================
-   Supabase: Sincronización manual
-========================== */
+</script>
+<script>
+// ===== Supabase Credenciales (las tuyas) =====
 const SUPA_URL = "https://esvfgvfqttvjcrsnxufq.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmZndmZxdHR2amNyc254dWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTIwNjIsImV4cCI6MjA3NzgyODA2Mn0.SdtgaK6c7gJAxA8jH77w0K3ctMlvGx6g4YLYrI0PKuw";
 const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// PULL: cargar desde supabase → local
+// ===== PULL: cargar desde supabase → local =====
 async function syncPull(){
   try{
     const tables=['vocab','tienda_sp','tienda_sl','tienda_st','assignments','orders','purchases','reparto','prices','sent_log'];
@@ -1012,41 +1012,48 @@ async function syncPull(){
       if(error) throw error;
       res[t]=data||[];
     }
+
     // Volcar datos
-    // Vocab
     if(res.vocab?.length){ const list=res.vocab.sort((a,b)=>(a.id||0)-(b.id||0)).map(r=>r.palabra); localStorage.setItem(LS.VOCAB, list.join('\n')); }
+
     // Tiendas
     tiendaState.sp = (res.tienda_sp||[]).map(r=>({o:r.o,e:r.e,q:Number(r.q)||0,a:!!r.a}));
     tiendaState.sl = (res.tienda_sl||[]).map(r=>({o:r.o,e:r.e,q:Number(r.q)||0,a:!!r.a}));
     tiendaState.st = (res.tienda_st||[]).map(r=>({o:r.o,e:r.e,q:Number(r.q)||0,a:!!r.a}));
+
     // Assignments
     assignments = {}; (res.assignments||[]).forEach(r=>{ assignments[r.producto]=r.proveedor; });
+
     // Orders
     orders = {}; PROVEEDORES.forEach(p=>orders[p]=[]);
     (res.orders||[]).forEach(r=>{ if(!orders[r.proveedor]) orders[r.proveedor]=[]; orders[r.proveedor].push({name:r.name,qty:Number(r.qty)||0}); });
+
     // Purchases
     __purchases = {};
     (res.purchases||[]).forEach(r=>{ if(!__purchases[r.proveedor]) __purchases[r.proveedor]=[]; __purchases[r.proveedor].push({name:r.name,purchased:Number(r.purchased)||0}); });
+
     // Reparto
     __reparto = {}; (res.reparto||[]).forEach(r=>{ __reparto[r.producto]={sp:Number(r.sp)||0,sl:Number(r.sl)||0,st:Number(r.st)||0}; });
+
     // Prices (producto → precio)
     const pricesObj={}; (res.prices||[]).forEach(r=>{ pricesObj[priceKey(r.name)]=Number(r.price); });
     setPrices(pricesObj);
+
     // Sent log
     const sent = (res.sent_log||[]).map(r=>({prov:r.prov,when:r.when,type:r.type,lines:Number(r.lines)||0}));
     localStorage.setItem(LS.SENT_LOG, JSON.stringify(sent));
 
+    // Re-render
     persistState();
     ['sp','sl','st'].forEach(code=>renderTable(code));
     renderProvidersPanels(); unificarGlobal(); renderCompras(); renderRepartoOptimizado(); renderPreciosProducto();
     alert('Cargado desde Supabase.');
-  }catch(e){ console.warn(e); alert('Error al cargar desde Supabase. Revisa las tablas.'); }
+  }catch(e){ console.warn(e); alert('Error al cargar desde Supabase. Revisa las tablas/columnas.'); }
 }
 
-// PUSH: subir local → supabase (upsert)
+// ===== PUSH: subir local → supabase (upsert) =====
 async function syncPush(){
   try{
-    // Limpieza previa (opcional: truncate lógico)
     // Vocab
     await supa.from('vocab').upsert(toLines(byId('vocabTxt').value).map((v,i)=>({id:i+1,palabra:v})));
     // Tiendas
@@ -1072,5 +1079,293 @@ async function syncPush(){
   }catch(e){ console.warn(e); alert('Error al subir a Supabase.'); }
 }
 </script>
-</body>
-</html>
+/* RESET & BASE */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.4;
+}
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* CARD */
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.card .hd {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.card .bd {
+  padding: 12px;
+}
+
+/* BUTTONS */
+.btn {
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--kiwi);
+  color: white;
+  font-weight: 500;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.btn:hover {
+  background: var(--kiwi-2);
+}
+.btn.small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--kiwi-2);
+  border: 1px solid var(--kiwi-2);
+}
+.btn.ghost:hover {
+  background: var(--kiwi-2);
+  color: white;
+}
+.btn.muted {
+  background: var(--muted);
+}
+.btn.muted:hover {
+  background: #4b5563;
+}
+
+/* TOOLBAR */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.toolbar.seg .btn {
+  border-radius: 0;
+}
+.toolbar.seg .btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.toolbar.seg .btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+/* TABLES */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 5px 6px;
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  background: var(--panel);
+  font-weight: 600;
+}
+tr.dup {
+  background: #fff7ed;
+}
+tr.dup td {
+  border-color: #fed7aa;
+}
+td.green {
+  background: #f6ffed;
+}
+td.red {
+  background: #fff1f2;
+}
+
+/* TEXTAREA */
+textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  resize: vertical;
+}
+
+/* SCROLLABLE */
+.scroll-x {
+  overflow-x: auto;
+}
+.scroll-y {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+/* NOTAS Y PASTILLAS */
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pill {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  display: inline-block;
+  color: white;
+}
+.pill.ok {
+  background: var(--ok);
+}
+.pill.bad {
+  background: var(--bad);
+}
+.pill.warn {
+  background: var(--warn);
+}
+
+/* STICKY TABBAR */
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #111827;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 6px 0;
+  z-index: 999;
+}
+.tabbar button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.tabbar button span {
+  font-size: 11px;
+}
+.tabbar button.active {
+  color: white;
+}
+.tabbar button.active::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--kiwi);
+  border-radius: 50%;
+  margin-top: 2px;
+}
+
+/* PROV-BAR */
+.prov-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.prov-btn {
+  border: 1px solid var(--border);
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.prov-btn.active {
+  border-color: var(--kiwi);
+  background: #dcfce7;
+  font-weight: 600;
+}
+
+/* FLAGS */
+.flag {
+  color: var(--warn);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* INPUT TYPES */
+input[type="number"] {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+}
+
+/* AUTOCOMPLETE BOX */
+.ac-box {
+  position: absolute;
+  z-index: 9999;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.ac-item {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.ac-item:hover {
+  background: #e5e7eb;
+}
+
+/* RESPONSIVE CARDS COLUMN */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 10px;
+}
+
+/* HIDDEN DUPLICATES */
+.ok-assign {
+  background: var(--kiwi);
+  color: white;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 14px;
+}
+.ok-assign:hover {
+  background: var(--kiwi-2);
+}
+
+/* SMALL MOBILE */
+@media (max-width: 600px) {
+  .tabbar span {
+    display: none;
+  }
+  table {
+    font-size: 12px;
+  }
+}
