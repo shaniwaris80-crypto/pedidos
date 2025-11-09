@@ -1342,8 +1342,10 @@ function unassignedTotals(){
 }
 
 /* ==========================
-   Reparto (con persistencia del capado)
+   Reparto (PRIORIDAD A LO SOLICITADO + EXCEDENTE 50/20/30)
 ========================== */
+
+/* Utilidad: solicitado por tienda */
 function solicitadoPorTienda(name){
   const nk = normKey(name);
   const S = {sp:0, sl:0, st:0};
@@ -1352,6 +1354,8 @@ function solicitadoPorTienda(name){
   (tiendaState?.st||[]).forEach(r=>{ if(normKey(r.e)===nk) S.st += Number(r.q)||0; });
   return S;
 }
+
+/* Total comprado por nombre */
 function totalComprado(){
   const map={};
   (PROVEEDORES||[]).forEach(p=>{
@@ -1359,12 +1363,13 @@ function totalComprado(){
       map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
     });
   });
-  // incluir _SIN_PROV_
   (__purchases['_SIN_PROV_']||[]).forEach(it=>{
     map[it.name] = (map[it.name]||0) + (Number(it.purchased)||0);
   });
   return map;
 }
+
+/* Total solicitado por nombre (suma 3 tiendas) */
 function totalSolicitado(){
   const all = [].concat(tiendaState?.sp||[], tiendaState?.sl||[], tiendaState?.st||[]);
   const map = {};
@@ -1380,70 +1385,122 @@ function totalSolicitado(){
   return byName;
 }
 
-/* Reparte el exceso (si lo hay) 50/20/30 */
-function autoExceso(sol, comp){
-  const ex = Math.max(0, comp - sol);
-  return {sp: +(ex*0.50).toFixed(2), sl: +(ex*0.20).toFixed(2), st: +(ex*0.30).toFixed(2)};
+/* NUEVA: Calcula objetivo por tienda según prioridad + excedente 50/20/30 */
+function calcularRepartoSugerido(name, comp){
+  const base = solicitadoPorTienda(name); // pedido por tienda
+  const totalBase = +(base.sp + base.sl + base.st).toFixed(2);
+  const comprado = +(Number(comp)||0).toFixed(2);
+
+  // No hay stock
+  if(comprado <= 0){
+    return {
+      tipo: 'sin_stock',
+      objetivo: {sp:0, sl:0, st:0},
+      exceso: 0,
+      factor: 0
+    };
+  }
+
+  // Si comprado < solicitado total -> repartir proporcional a lo solicitado
+  if(comprado < totalBase && totalBase > 0){
+    const f = +(comprado / totalBase).toFixed(6);
+    return {
+      tipo: 'deficit',
+      objetivo: {
+        sp: +(base.sp * f).toFixed(2),
+        sl: +(base.sl * f).toFixed(2),
+        st: +(base.st * f).toFixed(2)
+      },
+      exceso: 0,
+      factor: f
+    };
+  }
+
+  // Si comprado == solicitado total -> objetivo = lo solicitado exacto
+  if(comprado === totalBase){
+    return {
+      tipo: 'exacto',
+      objetivo: {
+        sp: +(base.sp).toFixed(2),
+        sl: +(base.sl).toFixed(2),
+        st: +(base.st).toFixed(2)
+      },
+      exceso: 0,
+      factor: 1
+    };
+  }
+
+  // comprado > solicitado total -> objetivo = solicitado + excedente 50/20/30
+  const exceso = +(comprado - totalBase).toFixed(2);
+  return {
+    tipo: 'exceso',
+    objetivo: {
+      sp: +(base.sp + exceso*0.50).toFixed(2),
+      sl: +(base.sl + exceso*0.20).toFixed(2),
+      st: +(base.st + exceso*0.30).toFixed(2)
+    },
+    exceso,
+    factor: 1
+  };
 }
 
-/* NUEVO: render Reparto con persistencia del capado */
+/* RENDER Reparto con la nueva lógica */
 function renderReparto(){
   const cont = byId('reparto-wrap'); if(!cont) return;
-  const rep = __reparto || {};
   const comprado = totalComprado();
-  const solicitado = totalSolicitado();
+  const solicitadoTotal = totalSolicitado();
 
   const productos = Object.keys(comprado).sort((a,b)=>a.localeCompare(b,'es'));
   if(!productos.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; updateGlobalStatus(); return;}
 
-  let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Restante global</th><th>San Pablo (50%)</th><th>San Lesmes (20%)</th><th>Santiago (30%)</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado total</th><th>Restante global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th><th></th></tr></thead><tbody>';
 
   productos.forEach(name=>{
     const comp = +(Number(comprado[name])||0).toFixed(2);
-    const sol  = +(Number(solicitado[name])||0).toFixed(2);
+    const sol  = +(Number(solicitadoTotal[name])||0).toFixed(2);
     if(comp<=0) return;
 
-    // Base: lo pedido por tienda
-    const base = solicitadoPorTienda(name);
-    const totalBase = +(base.sp + base.sl + base.st).toFixed(2);
+    const suger = calcularRepartoSugerido(name, comp);
+    const objetivo = suger.objetivo;
 
-    // Exceso comprado → reparto automático 50/20/30
-    const exceso = autoExceso(totalBase, comp);
-    const objetivo = {
-      sp: +(base.sp + exceso.sp).toFixed(2),
-      sl: +(base.sl + exceso.sl).toFixed(2),
-      st: +(base.st + exceso.st).toFixed(2)
+    const curEnt = __reparto[name] || {sp:0, sl:0, st:0};
+    // Capar entregado a objetivo (por si objetivos bajaron)
+    const cap = {
+      sp: Math.min(curEnt.sp||0, objetivo.sp),
+      sl: Math.min(curEnt.sl||0, objetivo.sl),
+      st: Math.min(curEnt.st||0, objetivo.st),
+    };
+    if(!__reparto[name]) __reparto[name] = {sp:0, sl:0, st:0};
+    __reparto[name] = cap; // persistir saneado
+    persistState();
+
+    const pend = {
+      sp: +(Math.max(0, objetivo.sp - cap.sp)).toFixed(2),
+      sl: +(Math.max(0, objetivo.sl - cap.sl)).toFixed(2),
+      st: +(Math.max(0, objetivo.st - cap.st)).toFixed(2)
     };
 
-    const entregado = rep[name] || {sp:0, sl:0, st:0};
+    const entregadoTotal = +(cap.sp + cap.sl + cap.st).toFixed(2);
+    const restGlobal = Math.max(0, +(comp - entregadoTotal).toFixed(2));
 
-    // No permitir que lo entregado supere su objetivo
-    const capEntregado = {
-      sp: Math.min(entregado.sp||0, objetivo.sp),
-      sl: Math.min(entregado.sl||0, objetivo.sl),
-      st: Math.min(entregado.st||0, objetivo.st),
-    };
-    if(!rep[name]) rep[name] = {sp:0, sl:0, st:0};
-    rep[name] = capEntregado; // sanea si crecieron objetivos hacia abajo
-    persistState(); // ✅ FIX: persistir cambios silenciosos
+    // Mostrar fila si aún queda por repartir o si hay stock sobrante
+    const pendienteTotal = +(pend.sp + pend.sl + pend.st).toFixed(2);
+    if(pendienteTotal<=0 && restGlobal<=0){ return; }
 
-    // Restantes por tienda
-    const pendiente = {
-      sp: +(Math.max(0, objetivo.sp - capEntregado.sp)).toFixed(2),
-      sl: +(Math.max(0, objetivo.sl - capEntregado.sl)).toFixed(2),
-      st: +(Math.max(0, objetivo.st - capEntregado.st)).toFixed(2)
-    };
-
-    // Restante global = comprado - entregado total (capado a 0)
-    const totalEntregado = +(capEntregado.sp + capEntregado.sl + capEntregado.st).toFixed(2);
-    const restGlobal = Math.max(0, +(comp - totalEntregado).toFixed(2));
-
-    // Si no queda nada por repartir o no queda stock, ocultar
-    const pendienteTotal = +(pendiente.sp + pendiente.sl + pendiente.st).toFixed(2);
-    if(pendienteTotal<=0 || restGlobal<=0){ return; }
+    const badgeModo = (()=>{
+      if(suger.tipo==='deficit') return '<span class="pill warn">Déficit: reparto proporcional a pedido</span>';
+      if(suger.tipo==='exceso')  return '<span class="pill ok">Excedente: +50/20/30</span>';
+      if(suger.tipo==='exacto')  return '<span class="pill ok">Exacto a lo pedido</span>';
+      return '<span class="pill">Sin stock</span>';
+    })();
 
     html += `<tr data-name="${name}">
-      <td>${name}</td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div>${name}</div>
+          <div>${badgeModo}</div>
+        </div>
+      </td>
       <td>${comp}</td>
       <td>${sol}</td>
       <td>${restGlobal}</td>
@@ -1451,30 +1508,35 @@ function renderReparto(){
       <td>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <button class="btn small muted r-dec" data-t="sp">–</button>
-          <span class="pill">${capEntregado.sp} / ${objetivo.sp} (pend: ${pendiente.sp})</span>
+          <span class="pill">Entregado: ${cap.sp} / Obj: ${objetivo.sp} (pend: ${pend.sp})</span>
         </div>
       </td>
       <td>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <button class="btn small muted r-dec" data-t="sl">–</button>
-          <span class="pill">${capEntregado.sl} / ${objetivo.sl} (pend: ${pendiente.sl})</span>
+          <span class="pill">Entregado: ${cap.sl} / Obj: ${objetivo.sl} (pend: ${pend.sl})</span>
         </div>
       </td>
       <td>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <button class="btn small muted r-dec" data-t="st">–</button>
-          <span class="pill">${capEntregado.st} / ${objetivo.st} (pend: ${pendiente.st})</span>
+          <span class="pill">Entregado: ${cap.st} / Obj: ${objetivo.st} (pend: ${pend.st})</span>
         </div>
       </td>
 
-      <td><button class="btn small" onclick="marcarTodoEntregado('${name}')">✅ Completar</button></td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn small" onclick="marcarTodoEntregado('${name}')">✅ Completar</button>
+          ${suger.tipo==='exceso' ? `<button class="btn small muted ex-btn">➕ Excedente</button>` : ''}
+        </div>
+      </td>
     </tr>`;
   });
 
   html += '</tbody></table>';
   cont.innerHTML = html;
 
-  // Handler: botón "–" reduce pendiente (aumenta entregado) sin pasar objetivos ni stock
+  // Handler: botón "–" aumenta entregado 1 unidad respetando objetivo y stock global restante
   cont.querySelectorAll('.r-dec').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const tr = btn.closest('tr');
@@ -1482,29 +1544,49 @@ function renderReparto(){
       const tienda = btn.dataset.t;
 
       const comp = +(Number(totalComprado()[name])||0).toFixed(2);
-      const base = solicitadoPorTienda(name);
-      const totalBase = +(base.sp + base.sl + base.st).toFixed(2);
-      const exceso = autoExceso(totalBase, comp);
-      const objetivo = {
-        sp: +(base.sp + exceso.sp).toFixed(2),
-        sl: +(base.sl + exceso.sl).toFixed(2),
-        st: +(base.st + exceso.st).toFixed(2)
-      };
+      const suger = calcularRepartoSugerido(name, comp);
+      const obj = suger.objetivo;
 
       const cur = __reparto[name] || {sp:0,sl:0,st:0};
-      const totalEntregado = +( (cur.sp||0)+(cur.sl||0)+(cur.st||0) ).toFixed(2);
-      const restGlobal = Math.max(0, +(comp - totalEntregado).toFixed(2));
+      const entregadoTotal = +( (cur.sp||0)+(cur.sl||0)+(cur.st||0) ).toFixed(2);
+      const restGlobal = Math.max(0, +(comp - entregadoTotal).toFixed(2));
+      const pendienteTienda = Math.max(0, +(obj[tienda] - (cur[tienda]||0)).toFixed(2));
 
-      const pendienteTienda = Math.max(0, +(objetivo[tienda] - (cur[tienda]||0)).toFixed(2));
+      if(restGlobal<=0 || pendienteTienda<=0) return;
 
-      if(restGlobal<=0 || pendienteTienda<=0){
-        return; // nada que repartir
-      }
-
-      // incremento unitario (1) sin rebasar límites
       const inc = Math.min(1, pendienteTienda, restGlobal);
       __reparto[name] = {...cur, [tienda]: +( (cur[tienda]||0) + inc ).toFixed(2)};
+      persistState();
+      renderReparto();
+    });
+  });
 
+  // Handler: botón "➕ Excedente" (solo si hay exceso)
+  cont.querySelectorAll('.ex-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tr = btn.closest('tr');
+      const name = tr.dataset.name;
+
+      const comp = +(Number(totalComprado()[name])||0).toFixed(2);
+      const suger = calcularRepartoSugerido(name, comp);
+      if(suger.tipo!=='exceso') return;
+
+      let cur = __reparto[name] || {sp:0,sl:0,st:0};
+      const obj = suger.objetivo;
+      let restGlobal = Math.max(0, +(comp - (cur.sp+cur.sl+cur.st)).toFixed(2));
+
+      // Repartir sobrante intentando completar objetivos en orden SP→SL→ST
+      ['sp','sl','st'].forEach(t=>{
+        if(restGlobal<=0) return;
+        const pend = Math.max(0, +(obj[t] - (cur[t]||0)).toFixed(2));
+        if(pend>0){
+          const inc = Math.min(pend, restGlobal);
+          cur = {...cur, [t]: +((cur[t]||0)+inc).toFixed(2)};
+          restGlobal = +(restGlobal - inc).toFixed(2);
+        }
+      });
+
+      __reparto[name] = cur;
       persistState();
       renderReparto();
     });
@@ -1518,17 +1600,15 @@ function renderReparto(){
   updateGlobalStatus();
 }
 
-/* Completa reparto de un producto respetando límites y stock */
+/* Completar reparto de un producto respetando objetivos priorizando lo solicitado
+   - Si hay déficit: completa hasta el objetivo proporcional.
+   - Si exacto: entrega lo solicitado exacto.
+   - Si exceso: primero cubre solicitado exacto, luego añade extra 50/20/30 hasta objetivo.
+*/
 function marcarTodoEntregado(name){
   const comp = +(Number(totalComprado()[name])||0).toFixed(2);
-  const base = solicitadoPorTienda(name);
-  const totalBase = +(base.sp + base.sl + base.st).toFixed(2);
-  const exceso = autoExceso(totalBase, comp);
-  const objetivo = {
-    sp: +(base.sp + exceso.sp).toFixed(2),
-    sl: +(base.sl + exceso.sl).toFixed(2),
-    st: +(base.st + exceso.st).toFixed(2)
-  };
+  const suger = calcularRepartoSugerido(name, comp);
+  const obj = suger.objetivo;
 
   const cur = __reparto[name] || {sp:0,sl:0,st:0};
   let restGlobal = Math.max(0, +(comp - ((cur.sp||0)+(cur.sl||0)+(cur.st||0))).toFixed(2));
@@ -1536,7 +1616,7 @@ function marcarTodoEntregado(name){
 
   // Intentar cumplir objetivos en orden SP → SL → ST
   ['sp','sl','st'].forEach(t=>{
-    const pend = Math.max(0, +(objetivo[t] - (out[t]||0)).toFixed(2));
+    const pend = Math.max(0, +(obj[t] - (out[t]||0)).toFixed(2));
     if(pend>0 && restGlobal>0){
       const inc = Math.min(pend, restGlobal);
       out[t] = +((out[t]||0) + inc).toFixed(2);
@@ -1695,7 +1775,7 @@ function updateGlobalStatus(){
   const unassignedKeys = Object.keys(totalMap).filter(k=> !assignments[k]);
   const sinAsignar = unassignedKeys.length;
 
-  // ✅ Pedidos enviados reales (según log). Puedes filtrar por día si quieres solo "hoy":
+  // ✅ Pedidos enviados reales (según log).
   const sentToday = getSentLog().filter(x=>x.when===todayISO());
   const pedidosEnviados = sentToday.length;
 
