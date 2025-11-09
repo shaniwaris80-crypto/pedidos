@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL</title>
+<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL (Fixes)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -320,7 +320,9 @@ const LS = {
   ORDERS: 'arslan_v34_orders',
   PURCHASES: 'arslan_v34_purchases',
   REPARTO: 'arslan_v34_reparto',
-  PRICES: 'arslan_v34_prices'
+  PRICES: 'arslan_v34_prices',
+  // ✅ NUEVO: registro de envíos
+  SENT_LOG: 'arslan_v34_sentlog'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
@@ -329,6 +331,21 @@ const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad'
 const $ = s => document.querySelector(s);
 const byId = id => document.getElementById(id);
 const toLines = t => String(t||'').split(/[\n\r,]/).map(x=>x.trim()).filter(Boolean);
+
+// ✅ NUEVO: saneador numérico
+function cleanNum(n, def=0){
+  const x = Number(String(n).replace(',','.'));
+  if (!isFinite(x) || isNaN(x)) return def;
+  return Math.max(0, x);
+}
+
+// ✅ NUEVO: utilidades de log de envíos
+function getSentLog(){ try{ return JSON.parse(localStorage.getItem(LS.SENT_LOG)||'[]')||[]; }catch{ return []; } }
+function pushSentLog(entry){
+  const log = getSentLog(); log.push(entry);
+  localStorage.setItem(LS.SENT_LOG, JSON.stringify(log));
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
 
 function removeDiacriticsUpper(s){
   return String(s||'')
@@ -685,25 +702,50 @@ function resetAllButKeepVocab(){
 }
 
 /* ==========================
-   Estandarizar por tienda
+   Autocomplete (REESCRITO - Fix fugas y reposición)
 ========================== */
 let AC_ACTIVE = null;
-function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
+let AC_LISTENERS_ATTACHED = false;
 
+function closeAC(){
+  if (AC_ACTIVE) {
+    AC_ACTIVE.remove();
+    AC_ACTIVE = null;
+  }
+}
+function ensureACGlobalListeners(){
+  if (AC_LISTENERS_ATTACHED) return;
+  AC_LISTENERS_ATTACHED = true;
+  ['click','scroll','resize','orientationchange'].forEach(ev=>{
+    window.addEventListener(ev, (e)=>{
+      if (!AC_ACTIVE) return;
+      if (ev==='click') {
+        if (e.target && AC_ACTIVE.contains(e.target)) return;
+      }
+      closeAC();
+    }, {capture:true, passive:true});
+  });
+}
+function positionACBoxForCell(box, cell){
+  const rect = cell.getBoundingClientRect();
+  box.style.left = (rect.left + window.scrollX) + 'px';
+  box.style.top  = (rect.bottom + window.scrollY) + 'px';
+  box.style.width = rect.width + 'px';
+}
 function attachAutocomplete(cell, onPick){
+  ensureACGlobalListeners();
+  const reposition = ()=>{ if(AC_ACTIVE) positionACBoxForCell(AC_ACTIVE, cell); };
+
   cell.addEventListener('input', ()=>{
-    const val = stripGenericWords(cell.innerText||'');
+    const val = stripGenericWords(cell.innerText||'').trim();
     closeAC();
     if(!val) return;
     const vocab = loadVocab();
     const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
     if(!suggestions.length) return;
-    const rect = cell.getBoundingClientRect();
+
     const box = document.createElement('div');
     box.className='ac-box';
-    box.style.left = (rect.left + window.scrollX) + 'px';
-    box.style.top = (rect.bottom + window.scrollY) + 'px';
-    box.style.width = rect.width + 'px';
     suggestions.forEach(s=>{
       const item = document.createElement('div');
       item.className='ac-item';
@@ -713,10 +755,16 @@ function attachAutocomplete(cell, onPick){
     });
     document.body.appendChild(box);
     AC_ACTIVE = box;
+    positionACBoxForCell(box, cell);
   });
-  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
+
+  cell.addEventListener('keyup', ()=>reposition());
+  cell.addEventListener('blur', ()=>{ /* cierre global */ });
 }
 
+/* ==========================
+   Estandarizar por tienda
+========================== */
 function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
   const rows = tiendaState[code]||[];
@@ -750,7 +798,7 @@ function renderTable(code){
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='q'){
-        tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
+        tiendaState[code][i].q = cleanNum(val, 0); // ✅ FIX: saneo numérico
       }else{ // nombre
         const cleaned = removeDiacriticsUpper(val);
         tiendaState[code][i].e = cleaned;
@@ -864,7 +912,7 @@ function renderGlobalTable(rows, similarSet){
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='total'){
-        globalRows[idx].total = Number(String(val).replace(',','.'))||0;
+        globalRows[idx].total = cleanNum(val, 0); // ✅ FIX: saneo numérico
       }else{
         const cleaned = removeDiacriticsUpper(val);
         globalRows[idx].name = cleaned;
@@ -885,7 +933,8 @@ function renderGlobalTable(rows, similarSet){
             tr.querySelector('td:last-child').innerHTML = '<span class="pill warn">Posible duplicado</span>';
           }else{
             tr.classList.remove('dup');
-            tr.querySelector('td:last-child').innerHTML = '<span class="pill">OK</span>';
+            // ✅ FIX: “OK” verde consistente
+            tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
           }
         }
       }
@@ -928,6 +977,28 @@ function buildProvBar(){
     };
     bar.appendChild(b);
   });
+}
+
+let __lastClearedOrders = null; // ✅ NUEVO: buffer para deshacer
+
+function showUndoToast(){ // ✅ NUEVO: toast de deshacer
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:70px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;z-index:10000;box-shadow:0 4px 14px rgba(0,0,0,.2);';
+  t.innerHTML = 'Pedidos vaciados tras enviar. <button id="undoBtn" style="margin-left:8px;background:#fff;color:#111827;border:0;border-radius:6px;padding:6px 10px;cursor:pointer">Deshacer</button>';
+  document.body.appendChild(t);
+  document.getElementById('undoBtn').onclick = ()=>{
+    if(__lastClearedOrders){
+      const {prov, list} = __lastClearedOrders;
+      orders[prov] = list; // restaurar
+      __lastClearedOrders = null;
+      persistState();
+      renderProvidersPanels();
+      unificarGlobal();
+      updateGlobalStatus();
+    }
+    t.remove();
+  };
+  setTimeout(()=>{ if (t.parentNode) t.remove(); }, 9000);
 }
 
 function renderProvidersPanels(){
@@ -975,7 +1046,7 @@ function renderProvidersPanels(){
         cell.addEventListener('blur', ()=>{
           const val = cell.innerText.trim();
           if(f==='qty'){
-            orders[prov][idx].qty = Number(String(val).replace(',','.'))||0;
+            orders[prov][idx].qty = cleanNum(val, 0); // ✅ FIX: saneo numérico
           }else{
             orders[prov][idx].name = removeDiacriticsUpper(val);
           }
@@ -994,8 +1065,12 @@ function renderProvidersPanels(){
         const txt = getPedidoTexto(p);
         if(!txt){ alert('Sin líneas para enviar.'); return; }
         const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+
+        // ✅ Registrar envío real antes de vaciar
+        pushSentLog({prov: p, when: todayISO(), type: 'whatsapp', lines: (orders[p]||[]).length});
+
         window.open(url, '_blank');
-        marcarCompradoTotalDeProveedor(p, /*vaciar*/ true); // ahora vacía tras marcar comprado
+        marcarCompradoTotalDeProveedor(p, /*vaciar*/ true);
       };
     }
     const btnTxt = hd.querySelector('.btn.txtprov');
@@ -1007,7 +1082,11 @@ function renderProvidersPanels(){
         const txt = listNow.map(x=> `${x.qty} ${x.name}`).join('\n');
         const blob = new Blob([txt],{type:'text/plain'});
         const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${p}_${today}.txt`; a.click();
-        marcarCompradoTotalDeProveedor(p, /*vaciar*/ true); // ahora vacía tras marcar comprado
+
+        // ✅ Registrar envío real antes de vaciar
+        pushSentLog({prov: p, when: todayISO(), type: 'txt', lines: (orders[p]||[]).length});
+
+        marcarCompradoTotalDeProveedor(p, /*vaciar*/ true);
       };
     }
   });
@@ -1018,23 +1097,27 @@ function getPedidoTexto(prov){
   const list = (orders?.[prov]||[]);
   if(!list.length) return '';
   let out = `PEDIDO ${prov}\n`;
-  list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
+  list.forEach(it=>{ out += `- ${cleanNum(it.qty,0)} ${it.name}\n`; });
   return out.trim();
 }
 
 /* MODIFICADO: al marcar comprado, además de pasar a compras:
    - Vacía las órdenes del proveedor (para que desaparezcan del panel)
-   - Recalcula reparto y refresca pestañas relacionadas */
+   - Recalcula reparto y refresca pestañas relacionadas
+   - ✅ Guarda copia para DESHACER y sanea cantidades
+*/
 function marcarCompradoTotalDeProveedor(prov, vaciarDespues = false){
   if(!Array.isArray(__purchases[prov])) __purchases[prov]=[];
   (orders?.[prov]||[]).forEach(it=>{
     const idx = __purchases[prov].findIndex(x=> normKey(x.name) === normKey(it.name));
-    if (idx>-1) __purchases[prov][idx].purchased = Number(it.qty)||0;
-    else __purchases[prov].push({name: it.name, purchased: Number(it.qty)||0});
+    if (idx>-1) __purchases[prov][idx].purchased = cleanNum(it.qty, 0); // ✅ saneo
+    else __purchases[prov].push({name: it.name, purchased: cleanNum(it.qty, 0)}); // ✅ saneo
   });
 
   if(vaciarDespues){
+    __lastClearedOrders = {prov, list: (orders[prov]||[]).map(x=>({...x}))}; // ✅ copia segura
     orders[prov] = []; // 🔥 limpia la lista del proveedor
+    showUndoToast();   // ✅ aviso + deshacer
   }
 
   persistState();
@@ -1136,7 +1219,7 @@ function renderCompras(){
         html += `<tr data-prov="${p}" data-idx="${ix}">
           <td>${p}</td>
           <td contenteditable="true" class="c-name">${it.name}</td>
-          <td><input class="c-qty" type="number" min="0" step="0.01" value="${Number(it.purchased)||0}" style="width:100px"></td>
+          <td><input class="c-qty" type="number" min="0" step="0.01" value="${cleanNum(it.purchased,0)}" style="width:100px"></td>
           <td>
             <button class="btn small muted c-save">Guardar</button>
             <button class="btn small c-del">Eliminar</button>
@@ -1174,7 +1257,7 @@ function renderCompras(){
       const tr = btn.closest('tr');
       const p = tr.dataset.prov, ix = Number(tr.dataset.idx);
       const name = tr.querySelector('.c-name').innerText.trim();
-      const qty  = Number(tr.querySelector('.c-qty').value)||0;
+      const qty  = cleanNum(tr.querySelector('.c-qty').value, 0); // ✅ FIX: saneo
       __purchases[p][ix] = {name, purchased:qty};
       persistState();
       renderCompras();
@@ -1199,7 +1282,7 @@ function renderCompras(){
     const btn    = tr.querySelector('.btn');
     btn.addEventListener('click', ()=>{
       const name = removeDiacriticsUpper(nameEl.innerText.trim());
-      const qty  = Number(qtyEl.value)||0;
+      const qty  = cleanNum(qtyEl.value, 0); // ✅ FIX: saneo
       if(!Array.isArray(__purchases['_SIN_PROV_'])) __purchases['_SIN_PROV_']=[];
       const idx = __purchases['_SIN_PROV_'].findIndex(x=> normKey(x.name)===normKey(name));
       if(idx>-1) __purchases['_SIN_PROV_'][idx].purchased = qty;
@@ -1217,7 +1300,7 @@ function renderCompras(){
     if(!prov){return;}
     const name = prompt('Producto (usa nombres del diccionario si es posible):');
     if(!name){return;}
-    const qty = Number(prompt('Cantidad comprada:')||'0')||0;
+    const qty = cleanNum(prompt('Cantidad comprada:')||'0', 0); // ✅ FIX: saneo
     if(!__purchases[prov]) __purchases[prov]=[];
     __purchases[prov].push({name:removeDiacriticsUpper(name), purchased:qty});
     persistState();
@@ -1259,7 +1342,7 @@ function unassignedTotals(){
 }
 
 /* ==========================
-   Reparto (NUEVO comportamiento)
+   Reparto (con persistencia del capado)
 ========================== */
 function solicitadoPorTienda(name){
   const nk = normKey(name);
@@ -1303,11 +1386,7 @@ function autoExceso(sol, comp){
   return {sp: +(ex*0.50).toFixed(2), sl: +(ex*0.20).toFixed(2), st: +(ex*0.30).toFixed(2)};
 }
 
-/* NUEVO: render Reparto con:
-   - Solo bajar pendientes (botón –)
-   - Objetivo = solicitado por tienda + exceso 50/20/30
-   - No supera comprado total ni objetivo por tienda
-   - Completados desaparecen */
+/* NUEVO: render Reparto con persistencia del capado */
 function renderReparto(){
   const cont = byId('reparto-wrap'); if(!cont) return;
   const rep = __reparto || {};
@@ -1346,6 +1425,7 @@ function renderReparto(){
     };
     if(!rep[name]) rep[name] = {sp:0, sl:0, st:0};
     rep[name] = capEntregado; // sanea si crecieron objetivos hacia abajo
+    persistState(); // ✅ FIX: persistir cambios silenciosos
 
     // Restantes por tienda
     const pendiente = {
@@ -1615,8 +1695,9 @@ function updateGlobalStatus(){
   const unassignedKeys = Object.keys(totalMap).filter(k=> !assignments[k]);
   const sinAsignar = unassignedKeys.length;
 
-  // Pedidos enviados: consideramos proveedores con líneas en orders
-  const pedidosEnviados = Object.values(orders||{}).filter(list => list && list.length).length;
+  // ✅ Pedidos enviados reales (según log). Puedes filtrar por día si quieres solo "hoy":
+  const sentToday = getSentLog().filter(x=>x.when===todayISO());
+  const pedidosEnviados = sentToday.length;
 
   // Comprados totales (uds)
   let compradosUds = 0;
