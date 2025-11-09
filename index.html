@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+# We'll write the full HTML file with the updated renderReparto logic as requested.
+html_content = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL</title>
+<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL (Reparto actualizado)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -19,27 +20,16 @@
     --warn: #f59e0b;
     --bg: #ffffff;
   }
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
   body {
     font-family: 'Poppins', sans-serif;
     color: var(--ink);
     background: #fff;
     margin: 0;
   }
-  h1 {
-    font-size: 18px;
-    margin: 0;
-    color: var(--ink);
-  }
-  .container {
-    padding: 12px 12px 76px;
-  }
-  .hint {
-    font-size: 12px;
-    color: var(--muted);
-  }
+  h1 { font-size: 18px; margin: 0; color: var(--ink); }
+  .container { padding: 12px 12px 76px; }
+  .hint { font-size: 12px; color: var(--muted); }
   .card {
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -48,206 +38,73 @@
     margin-bottom: 12px;
   }
   .card .hd {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
   }
-  .card .bd {
-    padding: 10px 12px;
-  }
-  .toolbar {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .card .bd { padding: 10px 12px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn {
-    padding: 8px 12px;
-    border-radius: 10px;
+    padding: 8px 12px; border-radius: 10px;
     border: 1px solid var(--kiwi);
     background: linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);
-    color: #fff;
-    cursor: pointer;
-    font-size: 14px;
+    color: #fff; cursor: pointer; font-size: 14px;
   }
-  .btn.ghost {
-    background: #fff;
-    color: var(--kiwi);
-    border: 1px solid var(--kiwi);
-  }
-  .btn.muted {
-    background: #fff;
-    border: 1px solid var(--border);
-    color: var(--ink);
-  }
-  .btn.small {
-    padding: 6px 10px;
-    font-size: 13px;
-  }
+  .btn.ghost { background: #fff; color: var(--kiwi); border: 1px solid var(--kiwi); }
+  .btn.muted { background: #fff; border: 1px solid var(--border); color: var(--ink); }
+  .btn.small { padding: 6px 10px; font-size: 13px; }
   textarea {
-    width: 100%;
-    min-height: 120px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px;
-    resize: vertical;
-    font-size: 14px;
+    width: 100%; min-height: 120px; border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px; resize: vertical; font-size: 14px;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  th,td {
-    border-bottom: 1px solid var(--border);
-    padding: 8px;
-    text-align: left;
-    font-size: 14px;
-    vertical-align: top;
-  }
+  table { width: 100%; border-collapse: collapse; }
+  th,td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; font-size: 14px; vertical-align: top; }
   th {
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .04em;
+    font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
   }
-  .scroll-x {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .pill {
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--panel); font-size: 12px; color: var(--muted); white-space: nowrap;
   }
-  .pill.ok {
-    border-color: #bbf7d0;
-    background: #ecfdf5;
-    color: #166534;
-  }
-  .pill.warn {
-    border-color: #fecaca;
-    background: #fee2e2;
-    color: #991b1b;
-  }
-  .red {
-    color: var(--bad);
-    font-weight: 700;
-  }
-  .green {
-    color: var(--ok);
-    font-weight: 700;
-  }
+  .pill.ok { border-color: #bbf7d0; background: #ecfdf5; color: #166534; }
+  .pill.warn { border-color: #fecaca; background: #fee2e2; color: #991b1b; }
+  .red { color: var(--bad); font-weight: 700; }
+  .green { color: var(--ok); font-weight: 700; }
   .ac-box {
-    position: absolute;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 8px 16px rgba(0,0,0,.08);
-    z-index: 9999;
-    overflow: hidden;
-    max-height: 220px;
-    overflow-y: auto;
+    position: absolute; background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,.08); z-index: 9999; overflow: hidden; max-height: 220px; overflow-y: auto;
   }
-  .ac-item {
-    padding: 8px 10px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  .ac-item:hover {
-    background: #f3f4f6;
-  }
-  .prov-bar {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .ac-item { padding: 8px 10px; cursor: pointer; font-size: 14px; }
+  .ac-item:hover { background: #f3f4f6; }
+  .prov-bar { display: flex; gap: 8px; flex-wrap: wrap; }
   .prov-btn {
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--kiwi);
-    background: #fff;
-    color: var(--kiwi);
-    cursor: pointer;
-    font-size: 13px;
+    padding: 8px 12px; border-radius: 999px; border: 1px solid var(--kiwi);
+    background: #fff; color: var(--kiwi); cursor: pointer; font-size: 13px;
   }
-  .prov-btn.active {
-    background: var(--kiwi);
-    color: #fff;
-  }
+  .prov-btn.active { background: var(--kiwi); color: #fff; }
   .ok-assign {
-    border: 1px solid var(--kiwi);
-    background: #ecfdf5;
-    color: #166534;
-    border-radius: 10px;
-    padding: 6px 10px;
-    cursor: pointer;
+    border: 1px solid var(--kiwi); background: #ecfdf5; color: #166534;
+    border-radius: 10px; padding: 6px 10px; cursor: pointer;
   }
-  .dup {
-    background: #fff5f5;
-  }
-  .dup .flag {
-    color: #b91c1c;
-    font-weight: 700;
-    margin-left: 6px;
-  }
-  /* Tabbar móvil fija */
+  .dup { background: #fff5f5; }
+  .dup .flag { color: #b91c1c; font-weight: 700; margin-left: 6px; }
   .tabbar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    height: 56px;
-    z-index: 999;
+    position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+    border-top: 1px solid var(--border); display: flex; justify-content: space-around;
+    align-items: center; height: 56px; z-index: 999;
   }
   .tabbar button {
-    background: #fff;
-    border: none;
-    color: var(--muted);
-    font-size: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
+    background: #fff; border: none; color: var(--muted); font-size: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
   }
-  .tabbar button.active {
-    color: var(--kiwi);
-  }
-  .grid-3 {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  @media(min-width:980px){
-    .grid-3 {
-      grid-template-columns: repeat(3,1fr);
-    }
-  }
-  /* ===== Estado global superior ===== */
+  .tabbar button.active { color: var(--kiwi); }
+  .grid-3 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media(min-width:980px){ .grid-3 { grid-template-columns: repeat(3,1fr); } }
   #global-status {
-    padding: 12px;
-    margin: 8px 0 14px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.4;
+    padding: 12px; margin: 8px 0 14px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 12px; font-size: 13px; line-height: 1.4;
   }
-  #global-status strong {
-    font-size: 13px;
-    display: block;
-    margin-bottom: 4px;
-  }
+  #global-status strong { font-size: 13px; display: block; margin-bottom: 4px; }
 </style>
 </head>
 
@@ -407,6 +264,10 @@
           </div>
         </div>
         <div class="bd">
+          <div class="hint" style="margin-bottom:6px">
+            Los inputs permiten <b>solo bajar</b> lo entregado. Si se compró de más, el exceso se reparte automáticamente 50%/20%/30%.
+            Usa ✅ para marcar como totalmente repartido (seguirá la regla 50/20/30 para el excedente).
+          </div>
           <div id="reparto-wrap" class="scroll-x"></div>
         </div>
       </div>
@@ -491,8 +352,8 @@ function removeDiacriticsUpper(s){
 }
 function normKey(s){
   return removeDiacriticsUpper(s)
-    .replace(/[^A-Z0-9\s]/g,' ')
-    .replace(/\s+/g,' ')
+    .replace(/[^A-Z0-9\\s]/g,' ')
+    .replace(/\\s+/g,' ')
     .trim();
 }
 function stripGenericWords(s){
@@ -695,7 +556,7 @@ function loadVocab(){
   const saved = localStorage.getItem(LS.VOCAB);
   const base = saved && saved.trim()? saved : OFFICIAL_VOCAB_RAW;
   const list = uniqueVocab(toLines(base));
-  byId('vocabTxt').value = list.join('\n');
+  byId('vocabTxt').value = list.join('\\n');
   return list;
 }
 function saveVocab(){
@@ -711,7 +572,7 @@ function addNewWord(){
   const current = toLines(byId('vocabTxt').value);
   const added = toLines(entry);
   const merged = uniqueVocab(current.concat(added));
-  byId('vocabTxt').value = merged.join('\n');
+  byId('vocabTxt').value = merged.join('\\n');
   saveVocab();
 }
 
@@ -753,19 +614,19 @@ function bestMatch(query, vocabArr){
 ========================== */
 function parseLine(raw){
   if(!raw) return null;
-  let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
-  s = s.replace(/^[-•*]\s*/,'');
+  let s = raw.replace(/\\t/g,' ').replace(/\\s{2,}/g,' ').trim();
+  s = s.replace(/^[-•*]\\s*/,'');
   let qty=null, name=s;
 
-  const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
+  const mX = s.match(/(?:x|X|\\*)\\s*(\\d+[\\.,]?\\d*)\\b/);
   if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
   if(qty===null){
-    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas)?\s*$/i);
+    const mEnd = s.match(/(\\d+[\\.,]?\\d*)\\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas)?\\s*$/i);
     if(mEnd){ qty=Number(mEnd[1].replace(',','.')); name=s.slice(0,mEnd.index).trim(); }
   }
   if(qty===null){
-    const mStart = s.match(/^\s*(\d+[\.,]?\d*)\s+(.*)$/);
+    const mStart = s.match(/^\\s*(\\d+[\\.,]?\\d*)\\s+(.*)$/);
     if(mStart){ qty=Number(mStart[1].replace(',','.')); name=mStart[2].trim(); }
   }
   if(qty===null){ qty=1; }
@@ -790,7 +651,7 @@ let __reparto = {};                           // { name : {sp, sl, st} }
 // Precios
 function getPrices(){ try{ return JSON.parse(localStorage.getItem(LS.PRICES)||'{}')||{}; }catch{ return {}; } }
 function setPrices(obj){ localStorage.setItem(LS.PRICES, JSON.stringify(obj||{})); }
-function priceKey(prov,name){ return `${prov}||${normKey(name)}`; }
+function priceKey(prov,name){ return \`\${prov}||\${normKey(name)}\`; }
 
 /* ==========================
    Carga y persistencia
@@ -876,12 +737,12 @@ function renderTable(code){
   if(!rows.length){ wrap.innerHTML=''; return; }
   let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
-    html += `<tr>
-      <td>${r.o}</td>
-      <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
-      <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
-      <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
-    </tr>`;
+    html += \`<tr>
+      <td>\${r.o}</td>
+      <td contenteditable="true" data-i="\${i}" data-f="e" \${r.a? 'class="red"':''}>\${r.e}</td>
+      <td contenteditable="true" data-i="\${i}" data-f="q">\${r.q}</td>
+      <td>\${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
+    </tr>\`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
@@ -938,9 +799,9 @@ function estandarizar(code){
 }
 
 function guardarTienda(code){
-  const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
+  const out = (tiendaState[code]||[]).map(r=> \`\${r.e} \${r.q}\`).join('\\n');
   byId('in_'+code).value = out;
-  alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
+  alert(\`Tienda \${code.toUpperCase()} guardada en el textarea.\`);
 }
 
 /* ==========================
@@ -982,21 +843,21 @@ function renderGlobalTable(rows, similarSet){
   const wrap = byId('global_wrap');
   if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>'; return; }
 
-  let html = `
+  let html = \`
     <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
+      Proveedor activo: <b>\${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
     </div>
     <div class="scroll-x"><table>
       <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
-      <tbody>`;
+      <tbody>\`;
   visible.forEach((r,i)=>{
     const isSimilar = similarSet.has(r.name);
-    html += `<tr data-i="${i}" class="${isSimilar?'dup':''}">
-      <td><button class="ok-assign" onclick="assignFromGlobal(${i})">✅</button></td>
-      <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
-      <td contenteditable="true" data-f="total">${r.total}</td>
-      <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
-    </tr>`;
+    html += \`<tr data-i="\${i}" class="\${isSimilar?'dup':''}">
+      <td><button class="ok-assign" onclick="assignFromGlobal(\${i})">✅</button></td>
+      <td contenteditable="true" data-f="name">\${r.name}\${isSimilar?'<span class="flag">⚠️</span>':''}</td>
+      <td contenteditable="true" data-f="total">\${r.total}</td>
+      <td>\${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
+    </tr>\`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
@@ -1092,11 +953,11 @@ function renderProvidersPanels(){
     card.className='card';
     const hd = document.createElement('div');
     hd.className='hd';
-    hd.innerHTML = `<strong>${p}</strong>
+    hd.innerHTML = \`<strong>\${p}</strong>
       <div class="toolbar">
         <button class="btn small whats">🟢 WhatsApp</button>
         <button class="btn small muted txtprov">📄 TXT + comprado</button>
-      </div>`;
+      </div>\`;
     const bd = document.createElement('div');
     bd.className='bd';
 
@@ -1105,10 +966,10 @@ function renderProvidersPanels(){
     }else{
       let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
       list.forEach((it,ix)=>{
-        html += `<tr>
-          <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-          <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
-        </tr>`;
+        html += \`<tr>
+          <td contenteditable="true" data-prov="\${p}" data-idx="\${ix}" data-f="name" class="green">\${it.name}</td>
+          <td contenteditable="true" data-prov="\${p}" data-idx="\${ix}" data-f="qty" class="green">\${it.qty}</td>
+        </tr>\`;
       });
       html += '</tbody></table></div>';
       bd.innerHTML = html;
@@ -1157,9 +1018,9 @@ function renderProvidersPanels(){
         const listNow = (orders[p]||[]);
         if(!listNow.length){ alert('No hay líneas para ' + p); return; }
         const today = new Date().toISOString().split('T')[0];
-        const txt = listNow.map(x=> `${x.qty} ${x.name}`).join('\n');
+        const txt = listNow.map(x=> \`\${x.qty} \${x.name}\`).join('\\n');
         const blob = new Blob([txt],{type:'text/plain'});
-        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${p}_${today}.txt`; a.click();
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=\`pedido_\${p}_\${today}.txt\`; a.click();
         marcarCompradoTotalDeProveedor(p); // automático
       };
     }
@@ -1170,8 +1031,8 @@ function renderProvidersPanels(){
 function getPedidoTexto(prov){
   const list = (orders?.[prov]||[]);
   if(!list.length) return '';
-  let out = `PEDIDO ${prov}\n`;
-  list.forEach(it=>{ out += `- ${Number(it.qty)||0} ${it.name}\n`; });
+  let out = \`PEDIDO \${prov}\\n\`;
+  list.forEach(it=>{ out += \`- \${Number(it.qty)||0} \${it.name}\\n\`; });
   return out.trim();
 }
 
@@ -1186,7 +1047,7 @@ function marcarCompradoTotalDeProveedor(prov){
   // refrescos contextuales
   if(byId('btn-compras')?.classList.contains('active')) renderCompras();
   if(byId('btn-reparto')?.classList.contains('active')) renderReparto();
-  alert(`Pedido de ${prov} marcado como COMPRADO automáticamente.`);
+  alert(\`Pedido de \${prov} marcado como COMPRADO automáticamente.\`);
 }
 
 /* ==========================
@@ -1194,16 +1055,16 @@ function marcarCompradoTotalDeProveedor(prov){
 ========================== */
 function copiarGlobal(){
   if(!globalRows.length) return;
-  const txt = globalRows.map(r=>`- ${r.total} ${r.name}`).join('\n');
+  const txt = globalRows.map(r=>\`- \${r.total} \${r.name}\`).join('\\n');
   navigator.clipboard.writeText(txt);
   alert('Lista global copiada.');
 }
 function exportarGlobalTXT(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = globalRows.map(r=>`${r.total}\t${r.name}`).join('\n');
+  const txt = globalRows.map(r=>\`\${r.total}\\t\${r.name}\`).join('\\n');
   const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=\`lista_global_\${today}.txt\`; a.click();
 }
 function exportarGlobalXLSX(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
@@ -1211,7 +1072,7 @@ function exportarGlobalXLSX(){
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([['Producto','Total'], ...globalRows.map(r=>[r.name,r.total])]);
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
-  XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
+  XLSX.writeFile(wb, \`lista_global_\${today}.xlsx\`);
 }
 
 /* ==========================
@@ -1238,29 +1099,29 @@ function exportResumenGlobalTXT(){
     }
   });
 
-  let out = `📦 PEDIDOS POR PROVEEDOR\n\n`;
+  let out = \`📦 PEDIDOS POR PROVEEDOR\\n\\n\`;
   PROVEEDORES.forEach(p=>{
-    out += `> ${p}:\n`;
+    out += \`> \${p}:\\n\`;
     if(byProv[p].length){
       byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
+      byProv[p].forEach(x=>{ out += \`- \${x.qty} \${x.name}\\n\`; });
     }else{
-      out += `- (sin líneas)\n`;
+      out += \`- (sin líneas)\\n\`;
     }
-    out += `\n`;
+    out += \`\\n\`;
   });
 
-  out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
+  out += \`📌 SIN PROVEEDOR ASIGNADO:\\n\`;
   if(unassigned.length){
     unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
+    unassigned.forEach(x=>{ out += \`- \${x.qty} \${x.name}\\n\`; });
   }else{
-    out += `- (sin líneas)\n`;
+    out += \`- (sin líneas)\\n\`;
   }
 
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([out],{type:'text/plain'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`resumen_pedidos_${today}.txt`; a.click();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=\`resumen_pedidos_\${today}.txt\`; a.click();
 }
 
 /* ==========================
@@ -1274,18 +1135,18 @@ function renderCompras(){
   vendors.forEach(p=>{
     const list = purchases[p]||[];
     if(!list.length){
-      html += `<tr><td>${p}</td><td colspan="3" class="hint">Sin compras</td></tr>`;
+      html += \`<tr><td>\${p}</td><td colspan="3" class="hint">Sin compras</td></tr>\`;
     }else{
       list.forEach((it,ix)=>{
-        html += `<tr data-prov="${p}" data-idx="${ix}">
-          <td>${p}</td>
-          <td contenteditable="true" class="c-name">${it.name}</td>
-          <td><input class="c-qty" type="number" min="0" step="0.01" value="${Number(it.purchased)||0}" style="width:100px"></td>
+        html += \`<tr data-prov="\${p}" data-idx="\${ix}">
+          <td>\${p}</td>
+          <td contenteditable="true" class="c-name">\${it.name}</td>
+          <td><input class="c-qty" type="number" min="0" step="0.01" value="\${Number(it.purchased)||0}" style="width:100px"></td>
           <td>
             <button class="btn small muted c-save">Guardar</button>
             <button class="btn small c-del">Eliminar</button>
           </td>
-        </tr>`;
+        </tr>\`;
       });
     }
   });
@@ -1293,22 +1154,21 @@ function renderCompras(){
 
   // Panel sin proveedor
   const sinProv = unassignedTotals();
-  html += `<div class="card" style="margin-top:10px">
+  html += \`<div class="card" style="margin-top:10px">
     <div class="hd"><strong>🛒 Sin proveedor asignado</strong></div>
-    <div class="bd">${
-      sinProv.length? `
+    <div class="bd">\${ sinProv.length? \`
       <table><thead><tr><th>Producto</th><th>Solicitado</th><th>Comprado</th><th></th></tr></thead><tbody>
-        ${sinProv.map((it,ix)=>`
-          <tr data-sp-name="${it.name}">
-            <td class="c-name" contenteditable="true">${it.name}</td>
-            <td>${it.qty}</td>
+        \${sinProv.map((it,ix)=>\`
+          <tr data-sp-name="\${it.name}">
+            <td class="c-name" contenteditable="true">\${it.name}</td>
+            <td>\${it.qty}</td>
             <td><input class="c-qty" type="number" min="0" step="0.01" value="0" style="width:110px"></td>
             <td><button class="btn small">Guardar</button></td>
           </tr>
-        `).join('')}
-      </tbody></table>` : `<div class="hint">No hay productos sin asignar.</div>`
+        \`).join('')}
+      </tbody></table>\` : \`<div class="hint">No hay productos sin asignar.</div>\`
     }</div>
-  </div>`;
+  </div>\`;
 
   cont.innerHTML = html;
 
@@ -1322,6 +1182,8 @@ function renderCompras(){
       __purchases[p][ix] = {name, purchased:qty};
       persistState();
       renderCompras();
+      // Actualiza reparto si está abierto
+      renderReparto();
     });
   });
   cont.querySelectorAll('.c-del').forEach(btn=>{
@@ -1331,6 +1193,7 @@ function renderCompras(){
       __purchases[p].splice(ix,1);
       persistState();
       renderCompras();
+      renderReparto();
     });
   });
 
@@ -1349,12 +1212,13 @@ function renderCompras(){
       persistState();
       alert('Compra guardada sin proveedor.');
       renderCompras();
+      renderReparto();
     });
   });
 
   // Acciones barra
   byId('compras-add').onclick = ()=>{
-    const prov = prompt('Proveedor (exacto como en la lista):\n' + (PROVEEDORES||[]).join(', '));
+    const prov = prompt('Proveedor (exacto como en la lista):\\n' + (PROVEEDORES||[]).join(', '));
     if(!prov){return;}
     const name = prompt('Producto (usa nombres del diccionario si es posible):');
     if(!name){return;}
@@ -1363,6 +1227,7 @@ function renderCompras(){
     __purchases[prov].push({name:removeDiacriticsUpper(name), purchased:qty});
     persistState();
     renderCompras();
+    renderReparto();
   };
   byId('compras-sync').onclick = ()=>{
     persistState();
@@ -1399,7 +1264,7 @@ function unassignedTotals(){
 }
 
 /* ==========================
-   Reparto
+   Reparto (NUEVO)
 ========================== */
 function solicitadoPorTienda(name){
   const nk = normKey(name);
@@ -1440,87 +1305,96 @@ function autoExceso(sol, comp){
   const ex = Math.max(0, comp - sol);
   return {sp: +(ex*0.50).toFixed(2), sl: +(ex*0.20).toFixed(2), st: +(ex*0.30).toFixed(2)};
 }
+// Objetivos máximos por tienda = solicitadoPorTienda + exceso proporcional
+function computeTargets(name, compradoTotal, solicitadoTotal){
+  const base = solicitadoPorTienda(name);
+  const extra = autoExceso(solicitadoTotal, compradoTotal);
+  return {
+    sp: +( (base.sp || 0) + (extra.sp || 0) ).toFixed(2),
+    sl: +( (base.sl || 0) + (extra.sl || 0) ).toFixed(2),
+    st: +( (base.st || 0) + (extra.st || 0) ).toFixed(2)
+  };
+}
 
 function renderReparto(){
   const cont = byId('reparto-wrap'); if(!cont) return;
-  const rep = __reparto || {};
   const comprado = totalComprado();
   const solicitado = totalSolicitado();
 
   const productos = Object.keys(comprado).sort((a,b)=>a.localeCompare(b,'es'));
   if(!productos.length){ cont.innerHTML = '<div class="hint">No hay productos comprados todavía.</div>'; updateGlobalStatus(); return;}
 
-  let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Restante global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Producto</th><th>Comprado</th><th>Solicitado</th><th>Pendiente global</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th><th></th></tr></thead><tbody>';
   productos.forEach(name=>{
     const comp = +(Number(comprado[name])||0).toFixed(2);
     const sol  = +(Number(solicitado[name])||0).toFixed(2);
     if(comp<=0) return;
 
-    const base = solicitadoPorTienda(name);
-    const exceso = autoExceso(sol, comp);
-    const objetivo = { sp: base.sp+exceso.sp, sl: base.sl+exceso.sl, st: base.st+exceso.st };
-    const entregado = rep[name] || {sp:0,sl:0,st:0};
+    const targets = computeTargets(name, comp, sol);
+    if(!__reparto[name]) __reparto[name] = {sp:0,sl:0,st:0};
 
-    const rest = {
-      sp: Math.max(0, +(objetivo.sp - (entregado.sp||0)).toFixed(2)),
-      sl: Math.max(0, +(objetivo.sl - (entregado.sl||0)).toFixed(2)),
-      st: Math.max(0, +(objetivo.st - (entregado.st||0)).toFixed(2)),
-    };
-    const restGlobal = Math.max(0, +(comp - ((entregado.sp||0)+(entregado.sl||0)+(entregado.st||0))).toFixed(2));
+    // Si lo repartido excede el objetivo (por cambios de compra), lo reducimos automáticamente al máximo permitido
+    ['sp','sl','st'].forEach(t=>{
+      if(__reparto[name][t] > targets[t]) __reparto[name][t] = targets[t];
+      if(__reparto[name][t] < 0) __reparto[name][t] = 0;
+    });
 
-    html += `<tr data-name="${name}">
-      <td>${name}</td>
-      <td>${comp}</td>
-      <td>${sol}</td>
-      <td>${restGlobal}</td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn small muted r-dec" data-t="sp">-</button>
-          <input class="r-val r-sp" type="number" min="0" step="0.01" value="${entregado.sp||0}" style="width:90px">
-          <button class="btn small muted r-inc" data-t="sp">+</button>
-          <span class="pill">${rest.sp} restantes</span>
-        </div>
-      </td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn small muted r-dec" data-t="sl">-</button>
-          <input class="r-val r-sl" type="number" min="0" step="0.01" value="${entregado.sl||0}" style="width:90px">
-          <button class="btn small muted r-inc" data-t="sl">+</button>
-          <span class="pill">${rest.sl} restantes</span>
-        </div>
-      </td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn small muted r-dec" data-t="st">-</button>
-          <input class="r-val r-st" type="number" min="0" step="0.01" value="${entregado.st||0}" style="width:90px">
-          <button class="btn small muted r-inc" data-t="st">+</button>
-          <span class="pill">${rest.st} restantes</span>
-        </div>
-      </td>
-    </tr>`;
+    const entregado = __reparto[name];
+    const entregadoSum = +((entregado.sp||0)+(entregado.sl||0)+(entregado.st||0)).toFixed(2);
+    const objetivoTotal = +( (targets.sp + targets.sl + targets.st) ).toFixed(2);
+    const pendienteGlobal = Math.max(0, +(objetivoTotal - entregadoSum).toFixed(2));
+
+    // Oculta fila si no queda pendiente
+    if(pendienteGlobal <= 0) return;
+
+    html += \`<tr data-name="\${name}">
+      <td>\${name}</td>
+      <td>\${comp}</td>
+      <td>\${sol}</td>
+      <td>\${pendienteGlobal}</td>
+      \${renderInputRepartoCell(name,'sp',targets.sp,entregado.sp)}
+      \${renderInputRepartoCell(name,'sl',targets.sl,entregado.sl)}
+      \${renderInputRepartoCell(name,'st',targets.st,entregado.st)}
+      <td><button class="btn small" data-mark="\${name}">✅</button></td>
+    </tr>\`;
   });
   html += '</tbody></table>';
   cont.innerHTML = html;
 
-  // Handlers por fila
-  cont.querySelectorAll('tr[data-name]').forEach(tr=>{
-    const name = tr.dataset.name;
-    const apply = (t,delta)=>{
-      const cur = __reparto;
-      if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
-      cur[name][t] = Math.max(0, +( (Number(cur[name][t]||0) + delta) ).toFixed(2));
+  // Cambios en inputs: solo permiten bajar (no subir) y no superar objetivo
+  cont.querySelectorAll('input.r-val').forEach(inp=>{
+    inp.addEventListener('change', (e)=>{
+      const name = e.target.dataset.name;
+      const t = e.target.dataset.t;
+      const max = Number(e.target.getAttribute('data-max'))||0;
+      const prev = Number(__reparto[name]?.[t]||0);
+      let val = Number(e.target.value);
+      if(!isFinite(val) || val<0) val = 0;
+      // Solo bajar
+      val = Math.min(prev, val);
+      // No pasar del objetivo
+      val = Math.min(val, max);
+      if(!__reparto[name]) __reparto[name] = {sp:0,sl:0,st:0};
+      __reparto[name][t] = +val.toFixed(2);
       persistState();
       renderReparto();
-    };
-    tr.querySelectorAll('.r-inc').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, +1)));
-    tr.querySelectorAll('.r-dec').forEach(b=> b.addEventListener('click', ()=>apply(b.dataset.t, -1)));
-    ['sp','sl','st'].forEach(t=>{
-      tr.querySelector('.r-'+t)?.addEventListener('change', (e)=>{
-        const cur = __reparto;
-        if(!cur[name]) cur[name]={sp:0,sl:0,st:0};
-        cur[name][t] = Math.max(0, +(Number(e.target.value)||0).toFixed(2));
-        persistState(); renderReparto();
-      });
+    });
+  });
+
+  // Botón marcar como comprado (completar reparto al objetivo)
+  cont.querySelectorAll('button[data-mark]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = btn.getAttribute('data-mark');
+      const comp = +(Number(totalComprado()[name])||0).toFixed(2);
+      const sol  = +(Number(totalSolicitado()[name])||0).toFixed(2);
+      const targets = computeTargets(name, comp, sol);
+      __reparto[name] = {
+        sp: +Number(targets.sp).toFixed(2),
+        sl: +Number(targets.sl).toFixed(2),
+        st: +Number(targets.st).toFixed(2)
+      };
+      persistState();
+      renderReparto(); // desaparecerá si queda sin pendiente
     });
   });
 
@@ -1531,9 +1405,19 @@ function renderReparto(){
 
   updateGlobalStatus();
 }
+function renderInputRepartoCell(name, tienda, objetivo, entregado){
+  const max = +Number(objetivo||0).toFixed(2);
+  const val = +Math.min(entregado||0, max).toFixed(2);
+  return \`<td>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input class="r-val" data-name="\${name}" data-t="\${tienda}" data-max="\${max}" type="number" min="0" step="0.01" value="\${val}" style="width:90px">
+      <span class="pill">\${val} / \${max}</span>
+    </div>
+  </td>\`;
+}
 
 /* ==========================
-   Precios (pestaña nueva)
+   Precios (pestaña)
 ========================== */
 function productosCompradosPorProveedor(){
   const out = {};
@@ -1561,29 +1445,29 @@ function renderPrecios(){
 
   provs.forEach(prov=>{
     const list = data[prov]||[];
-    html += `<div class="card" style="margin-bottom:10px">
-      <div class="hd"><strong>${prov}</strong></div>
-      <div class="bd">`;
+    html += \`<div class="card" style="margin-bottom:10px">
+      <div class="hd"><strong>\${prov}</strong></div>
+      <div class="bd">\`;
     if(!list.length){
-      html += `<div class="hint">Sin productos comprados para ${prov}.</div>`;
+      html += \`<div class="hint">Sin productos comprados para \${prov}.</div>\`;
     }else{
-      html += `<table><thead><tr><th>Producto</th><th>Precio anterior</th><th>Precio nuevo</th><th>Acción</th></tr></thead><tbody>`;
+      html += \`<table><thead><tr><th>Producto</th><th>Precio anterior</th><th>Precio nuevo</th><th>Acción</th></tr></thead><tbody>\`;
       list.sort((a,b)=>a.name.localeCompare(b.name,'es')).forEach((it)=>{
         const k = priceKey(prov, it.name);
         const prev = prices[k]?.price ?? '';
-        html += `<tr data-prov="${prov}" data-name="${it.name}">
-          <td>${it.name}</td>
-          <td>${prev!==''? prev : '<span class="hint">—</span>'}</td>
-          <td><input class="p-new" type="number" min="0" step="0.01" value="${prev!==''?prev:''}" style="width:130px"></td>
+        html += \`<tr data-prov="\${prov}" data-name="\${it.name}">
+          <td>\${it.name}</td>
+          <td>\${prev!==''? prev : '<span class="hint">—</span>'}</td>
+          <td><input class="p-new" type="number" min="0" step="0.01" value="\${prev!==''?prev:''}" style="width:130px"></td>
           <td>
             <button class="btn small muted p-save">Guardar</button>
             <button class="btn small p-equal">✅ Igual</button>
           </td>
-        </tr>`;
+        </tr>\`;
       });
-      html += `</tbody></table>`;
+      html += \`</tbody></table>\`;
     }
-    html += `</div></div>`;
+    html += \`</div></div>\`;
   });
   cont.innerHTML = html;
 
@@ -1652,9 +1536,9 @@ function renderPrecios(){
     Object.keys(changesByProv).forEach(prov=>{
       const lines = changesByProv[prov].map(r=>{
         const prevTxt = (r.prev===null || r.prev===undefined || r.prev==='')? '—' : r.prev;
-        return `- ${r.name}: ${prevTxt} → ${r.next}`;
-      }).join('\n');
-      const msg = `CAMBIOS DE PRECIOS (${prov})\n${lines}`;
+        return \`- \${r.name}: \${prevTxt} → \${r.next}\';
+      }).join('\\n');
+      const msg = \`CAMBIOS DE PRECIOS (\${prov})\\n\${lines}\`;
       const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
       window.open(url, '_blank');
     });
@@ -1694,20 +1578,23 @@ function updateGlobalStatus(){
   Object.values(__purchases||{}).forEach(list=> lineasCompradas += (list||[]).filter(it=> (Number(it.purchased)||0)>0).length);
   const sinComprar = Math.max(0, lineasOrders - lineasCompradas);
 
-  // Reparto pendiente: suma de cantidades asignadas menos entregadas (aprox por existencia en __reparto)
+  // Reparto pendiente: suma objetivo menos entregado
   let pendienteReparto = 0;
   const compradoPorNombre = totalComprado();
+  const solicitadoPorNombre = totalSolicitado();
   Object.keys(compradoPorNombre).forEach(name=>{
+    const comp = +(Number(compradoPorNombre[name])||0).toFixed(2);
+    const sol  = +(Number(solicitadoPorNombre[name])||0).toFixed(2);
+    const targets = computeTargets(name, comp, sol);
     const entreg = __reparto[name] ? (Number(__reparto[name].sp||0)+Number(__reparto[name].sl||0)+Number(__reparto[name].st||0)) : 0;
-    const rest = Math.max(0, Number(compradoPorNombre[name]) - entreg);
+    const objetivoTotal = +( (targets.sp + targets.sl + targets.st) ).toFixed(2);
+    const rest = Math.max(0, objetivoTotal - entreg);
     pendienteReparto += rest;
   });
 
   // Cambios de precio por revisar: entradas sin precio establecido
   const pricesObj = getPrices();
   let cambiosPrecio = 0;
-  // Consideramos "por revisar" cuando no hay precio guardado todavía
-  // y existe producto comprado en ese proveedor (ya visible en la pestaña Precios)
   const compradosProv = productosCompradosPorProveedor();
   Object.keys(compradosProv).forEach(prov=>{
     compradosProv[prov].forEach(it=>{
@@ -1716,12 +1603,12 @@ function updateGlobalStatus(){
     });
   });
 
-  byId('status-assign').textContent = `🧾 Sin asignar: ${sinAsignar}`;
-  byId('status-buy').textContent = `🛒 Sin comprar: ${sinComprar}`;
-  byId('status-sent').textContent = `✅ Pedidos enviados: ${pedidosEnviados}`;
-  byId('status-bought').textContent = `📦 Comprados: ${compradosUds} uds`;
-  byId('status-distribute').textContent = `🚚 Reparto pendiente: ${pendienteReparto}`;
-  byId('status-prices').textContent = `📊 Cambios precio: ${cambiosPrecio}`;
+  byId('status-assign').textContent = \`🧾 Sin asignar: \${sinAsignar}\`;
+  byId('status-buy').textContent = \`🛒 Sin comprar: \${sinComprar}\`;
+  byId('status-sent').textContent = \`✅ Pedidos enviados: \${pedidosEnviados}\`;
+  byId('status-bought').textContent = \`📦 Comprados: \${compradosUds} uds\`;
+  byId('status-distribute').textContent = \`🚚 Reparto pendiente: \${pendienteReparto}\`;
+  byId('status-prices').textContent = \`📊 Cambios precio: \${cambiosPrecio}\`;
 }
 
 /* ==========================
@@ -1736,18 +1623,11 @@ function updateGlobalStatus(){
   renderProvidersPanels();
   unificarGlobal();      // pintar global inicial si hay datos
   updateGlobalStatus();
-
-  // Acciones extra de la cabecera del diccionario ya incluidas en HTML:
-  // - resetAll()
-  // - resetAllButKeepVocab()
 })();
 </script>
+
 <!-- ==========================
      Extensión opcional: Supabase sync
-     (Si quieres sincronizar vocabulario, tiendas, asignaciones, pedidos,
-     compras, reparto y precios con tu base de datos Supabase).
-     Requiere que crees las tablas correspondientes y establezcas los valores
-     SUPA_URL y SUPA_KEY en localStorage.
 ========================== -->
 <script>
 // Comprueba si Supabase está disponible
@@ -1769,12 +1649,12 @@ if (typeof window.supabase !== "undefined") {
         await supa.from('assignments').upsert(Object.entries(assignments).map(([k, v]) => ({ producto: k, proveedor: v })));
         await supa.from('orders').upsert(
           Object.entries(orders).flatMap(([p, list]) => list.map((item, i) => ({
-            id: `${p}-${i}`, proveedor: p, ...item
+            id: \`\${p}-\${i}\`, proveedor: p, ...item
           })))
         );
         await supa.from('purchases').upsert(
           Object.entries(__purchases).flatMap(([p, list]) => list.map((item, i) => ({
-            id: `${p}-${i}`, proveedor: p, ...item
+            id: \`\${p}-\${i}\`, proveedor: p, ...item
           })))
         );
         await supa.from('reparto').upsert(
@@ -1807,3 +1687,8 @@ if (typeof window.supabase !== "undefined") {
 
 </body>
 </html>
+"""
+with open('/mnt/data/arslan_listas_v3_5_reparto.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+'/mnt/data/arslan_listas_v3_5_reparto.html'
