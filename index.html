@@ -1979,6 +1979,77 @@ if (typeof window.supabase !== "undefined") {
 })();
 </script>
 <!-- ========================== FIN EXTENSIÓN ========================== -->
+<!-- ==========================
+     🔧 EXTENSIÓN: REPARTO PROVISIONAL + REPARTO FINAL
+     (no modifica nada del archivo original)
+========================== -->
+<script>
+(function(){
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const toolbar = document.querySelector('#tab-reparto .toolbar');
+    if(toolbar && !document.getElementById('reparto-prov')){
+      const btnProv = document.createElement('button');
+      btnProv.className = 'btn small muted';
+      btnProv.id = 'reparto-prov';
+      btnProv.textContent = '🧮 Reparto provisional';
+      toolbar.prepend(btnProv);
+      btnProv.addEventListener('click', generarRepartoProvisional);
+    }
+  });
+
+  // Crea un reparto provisional basado solo en lo pedido (sin compras)
+  window.generarRepartoProvisional = function(){
+    const cont = document.getElementById('reparto-wrap');
+    if(!cont) return;
+
+    const sp = window.tiendaState?.sp || [];
+    const sl = window.tiendaState?.sl || [];
+    const st = window.tiendaState?.st || [];
+    const all = [].concat(sp, sl, st);
+
+    if(!all.length){
+      alert("No hay productos pedidos todavía.");
+      return;
+    }
+
+    const totals = {};
+    all.forEach(r=>{
+      const k = normKey(r.e);
+      if(!totals[k]) totals[k] = { name: r.e, sp:0, sl:0, st:0 };
+      if(sp.includes(r)) totals[k].sp += Number(r.q)||0;
+      if(sl.includes(r)) totals[k].sl += Number(r.q)||0;
+      if(st.includes(r)) totals[k].st += Number(r.q)||0;
+    });
+
+    const productos = Object.values(totals).sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    if(!productos.length){
+      alert("No hay datos para generar el reparto provisional.");
+      return;
+    }
+
+    let html = '<table><thead><tr><th>Producto</th><th>San Pablo</th><th>San Lesmes</th><th>Santiago</th><th>Total</th></tr></thead><tbody>';
+    productos.forEach(p=>{
+      const total = +(p.sp+p.sl+p.st).toFixed(2);
+      html += `<tr>
+        <td>${p.name}</td>
+        <td>${p.sp}</td>
+        <td>${p.sl}</td>
+        <td>${p.st}</td>
+        <td>${total}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+
+    cont.innerHTML = `
+      <div class="hint" style="margin-bottom:6px">
+        📋 Reparto provisional (según pedidos, sin compras registradas)
+      </div>
+      ${html}
+    `;
+  };
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
 
 </body>
 </html>
