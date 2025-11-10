@@ -2050,6 +2050,73 @@ if (typeof window.supabase !== "undefined") {
 })();
 </script>
 <!-- ========================== FIN EXTENSIÓN ========================== -->
+<!-- ==========================
+     🔧 EXTENSIÓN: AUTO-COMPRAS Y "MARCAR TODO COMO COMPRADO"
+     (no modifica nada del archivo original)
+========================== -->
+<script>
+(function(){
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const comprasToolbar = document.querySelector('#tab-compras .toolbar');
+    if(comprasToolbar && !document.getElementById('compras-markall')){
+      const btnAll = document.createElement('button');
+      btnAll.className = 'btn small';
+      btnAll.id = 'compras-markall';
+      btnAll.textContent = '✅ Marcar todo como comprado';
+      comprasToolbar.appendChild(btnAll);
+      btnAll.addEventListener('click', marcarTodoComprado);
+    }
+
+    // Al entrar en compras por primera vez, autocompleta con lo solicitado si está vacío
+    setTimeout(()=>{
+      try{
+        if(Object.keys(window.__purchases||{}).length===0){
+          autocompletarComprasDesdePedidos();
+        }
+      }catch(e){}
+    }, 800);
+  });
+
+  // Copia las cantidades solicitadas a __purchases si no existen
+  function autocompletarComprasDesdePedidos(){
+    const orders = window.orders || {};
+    const purchases = window.__purchases || {};
+    Object.keys(orders).forEach(prov=>{
+      if(!Array.isArray(orders[prov])) return;
+      if(!Array.isArray(purchases[prov])) purchases[prov] = [];
+      orders[prov].forEach(it=>{
+        const k = normKey(it.name);
+        const idx = purchases[prov].findIndex(x=> normKey(x.name)===k);
+        if(idx===-1){
+          purchases[prov].push({ name: it.name, purchased: Number(it.qty)||0 });
+        }
+      });
+    });
+    window.__purchases = purchases;
+    if(typeof persistState==='function') persistState();
+  }
+
+  // Marca TODO como comprado (usa cantidades solicitadas)
+  window.marcarTodoComprado = function(){
+    if(!confirm('¿Marcar todas las líneas como compradas según lo solicitado?')) return;
+    const orders = window.orders || {};
+    const purchases = window.__purchases || {};
+    Object.keys(orders).forEach(prov=>{
+      if(!Array.isArray(orders[prov])) return;
+      purchases[prov] = orders[prov].map(it=>({
+        name: it.name,
+        purchased: Number(it.qty)||0
+      }));
+    });
+    window.__purchases = purchases;
+    if(typeof persistState==='function') persistState();
+    alert('✅ Todas las líneas marcadas como compradas.\nYa puedes generar el reparto final.');
+    if(typeof renderCompras==='function') renderCompras();
+    if(typeof renderReparto==='function') renderReparto();
+  };
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
 
 </body>
 </html>
