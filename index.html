@@ -1895,3 +1895,90 @@ if (typeof window.supabase !== "undefined") {
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ARSLAN LISTAS v3.5 — KIWI MOBILE + ESTADO GLOBAL (Fixes)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  /* (todo tu CSS original sin cambios) */
+</style>
+</head>
+
+<body>
+  <!-- (todo tu HTML original sin cambios) -->
+  
+<script>
+/* (todo tu script original sin una sola modificación) */
+</script>
+
+<!-- ==========================
+     🔧 EXTENSIÓN: ENVÍO REPARTO WHATSAPP CON FECHA
+     (no modifica nada del archivo original)
+========================== -->
+<script>
+(function(){
+  // Añade el botón "📱 Enviar reparto WhatsApp" al panel de reparto
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const toolbar = document.querySelector('#tab-reparto .toolbar');
+    if(toolbar && !document.getElementById('reparto-send')){
+      const btn = document.createElement('button');
+      btn.className = 'btn small muted';
+      btn.id = 'reparto-send';
+      btn.textContent = '📱 Enviar reparto WhatsApp';
+      toolbar.appendChild(btn);
+      btn.addEventListener('click', sendRepartoWhatsApp);
+    }
+  });
+
+  // Nueva función para generar y enviar el reparto por WhatsApp con fecha
+  window.sendRepartoWhatsApp = function(){
+    const rep = window.__reparto || {};
+
+    // Fecha actual en formato YYYY-MM-DD
+    const fecha = new Date().toISOString().slice(0,10);
+
+    const tiendas = {
+      sp: { nombre: "🏪 San Pablo", items: [] },
+      sl: { nombre: "🏪 San Lesmes", items: [] },
+      st: { nombre: "🏪 Santiago", items: [] }
+    };
+
+    Object.entries(rep).forEach(([name, dist])=>{
+      ['sp','sl','st'].forEach(t=>{
+        const qty = (typeof cleanNum === 'function') ? cleanNum(dist[t]||0,0) : Number(dist[t]||0);
+        if(qty>0){
+          tiendas[t].items.push({name, qty});
+        }
+      });
+    });
+
+    let texto = `🚚 REPARTO GLOBAL – ${fecha}\n\n`;
+    Object.values(tiendas).forEach(t=>{
+      if(t.items.length){
+        texto += `${t.nombre}\n`;
+        t.items.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+        t.items.forEach(it=>{
+          texto += `- ${it.qty} ${it.name}\n`;
+        });
+        texto += `\n`;
+      }
+    });
+
+    if(texto.trim() === `🚚 REPARTO GLOBAL – ${fecha}`){
+      alert("No hay productos repartidos todavía.");
+      return;
+    }
+
+    const url = "https://wa.me/?text=" + encodeURIComponent(texto.trim());
+    window.open(url, "_blank");
+  };
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
+
+</body>
+</html>
