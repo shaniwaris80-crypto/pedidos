@@ -2328,6 +2328,130 @@ if (typeof window.supabase !== "undefined") {
 })();
 </script>
 <!-- ========================== FIN EXTENSIÓN ========================== -->
+<!-- ==========================
+     🔧 EXTENSIÓN: REPARTO VISUAL POR TIENDA
+========================== -->
+<script>
+(function(){
+
+  window.addEventListener('DOMContentLoaded', ()=>{
+    // Añadir botón de acceso
+    const tabbar = document.querySelector('.tabbar');
+    if(tabbar && !document.getElementById('btn-repartovisual')){
+      const btn = document.createElement('button');
+      btn.id = 'btn-repartovisual';
+      btn.innerHTML = '🧺<span>Reparto Visual</span>';
+      btn.onclick = ()=> showRepartoVisual();
+      tabbar.appendChild(btn);
+    }
+
+    // Crear sección oculta
+    const section = document.createElement('section');
+    section.id = 'tab-repartovisual';
+    section.className = 'tab';
+    section.style.display='none';
+    section.innerHTML = `
+      <div class="card">
+        <div class="hd">
+          <strong>🧺 Reparto Visual por Tienda</strong>
+          <div class="toolbar">
+            <select id="rv-tienda" class="btn muted small">
+              <option value="sp">🏪 San Pablo</option>
+              <option value="sl">🏪 San Lesmes</option>
+              <option value="st">🏪 Santiago</option>
+            </select>
+            <button class="btn small" id="rv-clear">🧹 Limpiar selección</button>
+            <button class="btn small" id="rv-send">🟢 Enviar WhatsApp</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div id="rv-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;"></div>
+          <hr>
+          <h4>🧾 Asignados hoy:</h4>
+          <div id="rv-list" style="min-height:60px;font-size:14px;"></div>
+        </div>
+      </div>
+    `;
+    document.querySelector('.container').appendChild(section);
+  });
+
+  // Mostrar pestaña
+  window.showRepartoVisual = function(){
+    document.querySelectorAll('.tab').forEach(t=>t.style.display='none');
+    document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-repartovisual').style.display='block';
+    document.getElementById('btn-repartovisual').classList.add('active');
+    renderRepartoVisual();
+  };
+
+  // Render
+  function renderRepartoVisual(){
+    const tiendaSel = document.getElementById('rv-tienda').value;
+    const grid = document.getElementById('rv-grid');
+    const lista = document.getElementById('rv-list');
+    const compras = window.__purchases || {};
+    const pedidos = window.tiendaState?.[tiendaSel] || [];
+    const fotos = {
+      'TOMATE':'https://cdn-icons-png.flaticon.com/512/765/765481.png',
+      'ZANAHORIA':'https://cdn-icons-png.flaticon.com/512/415/415733.png',
+      'PLATANO':'https://cdn-icons-png.flaticon.com/512/415/415748.png',
+      'MANZANA':'https://cdn-icons-png.flaticon.com/512/766/766149.png',
+      'CEBOLLA':'https://cdn-icons-png.flaticon.com/512/415/415730.png',
+      'PIMIENTO':'https://cdn-icons-png.flaticon.com/512/415/415744.png'
+    };
+
+    const productosComprados = {};
+    Object.values(compras).forEach(list=>{
+      (list||[]).forEach(it=>{
+        const key = normKey(it.name);
+        productosComprados[key] = (productosComprados[key]||0) + Number(it.purchased||0);
+      });
+    });
+
+    const gridItems = pedidos
+      .filter(p=>productosComprados[normKey(p.e)]>0)
+      .map(p=>{
+        const foto = Object.keys(fotos).find(k=>p.e.includes(k)) ? fotos[Object.keys(fotos).find(k=>p.e.includes(k))] : 'https://cdn-icons-png.flaticon.com/512/2835/2835563.png';
+        return {name:p.e, qty:p.q, img:foto};
+      });
+
+    grid.innerHTML = gridItems.map(it=>`
+      <div class="rv-item" data-name="${it.name}" data-qty="${it.qty}" style="border:1px solid #ddd;border-radius:10px;padding:6px;text-align:center;cursor:pointer;transition:.2s">
+        <img src="${it.img}" style="width:60px;height:60px;object-fit:contain"><br>
+        <b>${it.name}</b><br>
+        <small>${it.qty}</small>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.rv-item').forEach(div=>{
+      div.addEventListener('click', ()=>{
+        const name = div.dataset.name;
+        const qty = div.dataset.qty;
+        const line = `<div>• ${qty} ${name}</div>`;
+        lista.innerHTML += line;
+        div.style.opacity='0.4';
+        div.style.pointerEvents='none';
+      });
+    });
+
+    document.getElementById('rv-clear').onclick = ()=>{
+      lista.innerHTML='';
+      renderRepartoVisual();
+    };
+
+    document.getElementById('rv-send').onclick = ()=>{
+      const tiendaSel = document.getElementById('rv-tienda').value;
+      const nombre = tiendaSel==='sp'?'SAN PABLO':(tiendaSel==='sl'?'SAN LESMES':'SANTIAGO');
+      const txt = `🚚 REPARTO ${nombre}\n\n` + lista.innerText.trim();
+      if(!txt.trim()){ alert('No hay productos seleccionados.'); return; }
+      const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+      window.open(url,'_blank');
+    };
+  }
+
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
 
 </body>
 </html>
