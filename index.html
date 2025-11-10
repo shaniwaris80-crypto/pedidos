@@ -2117,6 +2117,144 @@ if (typeof window.supabase !== "undefined") {
 })();
 </script>
 <!-- ========================== FIN EXTENSIÓN ========================== -->
+<!-- ==========================
+     🔧 EXTENSIÓN: CIERRE DIARIO + PRECIOS AUTOMÁTICOS
+========================== -->
+<script>
+(function(){
+
+  const CLOSE_KEY = 'arslan_daily_closes';
+
+  // Añadir botón de cierre diario
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const bar = document.querySelector('.container');
+    if(bar && !document.getElementById('closeDayBtn')){
+      const btn = document.createElement('button');
+      btn.id = 'closeDayBtn';
+      btn.className = 'btn';
+      btn.style.marginTop = '14px';
+      btn.textContent = '🕒 Cerrar día (precios + reinicio)';
+      btn.onclick = cerrarDia;
+      bar.appendChild(btn);
+    }
+  });
+
+  // Función de cierre diario
+  async function cerrarDia(){
+    if(!confirm('¿Deseas cerrar el día, revisar precios y reiniciar para mañana?')) return;
+
+    const compras = window.__purchases || {};
+    const productos = [];
+    Object.values(compras).forEach(list=>{
+      (list||[]).forEach(it=>{
+        if(it.name && Number(it.purchased)>0){
+          const nk = normKey(it.name);
+          if(!productos.find(x=>normKey(x.name)===nk))
+            productos.push({name: it.name});
+        }
+      });
+    });
+
+    if(!productos.length){
+      alert('No hay productos comprados hoy.');
+      return;
+    }
+
+    // Mostrar modal simple para introducir precios de compra
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,.6);z-index:99999;
+      display:flex;align-items:center;justify-content:center;
+    `;
+    modal.innerHTML = `
+      <div style="background:#fff;padding:20px;border-radius:12px;max-height:80%;overflow:auto;width:90%;max-width:480px;">
+        <h3>💶 Precios de compra del día</h3>
+        <p style="font-size:13px;color:#555">Introduce el precio de compra. El sistema aplicará automáticamente +40 % como precio de venta.</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr><th style="text-align:left">Producto</th><th>Compra (€)</th><th>Acción</th></tr></thead>
+          <tbody id="preciosDiaBody"></tbody>
+        </table>
+        <div style="margin-top:12px;text-align:right">
+          <button class="btn muted" id="cancelClose">Cancelar</button>
+          <button class="btn" id="finalizarClose">Finalizar y generar texto</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const body = modal.querySelector('#preciosDiaBody');
+    productos.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    body.innerHTML = productos.map(p=>`
+      <tr data-name="${p.name}">
+        <td>${p.name}</td>
+        <td><input type="number" min="0" step="0.01" style="width:100px"></td>
+        <td><button class="btn small muted igual">✅ Igual</button></td>
+      </tr>
+    `).join('');
+
+    const precios = window.getPrices ? getPrices() : {};
+
+    body.querySelectorAll('.igual').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const tr = btn.closest('tr');
+        const name = tr.dataset.name;
+        const found = Object.values(precios).find(x=>normKey(x.name)===normKey(name));
+        if(found) tr.querySelector('input').value = found.price;
+      });
+    });
+
+    modal.querySelector('#cancelClose').onclick = ()=> modal.remove();
+
+    modal.querySelector('#finalizarClose').onclick = ()=>{
+      const rows = Array.from(body.querySelectorAll('tr'));
+      const newPrices = {};
+      const lines = [];
+      rows.forEach(tr=>{
+        const name = tr.dataset.name;
+        const val = Number(tr.querySelector('input').value);
+        if(!isFinite(val)||val<=0) return;
+        const venta = +(val * 1.4).toFixed(2);
+        newPrices[priceKey('GLOBAL',name)] = {prov:'GLOBAL',name,price:venta};
+        lines.push(`- ${name}: €${venta.toFixed(2)}`);
+      });
+
+      // Guardar precios calculados
+      const merged = {...precios, ...newPrices};
+      if(window.setPrices) setPrices(merged);
+
+      // Generar texto
+      const today = new Date().toISOString().split('T')[0];
+      const msg = `📅 PRECIOS ${today}\n\n` + lines.join('\n');
+      const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+      window.open(url, '_blank');
+
+      // Guardar cierre en histórico
+      const closes = JSON.parse(localStorage.getItem(CLOSE_KEY)||'[]');
+      closes.push({date:today, lines});
+      localStorage.setItem(CLOSE_KEY, JSON.stringify(closes));
+
+      modal.remove();
+
+      // Reiniciar para el siguiente día
+      reiniciarDia();
+    };
+  }
+
+  // Reinicia sin tocar vocabulario ni asignaciones
+  function reiniciarDia(){
+    const keepVocab = localStorage.getItem('arslan_v34_vocab') || '';
+    const keepAssign = localStorage.getItem('arslan_v34_assign') || '{}';
+    localStorage.clear();
+    localStorage.setItem('arslan_v34_vocab', keepVocab);
+    localStorage.setItem('arslan_v34_assign', keepAssign);
+    alert('✅ Día cerrado. Datos limpiados para mañana.');
+    location.reload();
+  }
+
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
 
 </body>
 </html>
