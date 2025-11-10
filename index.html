@@ -2255,6 +2255,79 @@ if (typeof window.supabase !== "undefined") {
 })();
 </script>
 <!-- ========================== FIN EXTENSIÓN ========================== -->
+<!-- ==========================
+     🔧 EXTENSIÓN: WHATSAPP + FIX TXT EN TIENDAS
+========================== -->
+<script>
+(function(){
+  window.addEventListener('DOMContentLoaded', ()=>{
+
+    // Esperar un poco a que cargue la interfaz original
+    setTimeout(()=>{
+      ['sp','sl','st'].forEach(code=>{
+        const card = document.querySelector(`#tbl_${code}_wrap`)?.closest('.card');
+        if(!card) return;
+
+        // Barra de herramientas
+        const toolbar = card.querySelector('.toolbar');
+        if(!toolbar) return;
+
+        // Si no existe el botón WhatsApp, lo añadimos
+        if(!toolbar.querySelector('.btn.whats-ti')){
+          const btnW = document.createElement('button');
+          btnW.className = 'btn small whats-ti';
+          btnW.textContent = '🟢 WhatsApp';
+          btnW.style.marginLeft = '4px';
+          toolbar.appendChild(btnW);
+          btnW.addEventListener('click', ()=> enviarListaWhats(code));
+        }
+
+        // Reemplazar/exportar TXT (arreglado)
+        const btnTxt = toolbar.querySelector('.btn.muted');
+        if(btnTxt && btnTxt.textContent.includes('TXT')){
+          btnTxt.onclick = ()=> exportarTiendaTXT_Fix(code);
+        }
+      });
+    },800);
+
+  });
+
+  // ======= Generar texto estándar (reutilizable) =======
+  function generarTextoTienda(code){
+    const data = window.tiendaState?.[code] || [];
+    if(!data.length){
+      alert('No hay lista estandarizada para esta tienda.');
+      return '';
+    }
+    const nombre = code==='sp'?'SAN PABLO':(code==='sl'?'SAN LESMES':'SANTIAGO');
+    const lines = data.map(r=>`- ${r.q} ${r.e}`).join('\n');
+    return `🏪 ${nombre}\n\n${lines}`;
+  }
+
+  // ======= WhatsApp directo =======
+  function enviarListaWhats(code){
+    const msg = generarTextoTienda(code);
+    if(!msg) return;
+    const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+    window.open(url,'_blank');
+  }
+
+  // ======= TXT corregido =======
+  function exportarTiendaTXT_Fix(code){
+    const msg = generarTextoTienda(code);
+    if(!msg) return;
+    const today = new Date().toISOString().split('T')[0];
+    const nombre = code==='sp'?'san_pablo':(code==='sl'?'san_lesmes':'santiago');
+    const blob = new Blob([msg],{type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `lista_${nombre}_${today}.txt`;
+    a.click();
+  }
+
+})();
+</script>
+<!-- ========================== FIN EXTENSIÓN ========================== -->
 
 </body>
 </html>
