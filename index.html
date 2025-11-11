@@ -3,35 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ARSLAN LISTAS v3.6 — KIWI OPTIMIZED (LocalStorage)</title>
-  <meta name="theme-color" content="#16a34a" />
+  <title>ARSLAN LISTAS v3.6.2 — KIWI FINAL</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <!-- XLSX para exportar Excel -->
+  <link rel="stylesheet" href="./style.css">
+  <!-- Única dependencia externa: xlsx para exportar Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-  <!-- App -->
-  <script src="app.js" defer></script>
+  <script src="./app.js" defer></script>
 </head>
-
 <body>
   <div class="container">
-    <div class="topline">
-      <h1>🍈 ARSLAN LISTAS v3.6 — KIWI MOBILE TABS + ESTADO GLOBAL</h1>
-      <span class="pill">Modo móvil optimizado</span>
+    <div class="toprow">
+      <h1>🍈 ARSLAN LISTAS v3.6.2 — KIWI FINAL</h1>
+      <span class="pill">Solo LocalStorage · Móvil optimizado</span>
     </div>
 
     <!-- ======= Estado Global Superior ======= -->
-    <div id="global-status">
+    <div id="global-status" class="card-lite">
       <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
-      <span id="status-assign">🧾 Sin asignar: 0</span> &nbsp;&nbsp;
-      <span id="status-buy">🛒 Sin comprar: 0</span> &nbsp;&nbsp;
-      <span id="status-sent">✅ Pedidos enviados: 0</span><br>
-      <span id="status-bought">📦 Comprados: 0 uds</span> &nbsp;&nbsp;
-      <span id="status-distribute">🚚 Reparto pendiente: 0</span> &nbsp;&nbsp;
-      <span id="status-prices">📊 Cambios precio: 0</span>
+      <div class="row">
+        <span id="status-assign">🧾 Sin asignar: 0</span>
+        <span id="status-buy">🛒 Sin comprar: 0</span>
+        <span id="status-sent">✅ Pedidos enviados: 0</span>
+      </div>
+      <div class="row">
+        <span id="status-bought">📦 Comprados: 0 uds</span>
+        <span id="status-distribute">🚚 Reparto pendiente: 0</span>
+        <span id="status-prices">📊 Cambios precio: 0</span>
+      </div>
     </div>
 
-    <div class="hint flow">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Compras/Reparto → Precios</div>
+    <div class="hint">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Compras/Reparto → Precios</div>
 
     <!-- ========== TAB: Diccionario ========== -->
     <section class="tab" id="tab-dic">
@@ -39,14 +40,14 @@
         <div class="hd">
           <strong>📚 Vocabulario estandarizado (editable)</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="vocab-add">+ Nuevo producto</button>
-            <button class="btn ghost" id="vocab-save">Guardar vocabulario</button>
-            <button class="btn muted" id="all-reset">🧹 Limpiar todo</button>
-            <button class="btn muted" id="all-reset-keep">♻️ Reiniciar todo (mantener vocab)</button>
+            <button class="btn ghost" id="btn-vocab-add">+ Nuevo producto</button>
+            <button class="btn ghost" id="btn-vocab-save">Guardar vocabulario</button>
+            <button class="btn muted" id="btn-reset-all">🧹 Limpiar todo</button>
+            <button class="btn muted" id="btn-reset-keep">♻️ Reiniciar (mantener vocab)</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint mb6">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
+          <div class="hint">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
           <textarea id="vocabTxt"></textarea>
         </div>
       </div>
@@ -62,13 +63,13 @@
               <button class="btn ghost" data-est="sp">Estandarizar</button>
               <button class="btn" data-guardar="sp">Guardar tienda</button>
               <button class="btn muted" data-txt="sp">📄 TXT</button>
-              <!-- Botón Whats se añade dinámicamente -->
+              <button class="btn small whats-ti" data-whats="sp">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
             <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
             <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_sp_wrap" class="scroll-x mt8"></div>
+            <div id="tbl_sp_wrap" class="scroll-x"></div>
           </div>
         </div>
         <!-- San Lesmes -->
@@ -78,12 +79,13 @@
               <button class="btn ghost" data-est="sl">Estandarizar</button>
               <button class="btn" data-guardar="sl">Guardar tienda</button>
               <button class="btn muted" data-txt="sl">📄 TXT</button>
+              <button class="btn small whats-ti" data-whats="sl">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
             <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_sl_wrap" class="scroll-x mt8"></div>
+            <div id="tbl_sl_wrap" class="scroll-x"></div>
           </div>
         </div>
         <!-- Santiago -->
@@ -93,12 +95,13 @@
               <button class="btn ghost" data-est="st">Estandarizar</button>
               <button class="btn" data-guardar="st">Guardar tienda</button>
               <button class="btn muted" data-txt="st">📄 TXT</button>
+              <button class="btn small whats-ti" data-whats="st">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
             <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
-            <div id="tbl_st_wrap" class="scroll-x mt8"></div>
+            <div id="tbl_st_wrap" class="scroll-x"></div>
           </div>
         </div>
       </div>
@@ -110,23 +113,25 @@
         <div class="hd"><strong>🧮 Unificación global</strong>
           <div class="toolbar">
             <button class="btn ghost" id="btn-unificar">Unificar 3 tiendas</button>
-            <button class="btn muted" id="btn-txt-global">TXT visible</button>
-            <button class="btn muted" id="btn-xlsx-global">Excel</button>
+            <button class="btn muted" id="btn-global-txt">TXT visible</button>
+            <button class="btn muted" id="btn-global-xlsx">Excel</button>
             <button class="btn" id="btn-resumen-global">📄 TXT Global (asignados + pendientes)</button>
-            <button class="btn muted" id="btn-copiar-global">Copiar</button>
+            <button class="btn muted" id="btn-global-copiar">Copiar</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).</div>
-          <div class="card mt8">
+          <div class="hint">
+            ✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span>.
+          </div>
+          <div class="card" style="margin-top:8px">
             <div class="bd">
-              <div class="prov-line">
+              <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
                 <span class="hint">Proveedor activo:</span>
                 <div class="prov-bar" id="provBar"></div>
               </div>
             </div>
           </div>
-          <div id="global_wrap" class="scroll-x mt8"></div>
+          <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
     </section>
@@ -136,7 +141,7 @@
       <div class="card">
         <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
         <div class="bd">
-          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
+          <div class="grid-3" id="provPanels"></div>
         </div>
       </div>
     </section>
@@ -148,11 +153,12 @@
           <strong>🛒 Compras (por proveedor o sin asignar)</strong>
           <div class="toolbar">
             <button class="btn small" id="compras-add">+ Añadir compra</button>
+            <button class="btn small" id="compras-markall">✅ Marcar todo como comprado</button>
             <button class="btn small muted" id="compras-sync">☁️ Sincronizar</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint mb8">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecerán en Reparto.</div>
+          <div class="hint">Registra lo que realmente se compró. Esto alimenta el reparto. Solo los productos comprados aparecerán en Reparto.</div>
           <div id="compras-wrap" class="scroll-x"></div>
         </div>
       </div>
@@ -165,7 +171,8 @@
           <strong>🚚 Reparto (solo productos COMPRADOS)</strong>
           <div class="toolbar">
             <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
-            <!-- Extensiones añaden más botones -->
+            <button class="btn small muted" id="reparto-prov">🧮 Reparto provisional</button>
+            <button class="btn small muted" id="reparto-prov-whats">📱 Enviar Reparto Provisional</button>
           </div>
         </div>
         <div class="bd">
@@ -185,22 +192,22 @@
           </div>
         </div>
         <div class="bd">
-          <div class="hint mb8">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
+          <div class="hint">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
           <div id="precios-wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
   </div>
 
-  <!-- Tabbar móvil -->
+  <!-- Tabbar móvil fija -->
   <nav class="tabbar">
-    <button id="btn-dic" class="active">📚<span>Diccionario</span></button>
-    <button id="btn-tiendas">🏪<span>Tiendas</span></button>
-    <button id="btn-global">🧮<span>Global</span></button>
-    <button id="btn-proveedores">📦<span>Proveedores</span></button>
-    <button id="btn-compras">🛒<span>Compras</span></button>
-    <button id="btn-reparto">🚚<span>Reparto</span></button>
-    <button id="btn-precios">📊<span>Precios</span></button>
+    <button id="btn-dic" class="active" data-tab="dic">📚<span>Diccionario</span></button>
+    <button id="btn-tiendas" data-tab="tiendas">🏪<span>Tiendas</span></button>
+    <button id="btn-global" data-tab="global">🧮<span>Global</span></button>
+    <button id="btn-proveedores" data-tab="proveedores">📦<span>Proveedores</span></button>
+    <button id="btn-compras" data-tab="compras">🛒<span>Compras</span></button>
+    <button id="btn-reparto" data-tab="reparto">🚚<span>Reparto</span></button>
+    <button id="btn-precios" data-tab="precios">📊<span>Precios</span></button>
   </nav>
 </body>
 </html>
