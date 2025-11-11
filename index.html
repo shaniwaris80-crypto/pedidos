@@ -1,37 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.7 — KIWI SMART COMPRAS + REPARTO VISUAL</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARSLAN LISTAS v3.7 — KIWI SMART</title>
 
+  <!-- Fuente -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- XLSX para exportaciones -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="style.css" />
+</head>
 <body>
   <div class="container">
-    <div class="toprow">
-      <h1>🍈 ARSLAN LISTAS v3.7 — KIWI SMART COMPRAS + REPARTO VISUAL</h1>
-      <span class="pill">LocalStorage • Modo móvil</span>
-    </div>
+    <!-- Header -->
+    <header class="app-header">
+      <h1>🍈 ARSLAN LISTAS v3.7 — KIWI SMART</h1>
+      <span class="pill">Modo móvil optimizado • localStorage</span>
+    </header>
 
     <!-- ======= Estado Global Superior ======= -->
-    <div id="global-status" class="card-lite">
-      <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
-      <div class="gline">
-        <span id="status-assign">🧾 Sin asignar: 0</span>
-        <span id="status-buy">🛒 Sin comprar: 0</span>
-        <span id="status-sent">✅ Pedidos enviados: 0</span>
+    <section id="global-status" class="card">
+      <div class="bd">
+        <strong>📊 ESTADO GLOBAL DEL SISTEMA</strong>
+        <div class="status-grid">
+          <span id="status-assign">🧾 Sin asignar: 0</span>
+          <span id="status-buy">🛒 Sin comprar: 0</span>
+          <span id="status-sent">✅ Pedidos enviados: 0</span>
+          <span id="status-bought">📦 Comprados: 0 uds</span>
+          <span id="status-distribute">🚚 Reparto pendiente: 0</span>
+          <span id="status-prices">📊 Cambios precio: 0</span>
+        </div>
+        <div class="hint">Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Compras/Reparto → Precios</div>
       </div>
-      <div class="gline">
-        <span id="status-bought">📦 Comprados: 0 uds</span>
-        <span id="status-distribute">🚚 Reparto pendiente: 0</span>
-        <span id="status-prices">📊 Cambios precio: 0</span>
-      </div>
-    </div>
-
-    <div class="hint">Flujo: Diccionario → Tiendas → Global → Proveedores → <b>Compras</b> → Reparto / Provisional / Visual → WhatsApp</div>
+    </section>
 
     <!-- ========== TAB: Diccionario ========== -->
     <section class="tab" id="tab-dic">
@@ -39,15 +44,15 @@
         <div class="hd">
           <strong>📚 Vocabulario estandarizado (editable)</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="vocab-add">+ Nuevo producto</button>
-            <button class="btn ghost" id="vocab-save">Guardar vocabulario</button>
-            <button class="btn muted" id="all-reset">🧹 Limpiar todo</button>
-            <button class="btn muted" id="all-reset-keep">♻️ Reiniciar (mantener vocab)</button>
+            <button class="btn ghost" id="btn-vocab-add">+ Nuevo producto</button>
+            <button class="btn ghost" id="btn-vocab-save">Guardar vocabulario</button>
+            <button class="btn muted" id="btn-reset-all">🧹 Limpiar todo</button>
+            <button class="btn muted" id="btn-reset-keep">♻️ Reiniciar todo (mantener vocab)</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Un producto por línea. Mayúsculas, sin tildes, sin duplicados.</div>
-          <textarea id="vocabTxt"></textarea>
+          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
+          <textarea id="vocabTxt" placeholder="Pega / edita tu vocabulario aquí..."></textarea>
         </div>
       </div>
     </section>
@@ -57,12 +62,13 @@
       <div class="grid-3">
         <!-- San Pablo -->
         <div class="card">
-          <div class="hd"><strong>🏪 San Pablo</strong>
+          <div class="hd">
+            <strong>🏪 San Pablo</strong>
             <div class="toolbar">
-              <button class="btn ghost" data-est="sp">Estandarizar</button>
-              <button class="btn" data-save="sp">Guardar tienda</button>
-              <button class="btn muted" data-txt="sp">📄 TXT</button>
-              <button class="btn small whats-ti" data-whats="sp">🟢 WhatsApp</button>
+              <button class="btn ghost" id="sp-estandarizar">Estandarizar</button>
+              <button class="btn" id="sp-guardar">Guardar tienda</button>
+              <button class="btn muted" id="sp-export-txt">📄 TXT</button>
+              <button class="btn small" id="sp-whats">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -73,12 +79,13 @@
         </div>
         <!-- San Lesmes -->
         <div class="card">
-          <div class="hd"><strong>🏪 San Lesmes</strong>
+          <div class="hd">
+            <strong>🏪 San Lesmes</strong>
             <div class="toolbar">
-              <button class="btn ghost" data-est="sl">Estandarizar</button>
-              <button class="btn" data-save="sl">Guardar tienda</button>
-              <button class="btn muted" data-txt="sl">📄 TXT</button>
-              <button class="btn small whats-ti" data-whats="sl">🟢 WhatsApp</button>
+              <button class="btn ghost" id="sl-estandarizar">Estandarizar</button>
+              <button class="btn" id="sl-guardar">Guardar tienda</button>
+              <button class="btn muted" id="sl-export-txt">📄 TXT</button>
+              <button class="btn small" id="sl-whats">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -89,12 +96,13 @@
         </div>
         <!-- Santiago -->
         <div class="card">
-          <div class="hd"><strong>🏪 Santiago</strong>
+          <div class="hd">
+            <strong>🏪 Santiago</strong>
             <div class="toolbar">
-              <button class="btn ghost" data-est="st">Estandarizar</button>
-              <button class="btn" data-save="st">Guardar tienda</button>
-              <button class="btn muted" data-txt="st">📄 TXT</button>
-              <button class="btn small whats-ti" data-whats="st">🟢 WhatsApp</button>
+              <button class="btn ghost" id="st-estandarizar">Estandarizar</button>
+              <button class="btn" id="st-guardar">Guardar tienda</button>
+              <button class="btn muted" id="st-export-txt">📄 TXT</button>
+              <button class="btn small" id="st-whats">🟢 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -109,17 +117,21 @@
     <!-- ========== TAB: Global ========== -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
-        <div class="hd"><strong>🧮 Unificación global</strong>
+        <div class="hd">
+          <strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="global-uni">Unificar 3 tiendas</button>
-            <button class="btn muted" id="global-txt">TXT visible</button>
-            <button class="btn muted" id="global-xlsx">Excel</button>
-            <button class="btn" id="global-resumen">📄 TXT Global (asignados + pendientes)</button>
-            <button class="btn muted" id="global-copy">Copiar</button>
+            <button class="btn ghost" id="btn-global-unificar">Unificar 3 tiendas</button>
+            <button class="btn muted" id="btn-global-txt">TXT visible</button>
+            <button class="btn muted" id="btn-global-xlsx">Excel</button>
+            <button class="btn" id="btn-global-resumen">📄 TXT Global (asignados + pendientes)</button>
+            <button class="btn muted" id="btn-global-copiar">Copiar</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">✅ Asigna al proveedor activo. Duplicados se marcan en <b>rojo</b>.</div>
+          <div class="hint">
+            ✅ a la izquierda asigna al proveedor activo.
+            Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
+          </div>
           <div class="card" style="margin-top:8px">
             <div class="bd">
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -143,11 +155,11 @@
       </div>
     </section>
 
-    <!-- ========== TAB: Compras (Mejorada) ========== -->
+    <!-- ========== TAB: Compras ========== -->
     <section class="tab" id="tab-compras" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>🛒 Compras (inteligente)</strong>
+          <strong>🛒 Compras (por proveedor o sin asignar)</strong>
           <div class="toolbar">
             <button class="btn small" id="compras-add">+ Añadir compra</button>
             <button class="btn small" id="compras-markall">✅ Marcar todo como comprado</button>
@@ -155,19 +167,22 @@
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Al marcar comprado sin cantidad, se usa <b>la cantidad solicitada</b>. Puedes modificarla.</div>
+          <div class="hint" style="margin-bottom:8px">
+            “Comprado” usa por defecto la cantidad solicitada. Edita manualmente si fue distinto.
+          </div>
           <div id="compras-wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
 
-    <!-- ========== TAB: Reparto (final real) ========== -->
+    <!-- ========== TAB: Reparto (Final) ========== -->
     <section class="tab" id="tab-reparto" style="display:none">
       <div class="card">
         <div class="hd">
           <strong>🚚 Reparto (solo productos COMPRADOS)</strong>
           <div class="toolbar">
             <button class="btn small" id="reparto-save">💾 Guardar reparto</button>
+            <button class="btn small muted" id="reparto-send">📱 Enviar reparto WhatsApp</button>
           </div>
         </div>
         <div class="bd">
@@ -182,37 +197,18 @@
         <div class="hd">
           <strong>📊 Precios (por proveedor)</strong>
           <div class="toolbar">
+            <button class="btn small" id="precios-send">✉️ Enviar cambios por WhatsApp</button>
             <button class="btn small muted" id="precios-save">💾 Guardar</button>
-            <button class="btn small" id="precios-send">✉️ WhatsApp cambios</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
+          <div class="hint" style="margin-bottom:8px">Marca precios nuevos o pulsa <b>✅ Igual</b> si no hay cambio. Los cambios se agrupan por proveedor para WhatsApp.</div>
           <div id="precios-wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
 
-    <!-- ========== TAB: Reparto Provisional (NUEVA) ========== -->
-    <section class="tab" id="tab-provisional" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>🧮 Reparto Provisional (solicitado)</strong>
-          <div class="toolbar">
-            <button class="btn small" id="prov-generate">🔁 Regenerar</button>
-            <button class="btn small" id="prov-okall">✅ OK en todos</button>
-            <button class="btn small" id="prov-whats">🟢 WhatsApp</button>
-            <button class="btn small muted" id="prov-txt">📄 TXT</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">Usa SIEMPRE las cantidades <b>solicitadas</b>. No depende de Compras.</div>
-          <div id="provisional-wrap"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== TAB: Reparto Visual (NUEVA) ========== -->
+    <!-- ========== TAB NUEVA: Reparto Visual ========== -->
     <section class="tab" id="tab-repartovisual" style="display:none">
       <div class="card">
         <div class="hd">
@@ -223,9 +219,8 @@
               <option value="sl">🏪 San Lesmes</option>
               <option value="st">🏪 Santiago</option>
             </select>
-            <button class="btn small" id="rv-refresh">🔁 Actualizar</button>
-            <button class="btn small" id="rv-send">🟢 WhatsApp</button>
-            <button class="btn small muted" id="rv-clear">🧹 Limpiar selección</button>
+            <button class="btn small" id="rv-clear">🧹 Limpiar selección</button>
+            <button class="btn small" id="rv-send">🟢 Enviar WhatsApp</button>
           </div>
         </div>
         <div class="bd">
@@ -233,6 +228,24 @@
           <hr>
           <h4>🧾 Asignados hoy:</h4>
           <div id="rv-list" class="rv-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TAB NUEVA: Reparto Provisional ========== -->
+    <section class="tab" id="tab-provisional" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>📦 Reparto Provisional</strong>
+          <div class="toolbar">
+            <button class="btn small" id="prov-gen">🧮 Generar provisional</button>
+            <button class="btn small" id="prov-okall">✅ Poner OK a todo</button>
+            <button class="btn small" id="prov-send">🟢 WhatsApp</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint">Vista rápida con cantidades solicitadas (sin depender de compras). Muestra nombre, cantidad y emoji grande. Marca “OK” y se enviará al final.</div>
+          <div id="prov-wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
@@ -248,10 +261,11 @@
     <button id="btn-compras" data-tab="compras">🛒<span>Compras</span></button>
     <button id="btn-reparto" data-tab="reparto">🚚<span>Reparto</span></button>
     <button id="btn-precios" data-tab="precios">📊<span>Precios</span></button>
-    <button id="btn-provisional" data-tab="provisional">🧮<span>Provisional</span></button>
-    <button id="btn-repartovisual" data-tab="repartovisual">🧺<span>Reparto Visual</span></button>
+    <button id="btn-repartovisual" data-tab="repartovisual">🧺<span>R. Visual</span></button>
+    <button id="btn-provisional" data-tab="provisional">📦<span>Provisional</span></button>
   </nav>
 
+  <!-- App JS (sin Supabase; solo localStorage) -->
   <script src="app.js"></script>
 </body>
 </html>
