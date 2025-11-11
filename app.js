@@ -768,3 +768,5 @@ document.addEventListener("visibilitychange", () => {
    EXTRA: Re-render resumen cada 10s
 ========================== */
 setInterval(actualizarResumenGlobal, 10000);
+   }); // <-- Cierra document.addEventListener('DOMContentLoaded', ...)
+
