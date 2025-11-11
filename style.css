@@ -10,14 +10,14 @@
   --warn: #f59e0b;
   --bg: #ffffff;
 }
+
 * { box-sizing: border-box; }
 body { font-family: 'Poppins', sans-serif; color: var(--ink); background: #fff; margin: 0; }
 h1 { font-size: 18px; margin: 0; color: var(--ink); }
-.container { padding: 12px 12px 76px; }
-.hint { font-size: 12px; color: var(--muted); }
-.flow { margin-bottom: 10px; }
+.toprow { display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;padding:0 12px; }
+.container { padding: 0 12px 76px; }
 
-/* Cards */
+.hint { font-size: 12px; color: var(--muted); margin: 8px 0; }
 .card {
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -30,6 +30,13 @@ h1 { font-size: 18px; margin: 0; color: var(--ink); }
   padding: 10px 12px; border-bottom: 1px solid var(--border);
 }
 .card .bd { padding: 10px 12px; }
+
+.card-lite{
+  padding: 12px; margin: 8px 0 14px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; font-size: 13px; line-height: 1.4;
+}
+.card-lite strong { font-size: 13px; display: block; margin-bottom: 6px; }
+.card-lite .row { display:flex; gap:18px; flex-wrap:wrap; }
 
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn {
@@ -59,6 +66,10 @@ th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spa
 .red { color: var(--bad); font-weight: 700; }
 .green { color: var(--ok); font-weight: 700; }
 
+.grid-3 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media(min-width:980px){ .grid-3 { grid-template-columns: repeat(3,1fr); } }
+
+/* Autocomplete */
 .ac-box {
   position: absolute; background: #fff; border: 1px solid var(--border);
   border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,.08);
@@ -66,20 +77,10 @@ th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spa
 }
 .ac-item { padding: 8px 10px; cursor: pointer; font-size: 14px; }
 .ac-item:hover { background: #f3f4f6; }
-
-.prov-bar { display: flex; gap: 8px; flex-wrap: wrap; }
-.prov-btn {
-  padding: 8px 12px; border-radius: 999px; border: 1px solid var(--kiwi);
-  background: #fff; color: var(--kiwi); cursor: pointer; font-size: 13px;
-}
-.prov-btn.active { background: var(--kiwi); color: #fff; }
-.ok-assign {
-  border: 1px solid var(--kiwi); background: #ecfdf5; color: #166534;
-  border-radius: 10px; padding: 6px 10px; cursor: pointer;
-}
 .dup { background: #fff5f5; }
 .dup .flag { color: #b91c1c; font-weight: 700; margin-left: 6px; }
 
+/* Tabbar móvil fija */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border);
   display: flex; justify-content: space-around; align-items: center; height: 56px; z-index: 999;
@@ -87,15 +88,15 @@ th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spa
 .tabbar button { background: #fff; border: none; color: var(--muted); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
 .tabbar button.active { color: var(--kiwi); }
 
-.grid-3 { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media(min-width:980px){ .grid-3 { grid-template-columns: repeat(3,1fr); } }
-
-#global-status {
-  padding: 12px; margin: 8px 0 14px; background: var(--panel); border: 1px solid var(--border);
-  border-radius: 12px; font-size: 13px; line-height: 1.4;
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.prov-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+.prov-btn {
+  padding: 8px 12px; border-radius: 999px; border: 1px solid var(--kiwi);
+  background: #fff; color: var(--kiwi); cursor: pointer; font-size: 13px;
 }
-#global-status strong { font-size: 13px; display: block; margin-bottom: 4px; }
+.prov-btn.active { background: var(--kiwi); color: #fff; }
 
-.topline { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px }
-.mt8{margin-top:8px}.mb6{margin-bottom:6px}.mb8{margin-bottom:8px}
-.prov-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ok-assign {
+  border: 1px solid var(--kiwi); background: #ecfdf5; color: #166534;
+  border-radius: 10px; padding: 6px 10px; cursor: pointer;
+}
