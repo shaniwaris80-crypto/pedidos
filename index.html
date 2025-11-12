@@ -92,6 +92,7 @@
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
+              <button class="btn muted" onclick="enviarTiendaWhatsApp('sp')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -107,6 +108,7 @@
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
+              <button class="btn muted" onclick="enviarTiendaWhatsApp('sl')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -122,6 +124,7 @@
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
+              <button class="btn muted" onclick="enviarTiendaWhatsApp('st')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
@@ -168,6 +171,29 @@
           <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
         </div>
       </div>
+
+      <!-- ================== NUEVO MÓDULO: REPARTO POR TIENDAS ================== -->
+      <div class="card" style="margin-top:12px">
+        <div class="hd"><strong>🚚 Reparto por tiendas</strong>
+          <div class="toolbar">
+            <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
+            <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div style="margin-bottom:8px;">
+            <select id="selRepartoTienda" onchange="renderRepartoTienda()">
+              <option value="">Selecciona tienda...</option>
+              <option value="sp">🏪 San Pablo</option>
+              <option value="sl">🏪 San Lesmes</option>
+              <option value="st">🏪 Santiago</option>
+            </select>
+          </div>
+          <div id="reparto_wrap" class="scroll-x"></div>
+        </div>
+      </div>
+      <!-- ============== FIN NUEVO MÓDULO ============== -->
+
     </section>
   </div>
 
@@ -178,7 +204,6 @@
     <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
     <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
   </nav>
-
 <script>
 /* ==========================
    Tabs (móvil)
@@ -653,6 +678,17 @@ function exportarTiendaTXT(code){
   a.click();
 }
 
+/* ======= NUEVO: Enviar tienda por WhatsApp ======= */
+function enviarTiendaWhatsApp(code){
+  const tienda = tiendaState[code] || [];
+  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const msg = encodeURIComponent(`🛒 *Pedido ${code.toUpperCase()}*\n\n${txt}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
 /* ==========================
    Unificar global + similares
 ========================== */
@@ -801,6 +837,7 @@ function renderProvidersPanels(){
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
         <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
+        <button class="btn small muted" onclick="enviarProvWhatsApp('${p}')">📲 WhatsApp</button>
       </div>`;
     const bd = document.createElement('div');
     bd.className='bd';
@@ -854,6 +891,15 @@ function exportProvTXT(prov){
   const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
+}
+
+/* ======= NUEVO: Enviar proveedor por WhatsApp ======= */
+function enviarProvWhatsApp(prov){
+  const list = orders[prov]||[];
+  if(!list.length){ alert('No hay líneas para ' + prov); return; }
+  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+  const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
@@ -928,6 +974,80 @@ function exportResumenGlobalTXT(){
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([out],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`resumen_pedidos_${today}.txt`; a.click();
+}
+
+/* ==========================
+   🚚 REPARTO POR TIENDAS + PRECIOS + WHATSAPP (no persistente)
+========================== */
+const repartoState = {}; 
+// Estructura: { tienda : [ {name, qty, price, checked} ] }
+
+function renderRepartoTienda(){
+  const code = byId('selRepartoTienda').value;
+  const wrap = byId('reparto_wrap');
+  if(!code){ wrap.innerHTML = '<div class="hint">Selecciona una tienda para ver su lista.</div>'; return; }
+
+  const lista = tiendaState[code] || [];
+  if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en esta tienda.</div>'; return; }
+
+  // Inicializar repartoState si no existe o si cambió la longitud de la tienda
+  if(!repartoState[code] || repartoState[code].length !== lista.length){
+    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
+  }
+
+  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
+  repartoState[code].forEach((r,i)=>{
+    html += `<tr>
+      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', ${i}, this.checked)"></td>
+      <td>${r.name}</td>
+      <td>${r.qty}</td>
+      <td contenteditable="true" onblur="updateRepartoPrice('${code}', ${i}, this.innerText)">${r.price||''}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function toggleRepartoItem(code, idx, checked){
+  if(!repartoState[code]) return;
+  repartoState[code][idx].checked = checked;
+}
+
+function updateRepartoPrice(code, idx, val){
+  if(!repartoState[code]) return;
+  const num = parseFloat(val.replace(',','.'));
+  repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
+}
+
+function exportarRepartoTXT(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona una tienda primero.'); return; }
+  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
+
+  const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const today = new Date().toISOString().split('T')[0];
+  const blob = new Blob([txt],{type:'text/plain'});
+  const a = document.createElement('a'); 
+  a.href = URL.createObjectURL(blob); 
+  a.download = `reparto_${code}_${today}.txt`; 
+  a.click();
+}
+
+function enviarRepartoWhatsApp(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona una tienda primero.'); return; }
+  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
+
+  let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
+  seleccionados.forEach(x=>{
+    msg += `- ${x.qty} ${x.name}`;
+    if(x.price) msg += ` — ${x.price}€`;
+    msg += '\n';
+  });
+  msg = encodeURIComponent(msg);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
