@@ -1,37 +1,37 @@
 <!-- =========================
-FILE: index.html
+     index.html
+     ARSLAN LISTAS v3.5 — KIWI (3 PARTES)
 ========================= -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ARSLAN LISTAS v3.6 — KIWI (3 archivos)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARSLAN LISTAS v3.5 — KIWI PRO</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <!-- Topbar fija -->
-  <header class="topbar">
+  <!-- Topbar -->
+  <div class="topbar">
     <div class="left">
-      <h1>🍈 ARSLAN LISTAS v3.6 — KIWI</h1>
-      <span class="pill">Móvil optimizado + Catálogo precios + Undo</span>
+      <h1>🍈 ARSLAN LISTAS v3.5 — KIWI PRO</h1>
+      <span class="pill">Catálogo + Historial + Undo</span>
     </div>
-    <div class="toolbar">
-      <button class="theme-toggle" id="btnTheme" title="Cambiar tema">🌗 Tema</button>
-      <button class="btn muted small" id="btnExportJSON" title="Exportar JSON">⬇️ Export</button>
-      <button class="btn muted small" id="btnImportJSON" title="Importar JSON">⬆️ Import</button>
+    <div class="topbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
     </div>
-  </header>
+  </div>
 
-  <main class="container">
+  <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas → Global → Proveedores → Catálogo (precios + historial)
+      Flujo: Diccionario → Tiendas (auto) → Global (asignar con undo) → Proveedores → Catálogo (precios + historial)
     </div>
 
     <!-- ========== TAB: Diccionario ========== -->
@@ -40,9 +40,10 @@ FILE: index.html
         <div class="hd">
           <strong>📚 Vocabulario estandarizado (editable)</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnAddWord">+ Nuevo producto</button>
-            <button class="btn ghost" id="btnSaveVocab">Guardar vocabulario</button>
-            <button class="btn muted" id="btnReset">🧹 Limpiar todo</button>
+            <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
+            <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
+            <button class="btn muted" onclick="openDataTools()">🧰 Datos</button>
+            <button class="btn muted" onclick="resetAllSafe()">🧹 Limpiar todo</button>
           </div>
         </div>
         <div class="bd">
@@ -50,25 +51,37 @@ FILE: index.html
             Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
           </div>
           <textarea id="vocabTxt"></textarea>
-          <div class="hint" style="margin-top:8px">
-            ✅ Truco: añade sinónimos en “Duplicados/Equivalencias” (Global → Conflictos) para no depender de similitud.
-          </div>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">
-          <strong>🔒 Seguridad / Copias</strong>
+          <strong>🏷️ Sinónimos / Equivalencias (para duplicados reales)</strong>
           <div class="toolbar">
-            <button class="btn muted" id="btnBackupNow">💾 Backup ahora</button>
-            <button class="btn muted" id="btnRestoreBackup">🕒 Restaurar backup</button>
+            <button class="btn ghost" onclick="addSynonym()">+ Añadir equivalencia</button>
+            <button class="btn muted" onclick="saveSynonyms()">Guardar equivalencias</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:6px">
+            Formato: <b>ALIAS = CANÓNICO</b> (ej. GUNDEYA = GUINDILLA). Una por línea.
+          </div>
+          <textarea id="synTxt" placeholder="Ej:\nPINA = PIÑA\nGUNDEYA = GUINDILLA"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <strong>🏭 Proveedores (dinámicos)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="openProvManager()">➕ Gestionar proveedores</button>
           </div>
         </div>
         <div class="bd">
           <div class="hint">
-            Se guardan backups automáticos (últimos 7). Export/Import JSON mueve todo entre móvil/PC.
+            Los proveedores ya no están fijos en código. Añade / edita teléfonos WhatsApp, etc.
           </div>
-          <div id="backupInfo" class="hint" style="margin-top:8px"></div>
+          <div id="provQuickList" class="prov-quick" style="margin-top:10px"></div>
         </div>
       </div>
     </section>
@@ -77,63 +90,61 @@ FILE: index.html
     <section class="tab" id="tab-tiendas" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>🏪 Modo móvil: 1 tienda por pantalla</strong>
+          <strong>🏪 Tiendas (modo móvil 1 tienda)</strong>
           <div class="toolbar">
-            <select id="selStoreView" class="select">
+            <span class="pill">Auto-estandariza al pegar</span>
+            <button class="btn muted" onclick="toggleMobileMode()">📱 Modo móvil</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="store-switch">
+            <select id="storeSelect" onchange="switchStore(this.value)">
               <option value="sp">🏪 San Pablo</option>
               <option value="sl">🏪 San Lesmes</option>
               <option value="st">🏪 Santiago</option>
             </select>
-            <button class="btn muted small" id="btnStoreWhatsApp">📲 WhatsApp</button>
-            <button class="btn muted small" id="btnStoreTXT">📄 TXT</button>
+            <div class="toolbar">
+              <button class="btn ghost" onclick="estandarizar(activeStore)">Estandarizar</button>
+              <button class="btn" onclick="guardarTienda(activeStore)">Guardar tienda</button>
+              <button class="btn muted" onclick="exportarTiendaTXT(activeStore)">📄 TXT</button>
+              <button class="btn muted" onclick="enviarTiendaWhatsApp(activeStore)">📲 WhatsApp</button>
+            </div>
           </div>
-        </div>
-        <div class="bd">
-          <div class="hint">Pegas → auto-estandariza. Repetidos se suman. Edita en tabla si quieres.</div>
 
-          <!-- Store Panels (solo uno visible según selector) -->
-          <div id="storePanels">
-            <div class="storePanel" data-store="sp">
-              <div class="storeHead">
-                <strong>San Pablo</strong>
-                <div class="toolbar">
-                  <button class="btn ghost" data-action="std" data-store="sp">Estandarizar</button>
-                  <button class="btn" data-action="save" data-store="sp">Guardar tienda</button>
-                  <button class="btn muted" data-action="undo" data-store="sp">↩️ Deshacer</button>
-                </div>
+          <div class="grid-3 store-grid" id="storesGrid">
+            <!-- San Pablo -->
+            <div class="card store-card" data-store="sp">
+              <div class="hd"><strong>🏪 San Pablo</strong></div>
+              <div class="bd">
+                <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
+                <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+                <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
               </div>
-              <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
-              <div class="hint">OK = verde, Revisar = rojo. Autocomplete al editar.</div>
-              <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
             </div>
 
-            <div class="storePanel" data-store="sl" style="display:none">
-              <div class="storeHead">
-                <strong>San Lesmes</strong>
-                <div class="toolbar">
-                  <button class="btn ghost" data-action="std" data-store="sl">Estandarizar</button>
-                  <button class="btn" data-action="save" data-store="sl">Guardar tienda</button>
-                  <button class="btn muted" data-action="undo" data-store="sl">↩️ Deshacer</button>
-                </div>
+            <!-- San Lesmes -->
+            <div class="card store-card" data-store="sl">
+              <div class="hd"><strong>🏪 San Lesmes</strong></div>
+              <div class="bd">
+                <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
+                <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+                <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
               </div>
-              <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-              <div class="hint">OK = verde, Revisar = rojo. Autocomplete al editar.</div>
-              <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
             </div>
 
-            <div class="storePanel" data-store="st" style="display:none">
-              <div class="storeHead">
-                <strong>Santiago</strong>
-                <div class="toolbar">
-                  <button class="btn ghost" data-action="std" data-store="st">Estandarizar</button>
-                  <button class="btn" data-action="save" data-store="st">Guardar tienda</button>
-                  <button class="btn muted" data-action="undo" data-store="st">↩️ Deshacer</button>
-                </div>
+            <!-- Santiago -->
+            <div class="card store-card" data-store="st">
+              <div class="hd"><strong>🏪 Santiago</strong></div>
+              <div class="bd">
+                <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
+                <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+                <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
               </div>
-              <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-              <div class="hint">OK = verde, Revisar = rojo. Autocomplete al editar.</div>
-              <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
             </div>
+          </div>
+
+          <div class="hint" style="margin-top:10px">
+            Tip: pega y espera un instante: se estandariza solo y unifica al pasar a Global.
           </div>
         </div>
       </div>
@@ -145,54 +156,39 @@ FILE: index.html
         <div class="hd">
           <strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnUnify">Unificar 3 tiendas</button>
-            <button class="btn muted" id="btnGlobalTXT">TXT visible</button>
-            <button class="btn muted" id="btnGlobalXLSX">Excel</button>
-            <button class="btn" id="btnResumenTXT">📄 TXT Global (asignados + pendientes)</button>
-            <button class="btn muted" id="btnCopyGlobal">Copiar</button>
-            <button class="btn muted" id="btnUndoGlobal">↩️ Deshacer</button>
+            <button class="btn ghost" onclick="unificarGlobal(true)">Unificar 3 tiendas</button>
+            <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
+            <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
+            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
+            <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
+            <button class="btn muted" onclick="openConflicts()">⚠️ Conflictos</button>
           </div>
         </div>
         <div class="bd">
           <div class="hint">
-            ✅ asigna al proveedor activo. Duplicados probables se marcan con ⚠️. Puedes crear equivalencias para que se fusionen siempre.
+            ✅ asigna al proveedor activo. Al asignar aparece <b>DESHACER</b> inmediato. También tienes historial global (↩️).
           </div>
 
           <div class="card" style="margin-top:8px">
             <div class="bd">
-              <div class="row">
-                <div class="leftRow">
-                  <span class="hint">Proveedor activo:</span>
-                  <div class="prov-bar" id="provBar"></div>
-                </div>
-                <div class="toolbar">
-                  <button class="btn muted small" id="btnAddProv">➕ Proveedor</button>
-                  <button class="btn muted small" id="btnManageProv">⚙️ Gestionar</button>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="hint">Proveedor activo:</span>
+                <div class="prov-bar" id="provBar"></div>
+                <div class="toolbar" style="margin-left:auto">
+                  <button class="btn small muted" onclick="autoAssignByHistory()">✨ Auto-asignar por historial</button>
+                  <button class="btn small muted" onclick="undo()">↩️ Deshacer</button>
+                  <button class="btn small muted" onclick="redo()">↪️ Rehacer</button>
                 </div>
               </div>
-              <div class="row" style="margin-top:10px">
-                <input id="searchGlobal" class="input" placeholder="Buscar en Global..." />
-                <button class="btn muted small" id="btnConflicts">⚠️ Conflictos</button>
-                <button class="btn muted small" id="btnAutoAssign">✨ Auto-asignar (historial)</button>
+
+              <div class="search-row">
+                <input id="globalSearch" class="search" placeholder="Buscar producto en Global…" oninput="renderGlobalTable(lastUnifiedRows, lastSimilarSet)">
+                <span class="pill" id="globalCountPill">0</span>
               </div>
             </div>
           </div>
 
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
-
-          <div class="card" id="conflictsCard" style="margin-top:12px; display:none">
-            <div class="hd">
-              <strong>⚠️ Conflictos / Duplicados</strong>
-              <div class="toolbar">
-                <button class="btn muted small" id="btnCloseConflicts">Cerrar</button>
-              </div>
-            </div>
-            <div class="bd">
-              <div class="hint">Fusiona, marca como distintos, o crea equivalencia permanente (sinónimo).</div>
-              <div id="conflictsWrap" class="scroll-x" style="margin-top:8px"></div>
-            </div>
-          </div>
-
         </div>
       </div>
     </section>
@@ -200,15 +196,31 @@ FILE: index.html
     <!-- ========== TAB: Proveedores ========== -->
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
-        <div class="hd">
-          <strong>📦 Distribución por proveedor</strong>
+        <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
+        <div class="bd">
+          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="hd"><strong>🚚 Reparto por tiendas</strong>
           <div class="toolbar">
-            <button class="btn muted" id="btnUndoAssign">↩️ Deshacer última asignación</button>
-            <button class="btn muted" id="btnClearOrders">🧹 Limpiar pedidos</button>
+            <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
+            <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
+            <button class="btn small muted" onclick="exportarRepartoXLSX()">📊 XLSX</button>
           </div>
         </div>
         <div class="bd">
-          <div class="grid-3" id="provPanels"></div>
+          <div class="store-switch">
+            <select id="selRepartoTienda" onchange="renderRepartoTienda()">
+              <option value="">Selecciona tienda...</option>
+              <option value="sp">🏪 San Pablo</option>
+              <option value="sl">🏪 San Lesmes</option>
+              <option value="st">🏪 Santiago</option>
+            </select>
+            <div class="pill" id="repartoTotalPill">Total: 0,00€</div>
+          </div>
+          <div id="reparto_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
@@ -217,128 +229,151 @@ FILE: index.html
     <section class="tab" id="tab-catalogo" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>💶 Catálogo (Productos comprados + Precios + Historial)</strong>
+          <strong>💶 Catálogo (productos comprados + precios + historial)</strong>
           <div class="toolbar">
-            <button class="btn muted" id="btnCatalogSync">🔄 Detectar productos</button>
-            <button class="btn muted" id="btnCatalogAdd">➕ Añadir producto</button>
-            <button class="btn muted" id="btnCatalogExport">⬇️ Export Catálogo</button>
+            <button class="btn ghost" onclick="syncCatalogFromData()">🔄 Actualizar desde compras</button>
+            <button class="btn muted" onclick="openCatalogImport()">⬆️ Importar/Exportar Catálogo</button>
           </div>
         </div>
         <div class="bd">
-          <div class="row">
-            <input id="searchCatalog" class="input" placeholder="Buscar producto en catálogo..." />
-            <select id="filterCatalogProv" class="select">
+          <div class="search-row">
+            <input id="catSearch" class="search" placeholder="Buscar en catálogo…" oninput="renderCatalog()">
+            <select id="catFilterProv" onchange="renderCatalog()">
               <option value="">Todos los proveedores</option>
             </select>
-            <select id="filterCatalogUnit" class="select">
+            <select id="catFilterUnit" onchange="renderCatalog()">
               <option value="">Todas las unidades</option>
               <option value="kg">kg</option>
               <option value="caja">caja</option>
               <option value="manojo">manojo</option>
               <option value="ud">ud</option>
             </select>
-            <label class="chk"><input type="checkbox" id="chkNoPrice"> Solo sin precio</label>
+            <span class="pill" id="catCountPill">0</span>
           </div>
 
-          <div id="catalog_wrap" class="scroll-x" style="margin-top:10px"></div>
-
-          <div class="card" id="catalogDetail" style="margin-top:12px; display:none">
-            <div class="hd">
-              <strong id="catalogDetailTitle">Detalle</strong>
-              <div class="toolbar">
-                <button class="btn muted small" id="btnCloseCatalogDetail">Cerrar</button>
-              </div>
-            </div>
-            <div class="bd">
-              <div class="grid-2">
-                <div class="card inner">
-                  <div class="bd">
-                    <div class="hint" style="margin-bottom:8px">Precio actual / unidad / proveedor preferido</div>
-                    <div class="form">
-                      <label>Precio actual (€)</label>
-                      <input id="cd_price" class="input" placeholder="Ej: 1,25" />
-                      <label>Unidad</label>
-                      <select id="cd_unit" class="select">
-                        <option value="">(sin unidad)</option>
-                        <option value="kg">kg</option>
-                        <option value="caja">caja</option>
-                        <option value="manojo">manojo</option>
-                        <option value="ud">ud</option>
-                      </select>
-                      <label>Proveedor preferido</label>
-                      <select id="cd_prefProv" class="select"></select>
-                      <label>Nota</label>
-                      <input id="cd_note" class="input" placeholder="Ej: caja 22kg / marca / calidad..." />
-                      <div class="toolbar" style="margin-top:10px">
-                        <button class="btn" id="btnCdSave">Guardar</button>
-                        <button class="btn muted" id="btnCdAddHistory">➕ Añadir a historial (hoy)</button>
-                      </div>
-                      <div class="hint" style="margin-top:8px">
-                        “Añadir a historial” guarda Fecha/Precio/Proveedor/Nota. Luego puedes usar el último precio en reparto/pedidos.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="card inner">
-                  <div class="bd">
-                    <div class="hint" style="margin-bottom:8px">Historial de precios</div>
-                    <div id="cd_history" class="scroll-x"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card inner" style="margin-top:12px">
-                <div class="bd">
-                  <div class="hint" style="margin-bottom:8px">Acciones rápidas</div>
-                  <div class="toolbar">
-                    <button class="btn muted" id="btnCdUseLast">✨ Usar último precio (auto)</button>
-                    <button class="btn muted" id="btnCdDelete">🗑️ Eliminar del catálogo</button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
+          <div id="catalog_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
+  </div>
 
-  </main>
+  <!-- FAB (solo global) -->
+  <button class="fab" id="fab" title="Acciones rápidas" style="display:none" onclick="toggleFabMenu()">⚙️</button>
+  <div class="fab-menu" id="fabMenu">
+    <button class="fab-item" onclick="unificarGlobal(true); toggleFabMenu(true)">🔄 Unificar</button>
+    <button class="fab-item" onclick="autoAssignByHistory(); toggleFabMenu(true)">✨ Auto-asignar</button>
+    <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
+    <button class="fab-item" onclick="undo(); toggleFabMenu(true)">↩️ Deshacer</button>
+    <button class="fab-item" onclick="redo(); toggleFabMenu(true)">↪️ Rehacer</button>
+  </div>
 
-  <!-- Tabbar móvil -->
-  <nav class="tabbar">
-    <button id="btn-dic" class="active" data-tab="dic">📚<span>Diccionario</span></button>
-    <button id="btn-tiendas" data-tab="tiendas">🏪<span>Tiendas</span></button>
-    <button id="btn-global" data-tab="global">🧮<span>Global</span></button>
-    <button id="btn-proveedores" data-tab="proveedores">📦<span>Proveedores</span></button>
-    <button id="btn-catalogo" data-tab="catalogo">💶<span>Catálogo</span></button>
-  </nav>
-
-  <!-- Toast / Undo -->
+  <!-- Toast -->
   <div id="toast" class="toast" style="display:none">
-    <div class="toast-inner">
-      <div id="toastText" class="toast-text"></div>
-      <button id="toastUndo" class="btn small">DESHACER</button>
-      <button id="toastClose" class="btn muted small">✕</button>
+    <div class="toast-body">
+      <div id="toastText" class="toast-text">Hecho</div>
+      <button id="toastUndoBtn" class="toast-btn" onclick="toastUndo()">DESHACER</button>
     </div>
   </div>
 
-  <!-- Modal (simple) -->
-  <div id="modal" class="modal" style="display:none" aria-hidden="true">
+  <!-- Modal: Data tools -->
+  <div id="modalData" class="modal" style="display:none">
     <div class="modal-card">
       <div class="modal-hd">
-        <strong id="modalTitle">Título</strong>
-        <button class="btn muted small" id="modalClose">✕</button>
+        <strong>🧰 Herramientas de datos</strong>
+        <button class="btn muted small" onclick="closeModal('modalData')">Cerrar</button>
       </div>
-      <div class="modal-bd" id="modalBody"></div>
-      <div class="modal-ft" id="modalFoot"></div>
+      <div class="modal-bd">
+        <div class="hint">Backups automáticos (últimos 7) + export/import completo.</div>
+        <div class="toolbar" style="margin-top:10px; gap:10px">
+          <button class="btn" onclick="exportFullJSON()">⬇️ Exportar JSON (todo)</button>
+          <button class="btn muted" onclick="openImportFull()">⬆️ Importar JSON (todo)</button>
+          <button class="btn muted" onclick="openBackups()">🕘 Ver backups</button>
+          <button class="btn muted" onclick="makeBackupNow()">💾 Backup ahora</button>
+        </div>
+        <div id="backupList" style="margin-top:12px"></div>
+      </div>
     </div>
   </div>
 
-  <input type="file" id="fileImport" accept="application/json" style="display:none" />
+  <!-- Modal: Import Full -->
+  <div id="modalImportFull" class="modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-hd">
+        <strong>⬆️ Importar JSON completo</strong>
+        <button class="btn muted small" onclick="closeModal('modalImportFull')">Cerrar</button>
+      </div>
+      <div class="modal-bd">
+        <textarea id="importFullTxt" placeholder="Pega aquí el JSON exportado…"></textarea>
+        <div class="toolbar" style="margin-top:10px">
+          <button class="btn" onclick="importFullJSON()">Importar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <script src="app.js"></script>
+  <!-- Modal: Proveedores -->
+  <div id="modalProv" class="modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-hd">
+        <strong>🏭 Gestionar proveedores</strong>
+        <button class="btn muted small" onclick="closeModal('modalProv')">Cerrar</button>
+      </div>
+      <div class="modal-bd">
+        <div class="hint">Añade proveedores ilimitados. Opcional: teléfono WhatsApp.</div>
+        <div class="toolbar" style="margin-top:10px">
+          <button class="btn ghost" onclick="addProvider()">+ Añadir</button>
+          <button class="btn muted" onclick="saveProviders()">Guardar</button>
+        </div>
+        <div id="provManagerList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Conflictos -->
+  <div id="modalConflicts" class="modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-hd">
+        <strong>⚠️ Conflictos / Duplicados</strong>
+        <button class="btn muted small" onclick="closeModal('modalConflicts')">Cerrar</button>
+      </div>
+      <div class="modal-bd">
+        <div class="hint">Aquí salen pares “probables” (similitud) + acciones rápidas.</div>
+        <div id="conflictsList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Catálogo Import/Export -->
+  <div id="modalCatalogIO" class="modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-hd">
+        <strong>💶 Catálogo — Import/Export</strong>
+        <button class="btn muted small" onclick="closeModal('modalCatalogIO')">Cerrar</button>
+      </div>
+      <div class="modal-bd">
+        <div class="toolbar" style="gap:10px">
+          <button class="btn" onclick="exportCatalogJSON()">⬇️ Exportar Catálogo</button>
+          <button class="btn muted" onclick="openImportCatalog()">⬆️ Importar Catálogo</button>
+        </div>
+        <div id="catalogIOTxtWrap" style="margin-top:12px; display:none">
+          <textarea id="importCatalogTxt" placeholder="Pega JSON del catálogo…"></textarea>
+          <div class="toolbar" style="margin-top:10px">
+            <button class="btn" onclick="importCatalogJSON()">Importar Catálogo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabbar -->
+  <nav class="tabbar">
+    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
+    <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
+    <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
+    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
+    <button id="btn-catalogo" onclick="showTab('catalogo')">💶<span>Catálogo</span></button>
+  </nav>
+
+  <script src="./app.js"></script>
 </body>
 </html>
