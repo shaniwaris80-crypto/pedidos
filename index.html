@@ -4,17 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>ARSLAN LISTAS v3.5 — KIWI PRO</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- XLSX (opcional; si falla la carga, la app NO rompe) -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="./style.css" />
 </head>
-
 <body>
   <!-- Topbar -->
   <header class="topbar">
@@ -26,7 +21,7 @@
           <div class="sub">KIWI PRO · rápido · precios · undo · proveedores</div>
         </div>
       </div>
-      <span class="pill" id="pillMode">Modo</span>
+      <span class="pill" id="pillMode">Modo móvil</span>
     </div>
 
     <div class="right">
@@ -52,14 +47,12 @@
             <button class="btn muted" id="btnSafeReset">🧹 Reset seguro</button>
           </div>
         </div>
-
         <div class="bd">
           <div class="grid-2">
             <div>
               <div class="hint mb6">Un producto por línea. Se normaliza a MAYÚSCULAS sin tildes. Sin duplicados.</div>
               <textarea id="vocabTxt" spellcheck="false"></textarea>
             </div>
-
             <div>
               <div class="hint mb6"><b>Equivalencias / Sinónimos</b> (1 por línea) · Formato: <code>ORIGEN = DESTINO</code></div>
               <textarea id="synTxt" spellcheck="false" placeholder="Ej:
@@ -81,6 +74,11 @@ PINA = PIÑA"></textarea>
                 Backups automáticos: <span class="pill" id="pillBackups">0</span>
                 · Integridad: <span class="pill ok" id="pillIntegrity">OK</span>
               </div>
+
+              <div class="divider"></div>
+              <div class="hint">
+                ✅ Autocompletar activo: en tablas verás campos con sugerencias del vocabulario.
+              </div>
             </div>
           </div>
         </div>
@@ -97,7 +95,6 @@ PINA = PIÑA"></textarea>
             <button class="btn muted small" id="btnMergeStoreDup">🧩 Fusionar repetidos</button>
           </div>
         </div>
-
         <div class="bd">
           <div class="store-switch">
             <select id="selStore">
@@ -118,10 +115,8 @@ Ej:
 2x3 limon"></textarea>
 
           <div class="hint mt8">
-            Edita en la tabla: <span class="pill ok">OK</span> si existe en vocab · <span class="pill warn">Revisar</span> si no.
-            Soporta unidades: kg/caja/manojo/saco/ud.
+            Edita en la tabla (con autocompletar): <span class="pill ok">OK</span> si existe en vocab · <span class="pill warn">Revisar</span> si no.
           </div>
-
           <div id="storeTableWrap" class="scroll-x mt8"></div>
         </div>
       </div>
@@ -140,7 +135,6 @@ Ej:
             <button class="btn" id="btnResumenGlobal">🧾 TXT Global</button>
           </div>
         </div>
-
         <div class="bd">
           <div class="hint mb8">
             Proveedor activo: <b id="activeProvName"></b> · Asigna con ✅. <b>Undo asignación</b> disponible (↩️).
@@ -177,7 +171,6 @@ Ej:
             <button class="btn muted" id="btnManageProv">⚙️ Gestionar</button>
           </div>
         </div>
-
         <div class="bd">
           <div id="provPanels" class="grid-3"></div>
         </div>
@@ -191,7 +184,6 @@ Ej:
             <button class="btn small" id="btnRepartoWA">📲 WhatsApp</button>
           </div>
         </div>
-
         <div class="bd">
           <div class="row">
             <select id="selReparto">
@@ -214,7 +206,7 @@ Ej:
             <button class="btn muted small" id="btnCloseProv">✖</button>
           </div>
           <div class="modal-bd">
-            <div class="hint mb8">Añadir, renombrar o eliminar. (Eliminar quita asignaciones de ese proveedor.)</div>
+            <div class="hint mb8">Añadir, renombrar o eliminar. (Eliminar quita asignaciones del proveedor eliminado.)</div>
             <div id="provManageList"></div>
             <div class="divider"></div>
             <div class="toolbar">
@@ -238,7 +230,6 @@ Ej:
             <input id="fileImportPrices" type="file" accept="application/json" style="display:none" />
           </div>
         </div>
-
         <div class="bd">
           <div class="row mb8">
             <input id="prodSearch" class="input" placeholder="Buscar producto..." />
@@ -254,10 +245,7 @@ Ej:
 
           <div class="card soft">
             <div class="bd">
-              <div class="hint mb6">
-                <b>Cómo funciona</b>: Cada producto tiene historial interno. Puedes registrar precio por proveedor y fecha.
-                Luego, al asignar productos a proveedor, tendrás precios a mano.
-              </div>
+              <div class="hint mb6"><b>Cómo funciona</b>: Cada producto tiene historial interno. Puedes registrar precio por proveedor y fecha.</div>
               <div class="hint">Tip: usa “🔎 Cargar desde compras” para crear catálogo con todo lo que ya has comprado.</div>
             </div>
           </div>
@@ -266,6 +254,9 @@ Ej:
     </section>
 
   </main>
+
+  <!-- DATALIST GLOBAL (AUTOCOMPLETAR VOCAB) -->
+  <datalist id="vocabList"></datalist>
 
   <!-- FAB -->
   <button class="fab" id="fab" title="Acciones rápidas">⚙️</button>
