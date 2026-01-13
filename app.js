@@ -1,5 +1,5 @@
 /* ==========================
-   ARSLAN LISTAS v3.5 — KIWI PRO
+   ARSLAN LISTAS v3.5 — KIWI PRO (SAFE)
    - Productos/Precios con historial
    - Cantidades inteligentes + unidades
    - Auto-estandarizar (menos toques)
@@ -11,9 +11,6 @@
 ========================== */
 
 (() => {
-  /* --------------------------
-     Helpers / DOM
-  -------------------------- */
   const $ = (q) => document.querySelector(q);
   const byId = (id) => document.getElementById(id);
   const nowISO = () => new Date().toISOString();
@@ -47,9 +44,6 @@
       .trim();
   }
 
-  /* --------------------------
-     LocalStorage keys
-  -------------------------- */
   const LS = {
     THEME: "arslan_theme",
     VOCAB: "arslan_v35_vocab",
@@ -63,12 +57,9 @@
     UNDO: "arslan_v35_undo_stack"
   };
 
-  /* --------------------------
-     Defaults
-  -------------------------- */
   const DEFAULT_PROVS = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-  const IGNORE_WORDS = ["caja","cajas","kg","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
-  const MATCH_THRESHOLD = 0.78; // fuzzy mínimo
+  const IGNORE_WORDS = ["caja","cajas","kg","kgs","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
+  const MATCH_THRESHOLD = 0.78;
   const SIM_DUP_THRESHOLD = 0.86;
 
   const STORE_META = {
@@ -77,29 +68,24 @@
     st:{name:"Santiago", icon:"🏪"}
   };
 
-  /* --------------------------
-     State
-  -------------------------- */
   let VOCAB_CACHE = null;
   let VOCAB_SIG = null;
 
   let state = {
     vocab: [],
-    synonyms: {},         // { ORIG: DEST }
-    stores: { sp:[], sl:[], st:[] }, // rows {o,e,q,u,a}
+    synonyms: {},
+    stores: { sp:[], sl:[], st:[] },
     providers: [],
     activeProv: "",
-    assignments: {},      // { normKey(product) : provider }
-    orders: {},           // { provider : [{name, qty, unit}] }
-    catalog: {},          // { normKey(name) : { name, unit, prices:[{date,prov,price}], last:{prov,price,date} } }
-    reparto: {},          // {store:[{name,qty,price,checked}] } (no persist)
-    undoStack: [],        // snapshots
-    assignUndo: []        // actions for undo assignment
+    assignments: {},
+    orders: {},
+    catalog: {},
+    reparto: {},
+    undoStack: [],
+    assignUndo: []
   };
 
-  /* --------------------------
-     Theme
-  -------------------------- */
+  /* ---------------- Theme ---------------- */
   function applyTheme(t){
     document.documentElement.setAttribute("data-theme", t==="dark"?"dark":"light");
     localStorage.setItem(LS.THEME, t);
@@ -109,11 +95,8 @@
     applyTheme(cur==="light"?"dark":"light");
   }
 
-  /* --------------------------
-     Safety / Backups / Undo
-  -------------------------- */
+  /* ---------------- Safety / Undo / Backups ---------------- */
   function snapshot(label=""){
-    // snapshot completo (ligero pero suficiente)
     return {
       label,
       at: Date.now(),
@@ -147,7 +130,6 @@
     state.undoStack = stack;
     localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack));
 
-    // restore
     state.stores = snap.stores || {sp:[],sl:[],st:[]};
     state.providers = snap.providers || DEFAULT_PROVS.slice();
     state.activeProv = snap.activeProv || (state.providers[0]||"");
@@ -162,36 +144,6 @@
     hardRefreshUI();
   }
 
-  function saveBackup(){
-    pushUndo("backup-before"); // por seguridad
-    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
-    const b = {
-      at: nowISO(),
-      data: exportAllDataObject()
-    };
-    backups.unshift(b);
-    const trimmed = backups.slice(0,7);
-    localStorage.setItem(LS.BACKUPS, JSON.stringify(trimmed));
-    updateBackupPill();
-    alert("Backup guardado ✅");
-  }
-
-  function updateBackupPill(){
-    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
-    const pill = byId("pillBackups");
-    if(pill) pill.textContent = String(backups.length);
-  }
-
-  function safeReset(){
-    const v = prompt("Escribe BORRAR para limpiar todo (reset seguro):");
-    if(v !== "BORRAR") return;
-    localStorage.clear();
-    location.reload();
-  }
-
-  /* --------------------------
-     Export/Import JSON (sistema completo)
-  -------------------------- */
   function exportAllDataObject(){
     return {
       version: "v3.5",
@@ -217,9 +169,31 @@
     a.click();
   }
 
+  function updateBackupPill(){
+    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
+    const pill = byId("pillBackups");
+    if(pill) pill.textContent = String(backups.length);
+  }
+
+  function saveBackup(){
+    pushUndo("backup-before");
+    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
+    const b = { at: nowISO(), data: exportAllDataObject() };
+    backups.unshift(b);
+    localStorage.setItem(LS.BACKUPS, JSON.stringify(backups.slice(0,7)));
+    updateBackupPill();
+    alert("Backup guardado ✅");
+  }
+
+  function safeReset(){
+    const v = prompt("Escribe BORRAR para limpiar todo (reset seguro):");
+    if(v !== "BORRAR") return;
+    localStorage.clear();
+    location.reload();
+  }
+
   function exportJSON(){
-    const obj = exportAllDataObject();
-    downloadJSON(obj, `arslan_listas_backup_${todayISO()}.json`);
+    downloadJSON(exportAllDataObject(), `arslan_listas_backup_${todayISO()}.json`);
   }
 
   function importJSONFile(file){
@@ -229,7 +203,7 @@
         const obj = JSON.parse(String(reader.result||"{}"));
         applyImportedObject(obj);
         alert("Importado ✅");
-      }catch(e){
+      }catch{
         alert("JSON inválido.");
       }
     };
@@ -257,7 +231,6 @@
     state.orders = obj.orders || {};
     state.catalog = obj.catalog || {};
 
-    // backups opcional
     if(Array.isArray(obj.backups)){
       localStorage.setItem(LS.BACKUPS, JSON.stringify(obj.backups.slice(0,7)));
     }
@@ -266,12 +239,9 @@
     hardRefreshUI();
   }
 
-  /* --------------------------
-     Persist
-  -------------------------- */
   function persistAll(){
-    localStorage.setItem(LS.VOCAB, byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "");
-    localStorage.setItem(LS.SYN, byId("synTxt") ? String(byId("synTxt").value||"") : "");
+    if(byId("vocabTxt")) localStorage.setItem(LS.VOCAB, String(byId("vocabTxt").value||""));
+    if(byId("synTxt")) localStorage.setItem(LS.SYN, String(byId("synTxt").value||""));
     localStorage.setItem(LS.STORES, JSON.stringify(state.stores));
     localStorage.setItem(LS.PROVS, JSON.stringify(state.providers));
     localStorage.setItem(LS.ASSIGN, JSON.stringify(state.assignments));
@@ -281,9 +251,7 @@
   }
   const persistAllDebounced = debounce(persistAll, 250);
 
-  /* --------------------------
-     Vocab + Synonyms
-  -------------------------- */
+  /* ---------------- Vocab + Synonyms ---------------- */
   function uniqueVocab(lines){
     const seen = new Set(); const out=[];
     for(const l of lines){
@@ -326,14 +294,11 @@
     return syn ? syn : name;
   }
 
-  /* --------------------------
-     Similarity (Dice + TokenSet)
-  -------------------------- */
+  /* ---------------- Similarity ---------------- */
   function stripGenericWords(s){
     const tokens = normKey(s).split(" ").filter(t=>!IGNORE_WORDS.includes(String(t||"").toLowerCase()));
     return tokens.join(" ").trim();
   }
-
   function bigrams(str){
     const s = stripGenericWords(str);
     const arr=[];
@@ -371,9 +336,7 @@
     return best;
   }
 
-  /* --------------------------
-     Smart Parser (qty + unit + name)
-  -------------------------- */
+  /* ---------------- Smart Parser ---------------- */
   const UNIT_MAP = [
     {re:/(^|\s)(kg|kgs|kilo|kilos)(\s|$)/i, unit:"KG"},
     {re:/(^|\s)(caja|cajas)(\s|$)/i, unit:"CAJA"},
@@ -381,29 +344,24 @@
     {re:/(^|\s)(saco|sacos)(\s|$)/i, unit:"SACO"},
     {re:/(^|\s)(ud|uds|u|unidad|unidades)(\s|$)/i, unit:"UD"}
   ];
-
   function detectUnit(text){
     for(const u of UNIT_MAP){
       if(u.re.test(text)) return u.unit;
     }
-    return ""; // sin unidad -> vacío
+    return "";
   }
-
   function toNumberSmart(s){
     const x = String(s||"").trim();
     if(!x) return null;
-    // fracción 1/2
     const frac = x.match(/^(\d+)\s*\/\s*(\d+)$/);
     if(frac){
       const a = Number(frac[1]); const b = Number(frac[2]);
       if(b) return a/b;
       return null;
     }
-    // decimal con coma
     const n = Number(x.replace(",","."));
     return isNaN(n) ? null : n;
   }
-
   function cleanNameKeepLetters(s){
     return removeDiacriticsUpper(s)
       .replace(/[^A-Z0-9\s]/g," ")
@@ -417,13 +375,9 @@
     s = s.replace(/^[-•*]\s*/,"");
     if(!s) return null;
 
-    // detectar unidad
     const unit = detectUnit(s);
-
-    // casos: "3x2", "3 x 2", "2 cajas x3"
     let qty = null;
 
-    // xN dentro
     const mx = s.match(/(?:^|\s)(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+)\s*x\s*(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+)(?:\s|$)/i);
     if(mx){
       const a = toNumberSmart(mx[1].replace(/\s/g,""));
@@ -432,7 +386,6 @@
       s = s.replace(mx[0]," ").trim();
     }
 
-    // "x 4"
     if(qty===null){
       const mx2 = s.match(/(?:x|X|\*)\s*(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+)/);
       if(mx2){
@@ -442,7 +395,6 @@
       }
     }
 
-    // número al final (incluye 1/2)
     if(qty===null){
       const mend = s.match(/(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas|manojo|manojos|saco|sacos)?\s*$/i);
       if(mend){
@@ -452,7 +404,6 @@
       }
     }
 
-    // número al inicio
     if(qty===null){
       const mstart = s.match(/^\s*(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+)\s+(.*)$/);
       if(mstart){
@@ -464,11 +415,7 @@
 
     if(qty===null) qty = 1;
 
-    // limpiar palabras genéricas de la parte de nombre
-    let name = s;
-    name = cleanNameKeepLetters(name);
-
-    // quitar tokens de unidad/palabras
+    let name = cleanNameKeepLetters(s);
     const tokens = name.split(" ").filter(t=>{
       const low = t.toLowerCase();
       return !IGNORE_WORDS.includes(low);
@@ -476,7 +423,6 @@
     name = tokens.join(" ").trim();
     if(!name) name = cleanNameKeepLetters(raw);
 
-    // aplicar equivalencias
     name = applySynonyms(name);
 
     return {
@@ -487,9 +433,13 @@
     };
   }
 
-  /* --------------------------
-     Store ops
-  -------------------------- */
+  function fmtQty(n){
+    const x = Number(n)||0;
+    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+    return x.toFixed(2);
+  }
+
+  /* ---------------- Store ops ---------------- */
   function sumDuplicatesRows(rows){
     const map = new Map();
     rows.forEach(r=>{
@@ -499,7 +449,6 @@
       if(!map.has(key)) map.set(key, {o:r.o, e:r.e, q:0, u:u, a:r.a});
       const it = map.get(key);
       it.q += Number(r.q)||0;
-      // si alguno estaba en revisar, mantenlo en revisar
       it.a = it.a || r.a;
     });
     return Array.from(map.values()).sort((a,b)=>a.e.localeCompare(b.e,"es"));
@@ -512,27 +461,21 @@
       const p = parseLineSmart(line);
       if(!p) return;
 
-      // exact
       const exact = vocab.find(v => normKey(v)===normKey(p.name));
       if(exact){
         rows.push({o:p.original, e: exact, q: p.qty, u: p.unit || "", a:false});
         return;
       }
 
-      // fuzzy
       const m = bestMatch(p.name, vocab);
       if(m.name && m.score >= MATCH_THRESHOLD){
-        rows.push({o:p.original, e:m.name, q:p.qty, u: p.unit || "", a:true}); // no exact => revisar
+        rows.push({o:p.original, e:m.name, q:p.qty, u: p.unit || "", a:true});
       }else{
-        // no match suficiente => deja el cleaned para revisar
         rows.push({o:p.original, e: removeDiacriticsUpper(p.name), q:p.qty, u: p.unit || "", a:true});
       }
     });
 
-    // fusionar exactos (mismo producto+unidad) para ahorrar trabajo
-    const merged = sumDuplicatesRows(rows);
-
-    state.stores[code] = merged;
+    state.stores[code] = sumDuplicatesRows(rows);
     persistAllDebounced();
   }
 
@@ -540,7 +483,7 @@
     const rows = state.stores[code]||[];
     return rows.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${r.e} ${r.q}${u}`;
+      return `${r.e} ${fmtQty(r.q)}${u}`;
     }).join("\n");
   }
 
@@ -551,7 +494,7 @@
     if(!ok.length){ alert("Aún hay productos por revisar (en rojo)."); return; }
     const txt = ok.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${r.q} ${r.e}${u}`;
+      return `${fmtQty(r.q)} ${r.e}${u}`;
     }).join("\n");
     const blob = new Blob([txt], {type:"text/plain"});
     const a = document.createElement("a");
@@ -567,18 +510,16 @@
     if(!ok.length){ alert("Aún hay productos por revisar (en rojo)."); return; }
     const lines = ok.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${r.q} ${r.e}${u}`;
+      return `${fmtQty(r.q)} ${r.e}${u}`;
     }).join("\n");
     const meta = STORE_META[code];
     const msg = encodeURIComponent(`🛒 *Pedido ${meta.name}*\n\n${lines}\n\nGracias`);
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
-  /* --------------------------
-     Global unify + duplicates detect
-  -------------------------- */
-  let globalRows = [];     // visible (no asignados)
-  let globalAll = [];      // total global completo
+  /* ---------------- Global unify ---------------- */
+  let globalRows = [];
+  let globalAll = [];
 
   function unifyGlobal(){
     const all = [].concat(state.stores.sp||[], state.stores.sl||[], state.stores.st||[]);
@@ -595,10 +536,8 @@
     globalAll = Array.from(map.values())
       .sort((a,b)=> (a.name + a.unit).localeCompare(b.name + b.unit, "es"));
 
-    // filtro: no asignados
     const visible = globalAll.filter(it => !state.assignments[normKey(it.name) + "||" + (it.unit||"")]);
 
-    // búsqueda
     const q = normKey(byId("globalSearch") ? byId("globalSearch").value : "");
     globalRows = q ? visible.filter(x => normKey(x.name).includes(q)) : visible;
 
@@ -621,6 +560,368 @@
     return similarSet;
   }
 
+  /* ---------------- Catalog / Prices ---------------- */
+  function catalogKey(name, unit){
+    return normKey(name) + "||" + (removeDiacriticsUpper(unit||""));
+  }
+
+  function ensureCatalogEntry(name, unit){
+    const k = catalogKey(name, unit);
+    if(!state.catalog[k]){
+      state.catalog[k] = {
+        name: removeDiacriticsUpper(name),
+        unit: removeDiacriticsUpper(unit||""),
+        prices: [],
+        last: null
+      };
+    }
+    return state.catalog[k];
+  }
+
+  function getLastPriceInfoFor(name, prov){
+    const kPrefix = normKey(name) + "||";
+    const keys = Object.keys(state.catalog);
+    let foundKey = null;
+    for(const k of keys){
+      if(k.startsWith(kPrefix)){ foundKey = k; break; }
+    }
+    if(!foundKey) return `<span class="pill">sin precio</span>`;
+
+    const entry = state.catalog[foundKey];
+    if(!entry || !entry.last) return `<span class="pill">sin precio</span>`;
+
+    const lastSame = (entry.prices||[]).slice().reverse().find(x=>x.prov===prov);
+    const last = lastSame || entry.last;
+    if(!last) return `<span class="pill">sin precio</span>`;
+
+    return `<span class="pill ok">${Number(last.price).toFixed(2)}€</span><span class="pill"> ${last.prov}</span>`;
+  }
+
+  function scanProductsFromPurchases(){
+    pushUndo("scan-products");
+    globalAll.forEach(it => ensureCatalogEntry(it.name, it.unit||""));
+    state.providers.forEach(p=>{
+      (state.orders[p]||[]).forEach(it=>{
+        ensureCatalogEntry(it.name, it.unit||"");
+      });
+    });
+    persistAllDebounced();
+    renderProductsTable();
+    alert("Catálogo actualizado ✅");
+  }
+
+  function refreshProductsProvFilter(){
+    const sel = byId("prodProvFilter");
+    if(!sel) return;
+    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${p}">${p}</option>`).join("");
+  }
+
+  function renderProductsTable(){
+    const wrap = byId("prodWrap");
+    const pill = byId("pillProdCount");
+    if(!wrap) return;
+
+    const q = normKey(byId("prodSearch") ? byId("prodSearch").value : "");
+    const provFilter = byId("prodProvFilter") ? byId("prodProvFilter").value : "";
+
+    const entries = Object.entries(state.catalog).map(([k,v])=>({key:k, ...v}));
+    let filtered = entries;
+
+    if(q) filtered = filtered.filter(x => normKey(x.name).includes(q));
+    if(provFilter) filtered = filtered.filter(x => (x.prices||[]).some(p=>p.prov===provFilter));
+    filtered.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
+
+    if(pill) pill.textContent = String(filtered.length);
+
+    if(!filtered.length){
+      wrap.innerHTML = `<div class="hint">No hay productos en el catálogo. Pulsa “🔎 Cargar desde compras”.</div>`;
+      return;
+    }
+
+    let html = `<div class="scroll-x"><table>
+      <thead><tr>
+        <th>Producto</th>
+        <th>Unidad</th>
+        <th>Proveedor</th>
+        <th>Precio (€)</th>
+        <th>Guardar</th>
+        <th>Historial</th>
+      </tr></thead><tbody>`;
+
+    filtered.forEach(it=>{
+      const hist = (it.prices||[]).slice(-3).reverse().map(p=>`${p.date} · ${p.prov} · ${Number(p.price).toFixed(2)}€`).join("<br>");
+      html += `<tr>
+        <td>${it.name}</td>
+        <td>${it.unit||""}</td>
+        <td>
+          <select data-p-prov="${it.key}">
+            <option value="">(elige)</option>
+            ${state.providers.map(p=>`<option value="${p}">${p}</option>`).join("")}
+          </select>
+        </td>
+        <td contenteditable="true" data-p-price="${it.key}" class="green"></td>
+        <td><button class="btn small" data-p-save="${it.key}">Guardar</button></td>
+        <td>${hist || `<span class="pill">sin historial</span>`}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll("button[data-p-save]").forEach(btn=>{
+      btn.onclick = () => {
+        const key = btn.getAttribute("data-p-save");
+        const sel = wrap.querySelector(`select[data-p-prov="${key}"]`);
+        const td = wrap.querySelector(`td[data-p-price="${key}"]`);
+        const prov = sel ? sel.value : "";
+        const priceTxt = td ? String(td.innerText||"").trim().replace(",",".") : "";
+        const price = Number(priceTxt);
+
+        if(!prov){ alert("Elige proveedor."); return; }
+        if(!priceTxt || isNaN(price) || price<=0){ alert("Precio inválido."); return; }
+
+        pushUndo("save-price");
+
+        const entry = state.catalog[key];
+        if(!entry){
+          alert("Entrada no encontrada (catálogo). Pulsa “Cargar desde compras” y reintenta.");
+          return;
+        }
+
+        const rec = {date: todayISO(), prov, price: Number(price)};
+        entry.prices = Array.isArray(entry.prices) ? entry.prices : [];
+        entry.prices.push(rec);
+        entry.last = rec;
+
+        state.catalog[key] = entry;
+        persistAllDebounced();
+        renderProductsTable();
+        idle(()=>{ renderProvidersPanels(); renderGlobalTable(); });
+      };
+    });
+  }
+
+  function exportPricesJSON(){
+    const obj = { exportedAt: nowISO(), catalog: state.catalog, providers: state.providers };
+    downloadJSON(obj, `arslan_precios_${todayISO()}.json`);
+  }
+
+  function importPricesJSONFile(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const obj = JSON.parse(String(reader.result||"{}"));
+        if(!obj || typeof obj!=="object" || !obj.catalog) throw new Error("bad");
+        pushUndo("import-prices");
+
+        const cat = obj.catalog || {};
+        Object.keys(cat).forEach(k=>{
+          if(!state.catalog[k]) state.catalog[k] = cat[k];
+          else{
+            const a = state.catalog[k];
+            const b = cat[k];
+            a.prices = Array.isArray(a.prices)?a.prices:[];
+            const bpr = Array.isArray(b.prices)?b.prices:[];
+            bpr.forEach(p=>a.prices.push(p));
+            const last = a.prices.slice().sort((x,y)=> String(x.date).localeCompare(String(y.date))).slice(-1)[0];
+            if(last) a.last = last;
+            state.catalog[k] = a;
+          }
+        });
+
+        persistAllDebounced();
+        renderProductsTable();
+        alert("Precios importados ✅");
+      }catch{
+        alert("JSON de precios inválido.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------------- Providers / Assign ---------------- */
+  function ensureOrdersBuckets(){
+    state.providers.forEach(p=>{
+      if(!Array.isArray(state.orders[p])) state.orders[p] = [];
+    });
+  }
+
+  function buildProvBar(){
+    const bar = byId("provBar");
+    if(!bar) return;
+    bar.innerHTML = "";
+
+    state.providers.forEach(p=>{
+      const b = document.createElement("button");
+      b.className = "prov-btn" + (p===state.activeProv ? " active" : "");
+      b.textContent = p;
+      b.onclick = () => {
+        state.activeProv = p;
+        if(byId("activeProvName")) byId("activeProvName").textContent = p;
+        buildProvBar();
+        persistAllDebounced();
+        idle(()=>{ unifyGlobal(); renderProductsTable(); });
+      };
+      bar.appendChild(b);
+    });
+
+    if(byId("activeProvName")) byId("activeProvName").textContent = state.activeProv || "";
+  }
+
+  function assignFromGlobal(idx){
+    const item = globalRows[idx];
+    if(!item) return;
+
+    pushUndo("assign-from-global");
+
+    const k = normKey(item.name) + "||" + (item.unit||"");
+    const prov = state.activeProv;
+
+    state.assignUndo.unshift({
+      at: Date.now(),
+      prov,
+      key: k,
+      name: item.name,
+      unit: item.unit||"",
+      qty: Number(item.total)||0
+    });
+    state.assignUndo = state.assignUndo.slice(0, 50);
+
+    state.assignments[k] = prov;
+
+    ensureOrdersBuckets();
+    const list = state.orders[prov] || [];
+    const exIdx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === k);
+    if(exIdx>-1) list[exIdx].qty += Number(item.total)||0;
+    else list.push({name:item.name, qty:Number(item.total)||0, unit:item.unit||""});
+    state.orders[prov] = list;
+
+    ensureCatalogEntry(item.name, item.unit||"");
+
+    persistAllDebounced();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
+  }
+
+  function undoAssign(){
+    const a = state.assignUndo.shift();
+    if(!a){ alert("No hay asignación para deshacer."); return; }
+
+    pushUndo("undo-assign");
+    delete state.assignments[a.key];
+
+    const list = state.orders[a.prov] || [];
+    const idx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === a.key);
+    if(idx>-1){
+      list[idx].qty -= a.qty;
+      if(list[idx].qty <= 0) list.splice(idx,1);
+    }
+    state.orders[a.prov] = list;
+
+    persistAllDebounced();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); });
+  }
+
+  function exportProvTXT(prov){
+    const list = state.orders[prov] || [];
+    if(!list.length){ alert("No hay líneas para " + prov); return; }
+    const txt = list.slice().sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
+      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`).join("\n");
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `pedido_${prov}_${todayISO()}.txt`;
+    a.click();
+  }
+
+  function sendProvWA(prov){
+    const list = state.orders[prov] || [];
+    if(!list.length){ alert("No hay líneas para " + prov); return; }
+    const txt = list.slice().sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
+      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`).join("\n");
+    const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}\n\nGracias`);
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  function renderProvidersPanels(){
+    const cont = byId("provPanels");
+    if(!cont) return;
+    cont.innerHTML = "";
+
+    ensureOrdersBuckets();
+
+    state.providers.forEach(prov=>{
+      const list = state.orders[prov] || [];
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const hd = document.createElement("div");
+      hd.className = "hd";
+      hd.innerHTML = `
+        <strong>${prov}</strong>
+        <div class="toolbar">
+          <button class="btn small muted" data-ptxt="${prov}">📄 TXT</button>
+          <button class="btn small" data-pwa="${prov}">📲 WhatsApp</button>
+        </div>
+      `;
+
+      const bd = document.createElement("div");
+      bd.className = "bd";
+
+      if(!list.length){
+        bd.innerHTML = `<div class="hint">Sin productos asignados.</div>`;
+      }else{
+        let html = `<div class="scroll-x"><table>
+          <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio</th></tr></thead><tbody>`;
+        list.forEach((it,ix)=>{
+          const priceInfo = getLastPriceInfoFor(it.name, prov);
+          html += `<tr>
+            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
+            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="qty" class="green">${fmtQty(it.qty)}</td>
+            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="unit" class="green">${it.unit||""}</td>
+            <td>${priceInfo}</td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        bd.innerHTML = html;
+
+        bd.querySelectorAll("td[contenteditable]").forEach(cell=>{
+          cell.addEventListener("blur", ()=>{
+            pushUndo("edit-provider-line");
+
+            const prov2 = cell.getAttribute("data-prov");
+            const idx = Number(cell.getAttribute("data-idx"));
+            const f = cell.getAttribute("data-f");
+            const val = String(cell.innerText||"").trim();
+
+            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
+
+            if(f==="qty"){
+              state.orders[prov2][idx].qty = Number(String(val).replace(",",".")) || 0;
+              if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
+            }else if(f==="unit"){
+              state.orders[prov2][idx].unit = removeDiacriticsUpper(val);
+            }else{
+              const nm = applySynonyms(removeDiacriticsUpper(val));
+              state.orders[prov2][idx].name = nm;
+              ensureCatalogEntry(nm, state.orders[prov2][idx].unit||"");
+            }
+
+            persistAllDebounced();
+            idle(()=>{ renderProvidersPanels(); });
+          }, {passive:true});
+        });
+      }
+
+      card.appendChild(hd);
+      card.appendChild(bd);
+      cont.appendChild(card);
+
+      card.querySelectorAll("[data-ptxt]").forEach(b=>b.onclick=()=>exportProvTXT(prov));
+      card.querySelectorAll("[data-pwa]").forEach(b=>b.onclick=()=>sendProvWA(prov));
+    });
+  }
+
+  /* ---------------- Global table render ---------------- */
   function renderGlobalTable(){
     const wrap = byId("globalWrap");
     const pill = byId("pillGlobalCount");
@@ -662,7 +963,6 @@
     html += `</tbody></table></div>`;
     wrap.innerHTML = html;
 
-    // assign buttons
     wrap.querySelectorAll("[data-assign]").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const idx = Number(btn.getAttribute("data-assign"));
@@ -670,7 +970,6 @@
       });
     });
 
-    // inline edit
     wrap.querySelectorAll("td[contenteditable]").forEach(cell=>{
       cell.addEventListener("blur", ()=>{
         const tr = cell.closest("tr");
@@ -685,351 +984,16 @@
         }else if(f==="unit"){
           globalRows[idx].unit = removeDiacriticsUpper(val);
         }else{
-          globalRows[idx].name = removeDiacriticsUpper(val);
+          globalRows[idx].name = applySynonyms(removeDiacriticsUpper(val));
         }
 
-        // no persist aquí: globalRows se recalcula. Guardamos en stores? No: se edita global solo para compras.
-        // Persistimos un "override" mínimo al asignar (se usa ese nombre).
         persistAllDebounced();
         idle(()=>unifyGlobal());
       }, {passive:true});
     });
   }
 
-  function fmtQty(n){
-    const x = Number(n)||0;
-    // si es entero, sin decimales; si no, 2 decimales
-    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
-    return x.toFixed(2);
-  }
-
-  /* --------------------------
-     Providers / Assign / Undo assign
-  -------------------------- */
-  function ensureOrdersBuckets(){
-    state.providers.forEach(p=>{
-      if(!Array.isArray(state.orders[p])) state.orders[p] = [];
-    });
-  }
-
-  function assignFromGlobal(idx){
-    const item = globalRows[idx];
-    if(!item) return;
-
-    pushUndo("assign-from-global");
-
-    const k = normKey(item.name) + "||" + (item.unit||"");
-    const prov = state.activeProv;
-
-    // store action for undo assignment
-    state.assignUndo.unshift({
-      at: Date.now(),
-      prov,
-      key: k,
-      name: item.name,
-      unit: item.unit||"",
-      qty: Number(item.total)||0
-    });
-    state.assignUndo = state.assignUndo.slice(0, 50);
-
-    state.assignments[k] = prov;
-
-    ensureOrdersBuckets();
-    const list = state.orders[prov] || [];
-    const exIdx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === k);
-    if(exIdx>-1){
-      list[exIdx].qty += Number(item.total)||0;
-    }else{
-      list.push({name:item.name, qty:Number(item.total)||0, unit:item.unit||""});
-    }
-    state.orders[prov] = list;
-
-    // auto-catalog entry
-    ensureCatalogEntry(item.name, item.unit||"");
-
-    persistAllDebounced();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
-  }
-
-  function undoAssign(){
-    const a = state.assignUndo.shift();
-    if(!a){
-      alert("No hay asignación para deshacer.");
-      return;
-    }
-
-    pushUndo("undo-assign");
-
-    // remove assignment
-    delete state.assignments[a.key];
-
-    // remove qty from orders[prov]
-    const list = state.orders[a.prov] || [];
-    const idx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === a.key);
-    if(idx>-1){
-      list[idx].qty -= a.qty;
-      if(list[idx].qty <= 0) list.splice(idx,1);
-    }
-    state.orders[a.prov] = list;
-
-    persistAllDebounced();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); });
-  }
-
-  function buildProvBar(){
-    const bar = byId("provBar");
-    if(!bar) return;
-    bar.innerHTML = "";
-
-    state.providers.forEach(p=>{
-      const b = document.createElement("button");
-      b.className = "prov-btn" + (p===state.activeProv ? " active" : "");
-      b.textContent = p;
-      b.onclick = () => {
-        state.activeProv = p;
-        byId("activeProvName").textContent = p;
-        buildProvBar();
-        persistAllDebounced();
-        idle(()=>{ unifyGlobal(); renderProductsTable(); });
-      };
-      bar.appendChild(b);
-    });
-
-    byId("activeProvName").textContent = state.activeProv || "";
-  }
-
-  /* --------------------------
-     Providers panels + edit inline
-  -------------------------- */
-  function exportProvTXT(prov){
-    const list = state.orders[prov] || [];
-    if(!list.length){ alert("No hay líneas para " + prov); return; }
-    const txt = list
-      .slice()
-      .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
-      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
-      .join("\n");
-
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `pedido_${prov}_${todayISO()}.txt`;
-    a.click();
-  }
-
-  function sendProvWA(prov){
-    const list = state.orders[prov] || [];
-    if(!list.length){ alert("No hay líneas para " + prov); return; }
-    const txt = list
-      .slice()
-      .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
-      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
-      .join("\n");
-
-    const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}\n\nGracias`);
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
-
-  function renderProvidersPanels(){
-    const cont = byId("provPanels");
-    if(!cont) return;
-    cont.innerHTML = "";
-
-    ensureOrdersBuckets();
-
-    state.providers.forEach(prov=>{
-      const list = state.orders[prov] || [];
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const hd = document.createElement("div");
-      hd.className = "hd";
-      hd.innerHTML = `
-        <strong>${prov}</strong>
-        <div class="toolbar">
-          <button class="btn small muted" data-ptxt="${prov}">📄 TXT</button>
-          <button class="btn small" data-pwa="${prov}">📲 WhatsApp</button>
-        </div>
-      `;
-
-      const bd = document.createElement("div");
-      bd.className = "bd";
-
-      if(!list.length){
-        bd.innerHTML = `<div class="hint">Sin productos asignados.</div>`;
-      }else{
-        let html = `<div class="scroll-x"><table>
-          <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio</th></tr></thead><tbody>`;
-
-        list.forEach((it,ix)=>{
-          const priceInfo = getLastPriceInfoFor(it.name, prov);
-          html += `<tr>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="qty" class="green">${fmtQty(it.qty)}</td>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="unit" class="green">${it.unit||""}</td>
-            <td>${priceInfo}</td>
-          </tr>`;
-        });
-
-        html += `</tbody></table></div>`;
-        bd.innerHTML = html;
-
-        bd.querySelectorAll("td[contenteditable]").forEach(cell=>{
-          cell.addEventListener("blur", ()=>{
-            pushUndo("edit-provider-line");
-
-            const prov2 = cell.getAttribute("data-prov");
-            const idx = Number(cell.getAttribute("data-idx"));
-            const f = cell.getAttribute("data-f");
-            const val = String(cell.innerText||"").trim();
-
-            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
-
-            if(f==="qty"){
-              state.orders[prov2][idx].qty = Number(String(val).replace(",",".")) || 0;
-              if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
-            }else if(f==="unit"){
-              state.orders[prov2][idx].unit = removeDiacriticsUpper(val);
-            }else{
-              const nm = removeDiacriticsUpper(val);
-              state.orders[prov2][idx].name = applySynonyms(nm);
-              ensureCatalogEntry(state.orders[prov2][idx].name, state.orders[prov2][idx].unit||"");
-            }
-
-            persistAllDebounced();
-            idle(()=>{ renderProvidersPanels(); });
-          }, {passive:true});
-        });
-      }
-
-      card.appendChild(hd);
-      card.appendChild(bd);
-      cont.appendChild(card);
-
-      card.querySelectorAll("[data-ptxt]").forEach(b=>b.onclick=()=>exportProvTXT(prov));
-      card.querySelectorAll("[data-pwa]").forEach(b=>b.onclick=()=>sendProvWA(prov));
-    });
-  }
-
-  /* --------------------------
-     Providers manage modal
-  -------------------------- */
-  function openProvModal(){
-    pushUndo("open-prov-modal");
-
-    const modal = byId("modalProv");
-    const list = byId("provManageList");
-    modal.style.display = "flex";
-
-    // editable copy
-    const draft = state.providers.slice();
-
-    function renderDraft(){
-      list.innerHTML = "";
-      draft.forEach((p,idx)=>{
-        const row = document.createElement("div");
-        row.className = "miniRow";
-        row.innerHTML = `
-          <input value="${p}" data-i="${idx}" />
-          <button class="btn muted small" data-del="${idx}">Eliminar</button>
-        `;
-        list.appendChild(row);
-      });
-
-      list.querySelectorAll("button[data-del]").forEach(btn=>{
-        btn.onclick = () => {
-          const i = Number(btn.getAttribute("data-del"));
-          const name = draft[i];
-          if(!confirm(`Eliminar proveedor: ${name}?`)) return;
-          draft.splice(i,1);
-          renderDraft();
-        };
-      });
-    }
-
-    renderDraft();
-
-    byId("btnProvSave").onclick = () => {
-      // recoger inputs
-      const arr = [];
-      list.querySelectorAll("input[data-i]").forEach(inp=>{
-        const v = String(inp.value||"").trim();
-        if(v) arr.push(v);
-      });
-
-      // unique
-      const seen = new Set();
-      const cleaned = [];
-      arr.forEach(p=>{
-        const k = normKey(p);
-        if(!seen.has(k)){ seen.add(k); cleaned.push(p); }
-      });
-
-      if(!cleaned.length){
-        alert("Debe haber al menos 1 proveedor.");
-        return;
-      }
-
-      pushUndo("save-providers");
-
-      const old = state.providers.slice();
-      state.providers = cleaned;
-
-      // activeProv fix
-      if(!state.providers.includes(state.activeProv)){
-        state.activeProv = state.providers[0];
-      }
-
-      // orders: asegurar buckets y migrar si renombraron (no se puede saber exacto) => mantenemos por nombre exacto
-      ensureOrdersBuckets();
-
-      // limpiar asignaciones a proveedores borrados
-      const allowed = new Set(state.providers);
-      Object.keys(state.assignments).forEach(k=>{
-        const prov = state.assignments[k];
-        if(!allowed.has(prov)) delete state.assignments[k];
-      });
-
-      // limpiar orders de proveedores borrados
-      const newOrders = {};
-      state.providers.forEach(p=>{
-        newOrders[p] = Array.isArray(state.orders[p]) ? state.orders[p] : [];
-      });
-      state.orders = newOrders;
-
-      persistAllDebounced();
-      closeProvModal();
-      hardRefreshUI();
-    };
-
-    byId("btnProvCancel").onclick = () => closeProvModal();
-  }
-
-  function closeProvModal(){
-    byId("modalProv").style.display = "none";
-  }
-
-  function addProviderQuick(){
-    const p = prompt("Nombre del nuevo proveedor:");
-    if(!p) return;
-
-    pushUndo("add-provider");
-    const name = String(p).trim();
-    const key = normKey(name);
-    if(!key) return;
-
-    const exists = state.providers.some(x=>normKey(x)===key);
-    if(exists){ alert("Ya existe."); return; }
-
-    state.providers.push(name);
-    state.orders[name] = [];
-    persistAllDebounced();
-    hardRefreshUI();
-  }
-
-  /* --------------------------
-     Global exports
-  -------------------------- */
+  /* ---------------- Exports Global ---------------- */
   function copyGlobal(){
     if(!globalRows.length){ alert("No hay datos."); return; }
     const txt = globalRows.map(r => `- ${fmtQty(r.total)} ${r.name}${r.unit?(" "+r.unit):""}`).join("\n");
@@ -1049,6 +1013,7 @@
 
   function exportGlobalXLSX(){
     if(!globalRows.length){ alert("No hay datos."); return; }
+    if(!window.XLSX){ alert("XLSX no cargado."); return; }
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([["Producto","Total","Unidad"], ...globalRows.map(r=>[r.name, r.total, r.unit||""])]);
     XLSX.utils.book_append_sheet(wb, ws, "Global");
@@ -1056,7 +1021,6 @@
   }
 
   function exportResumenGlobalTXT(){
-    // completo: por proveedor + sin asignar
     const all = globalAll.slice();
     const byProv = {};
     state.providers.forEach(p=>byProv[p]=[]);
@@ -1078,9 +1042,7 @@
       const arr = byProv[p] || [];
       if(arr.length){
         arr.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
-        arr.forEach(x=>{
-          out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`;
-        });
+        arr.forEach(x=>{ out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`; });
       }else out += `- (sin líneas)\n`;
       out += `\n`;
     });
@@ -1088,9 +1050,7 @@
     out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
     if(unassigned.length){
       unassigned.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
-      unassigned.forEach(x=>{
-        out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`;
-      });
+      unassigned.forEach(x=>{ out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`; });
     }else out += `- (sin líneas)\n`;
 
     const blob = new Blob([out], {type:"text/plain"});
@@ -1100,294 +1060,7 @@
     a.click();
   }
 
-  /* --------------------------
-     Reparto (por tiendas + precios)
-  -------------------------- */
-  function renderReparto(){
-    const code = byId("selReparto").value;
-    const wrap = byId("repartoWrap");
-    const pill = byId("pillRepartoCount");
-    if(!wrap) return;
-
-    if(!code){
-      wrap.innerHTML = `<div class="hint">Selecciona una tienda para ver su lista.</div>`;
-      if(pill) pill.textContent = "0";
-      return;
-    }
-
-    const lista = state.stores[code] || [];
-    if(!lista.length){
-      wrap.innerHTML = `<div class="hint">Sin datos en esta tienda.</div>`;
-      if(pill) pill.textContent = "0";
-      return;
-    }
-
-    if(!state.reparto[code] || state.reparto[code].length !== lista.length){
-      state.reparto[code] = lista.map(x => ({ name:x.e, qty:x.q, unit:x.u||"", price:"", checked:false }));
-    }
-
-    if(pill) pill.textContent = String(state.reparto[code].length);
-
-    let html = `<table><thead><tr>
-      <th></th><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio (€)</th>
-    </tr></thead><tbody>`;
-
-    state.reparto[code].forEach((r,i)=>{
-      html += `<tr>
-        <td><input type="checkbox" ${r.checked?"checked":""} data-rchk="${code}" data-i="${i}"></td>
-        <td>${r.name}</td>
-        <td>${fmtQty(r.qty)}</td>
-        <td>${r.unit||""}</td>
-        <td contenteditable="true" data-rprice="${code}" data-i="${i}">${r.price||""}</td>
-      </tr>`;
-    });
-
-    html += `</tbody></table>`;
-    wrap.innerHTML = html;
-
-    wrap.querySelectorAll("input[data-rchk]").forEach(chk=>{
-      chk.onchange = () => {
-        const c = chk.getAttribute("data-rchk");
-        const i = Number(chk.getAttribute("data-i"));
-        state.reparto[c][i].checked = chk.checked;
-      };
-    });
-
-    wrap.querySelectorAll("td[data-rprice]").forEach(td=>{
-      td.addEventListener("blur", ()=>{
-        const c = td.getAttribute("data-rprice");
-        const i = Number(td.getAttribute("data-i"));
-        const v = String(td.innerText||"").trim().replace(",",".");
-        const n = Number(v);
-        state.reparto[c][i].price = isNaN(n) ? "" : n.toFixed(2);
-      }, {passive:true});
-    });
-  }
-
-  function exportRepartoTXT(){
-    const code = byId("selReparto").value;
-    if(!code){ alert("Selecciona tienda."); return; }
-    const sel = (state.reparto[code]||[]).filter(x=>x.checked);
-    if(!sel.length){ alert("No hay seleccionados."); return; }
-
-    const txt = sel.map(x => {
-      const pr = x.price ? ` — ${x.price}€` : "";
-      const u = x.unit ? ` ${x.unit}` : "";
-      return `${fmtQty(x.qty)} ${x.name}${u}${pr}`;
-    }).join("\n");
-
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `reparto_${code}_${todayISO()}.txt`;
-    a.click();
-  }
-
-  function sendRepartoWA(){
-    const code = byId("selReparto").value;
-    if(!code){ alert("Selecciona tienda."); return; }
-    const sel = (state.reparto[code]||[]).filter(x=>x.checked);
-    if(!sel.length){ alert("No hay seleccionados."); return; }
-
-    const meta = STORE_META[code];
-    let msg = `🚚 *Reparto ${meta.name}*\n\n`;
-    sel.forEach(x=>{
-      const u = x.unit ? ` ${x.unit}` : "";
-      msg += `- ${fmtQty(x.qty)} ${x.name}${u}`;
-      if(x.price) msg += ` — ${x.price}€`;
-      msg += `\n`;
-    });
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-  }
-
-  /* --------------------------
-     Catalog / Prices (Productos)
-  -------------------------- */
-  function ensureCatalogEntry(name, unit){
-    const k = normKey(name) + "||" + (unit||"");
-    if(!state.catalog[k]){
-      state.catalog[k] = {
-        name: removeDiacriticsUpper(name),
-        unit: removeDiacriticsUpper(unit||""),
-        prices: [],
-        last: null
-      };
-    }
-    return state.catalog[k];
-  }
-
-  function getLastPriceInfoFor(name, prov){
-    const k1 = normKey(name);
-    // buscamos el primer match en catálogo por nombre (ignorando unidad si no existe)
-    // (mantiene rápido)
-    const keys = Object.keys(state.catalog);
-    let bestKey = null;
-    for(const k of keys){
-      if(k.startsWith(k1+"||")){ bestKey = k; break; }
-    }
-    if(!bestKey) return `<span class="pill">sin precio</span>`;
-
-    const entry = state.catalog[bestKey];
-    if(!entry || !entry.last) return `<span class="pill">sin precio</span>`;
-
-    // si hay last del mismo prov, mostrarlo. Si no, mostrar last general
-    const lastSame = entry.prices.slice().reverse().find(x=>x.prov===prov);
-    const last = lastSame || entry.last;
-    if(!last) return `<span class="pill">sin precio</span>`;
-
-    return `<span class="pill ok">${last.price.toFixed(2)}€</span><span class="pill"> ${last.prov}</span>`;
-  }
-
-  function scanProductsFromPurchases(){
-    pushUndo("scan-products");
-
-    // 1) desde globalAll + orders (todo lo comprado/asignado)
-    globalAll.forEach(it => ensureCatalogEntry(it.name, it.unit||""));
-    state.providers.forEach(p=>{
-      (state.orders[p]||[]).forEach(it=>{
-        ensureCatalogEntry(it.name, it.unit||"");
-      });
-    });
-
-    persistAllDebounced();
-    renderProductsTable();
-    alert("Catálogo actualizado ✅");
-  }
-
-  function renderProductsTable(){
-    const wrap = byId("prodWrap");
-    const pill = byId("pillProdCount");
-    const q = normKey(byId("prodSearch") ? byId("prodSearch").value : "");
-    const provFilter = byId("prodProvFilter") ? byId("prodProvFilter").value : "";
-
-    if(!wrap) return;
-
-    const entries = Object.entries(state.catalog).map(([k,v])=>({key:k, ...v}));
-    let filtered = entries;
-
-    if(q){
-      filtered = filtered.filter(x => normKey(x.name).includes(q));
-    }
-
-    if(provFilter){
-      filtered = filtered.filter(x => x.prices && x.prices.some(p=>p.prov===provFilter));
-    }
-
-    filtered.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
-
-    if(pill) pill.textContent = String(filtered.length);
-
-    if(!filtered.length){
-      wrap.innerHTML = `<div class="hint">No hay productos en el catálogo. Pulsa “🔎 Cargar desde compras”.</div>`;
-      return;
-    }
-
-    let html = `<div class="scroll-x"><table>
-      <thead><tr>
-        <th>Producto</th>
-        <th>Unidad</th>
-        <th>Proveedor</th>
-        <th>Precio (€)</th>
-        <th>Guardar</th>
-        <th>Historial</th>
-      </tr></thead><tbody>`;
-
-    filtered.forEach((it,ix)=>{
-      // muestra últimas 3 líneas
-      const hist = (it.prices||[]).slice(-3).reverse().map(p=>`${p.date} · ${p.prov} · ${p.price.toFixed(2)}€`).join("<br>");
-      html += `<tr>
-        <td>${it.name}</td>
-        <td>${it.unit||""}</td>
-        <td>
-          <select data-p-prov="${it.key}">
-            <option value="">(elige)</option>
-            ${state.providers.map(p=>`<option value="${p}">${p}</option>`).join("")}
-          </select>
-        </td>
-        <td contenteditable="true" data-p-price="${it.key}" class="green"></td>
-        <td><button class="btn small" data-p-save="${it.key}">Guardar</button></td>
-        <td>${hist || `<span class="pill">sin historial</span>`}</td>
-      </tr>`;
-    });
-
-    html += `</tbody></table></div>`;
-    wrap.innerHTML = html;
-
-    // eventos
-    wrap.querySelectorAll("button[data-p-save]").forEach(btn=>{
-      btn.onclick = () => {
-        const key = btn.getAttribute("data-p-save");
-        const sel = wrap.querySelector(`select[data-p-prov="${key}"]`);
-        const td = wrap.querySelector(`td[data-p-price="${key}"]`);
-        const prov = sel ? sel.value : "";
-        const priceTxt = td ? String(td.innerText||"").trim().replace(",",".") : "";
-        const price = Number(priceTxt);
-
-        if(!prov){ alert("Elige proveedor."); return; }
-        if(!priceTxt || isNaN(price) || price<=0){ alert("Precio inválido."); return; }
-
-        pushUndo("save-price");
-
-        const entry = state.catalog[key] || ensureCatalogEntry(key.split("||")[0], key.split("||")[1]||"");
-        const rec = {date: todayISO(), prov, price: Number(price)};
-        entry.prices = Array.isArray(entry.prices) ? entry.prices : [];
-        entry.prices.push(rec);
-        entry.last = rec;
-
-        state.catalog[key] = entry;
-        persistAllDebounced();
-        renderProductsTable();
-        // refresca precio en global/proveedores
-        idle(()=>{ renderProvidersPanels(); renderGlobalTable(); });
-      };
-    });
-  }
-
-  function exportPricesJSON(){
-    const obj = { exportedAt: nowISO(), catalog: state.catalog, providers: state.providers };
-    downloadJSON(obj, `arslan_precios_${todayISO()}.json`);
-  }
-
-  function importPricesJSONFile(file){
-    const reader = new FileReader();
-    reader.onload = () => {
-      try{
-        const obj = JSON.parse(String(reader.result||"{}"));
-        if(!obj || typeof obj!=="object" || !obj.catalog) throw new Error("bad");
-        pushUndo("import-prices");
-
-        // merge catalog
-        const cat = obj.catalog || {};
-        Object.keys(cat).forEach(k=>{
-          if(!state.catalog[k]) state.catalog[k] = cat[k];
-          else{
-            // merge prices
-            const a = state.catalog[k];
-            const b = cat[k];
-            a.prices = Array.isArray(a.prices)?a.prices:[];
-            const bpr = Array.isArray(b.prices)?b.prices:[];
-            bpr.forEach(p=>a.prices.push(p));
-            // last: elegir el más reciente
-            const last = a.prices.slice().sort((x,y)=> String(x.date).localeCompare(String(y.date))).slice(-1)[0];
-            if(last) a.last = last;
-            state.catalog[k] = a;
-          }
-        });
-
-        persistAllDebounced();
-        renderProductsTable();
-        alert("Precios importados ✅");
-      }catch(e){
-        alert("JSON de precios inválido.");
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  /* --------------------------
-     Store Table render (móvil 1 tienda)
-  -------------------------- */
+  /* ---------------- Store table render ---------------- */
   function renderStoreTable(code){
     const wrap = byId("storeTableWrap");
     const rows = state.stores[code] || [];
@@ -1439,15 +1112,12 @@
           const cleaned = applySynonyms(removeDiacriticsUpper(val));
           state.stores[code][idx].e = cleaned;
 
-          // revisar vs ok según vocab exacto
           const vocab = getVocabCached();
           const exact = vocab.find(v => normKey(v)===normKey(cleaned));
           state.stores[code][idx].a = exact ? false : true;
         }
 
-        // fusionar repetidos después de edición
         state.stores[code] = sumDuplicatesRows(state.stores[code]);
-
         persistAllDebounced();
         renderStoreTable(code);
         idle(()=>unifyGlobal());
@@ -1456,7 +1126,8 @@
   }
 
   function mergeStoreDuplicatesCurrent(){
-    const code = byId("selStore").value;
+    const sel = byId("selStore");
+    const code = sel ? sel.value : "sp";
     pushUndo("merge-store-dups");
     state.stores[code] = sumDuplicatesRows(state.stores[code]||[]);
     persistAllDebounced();
@@ -1464,18 +1135,13 @@
     idle(()=>unifyGlobal());
   }
 
-  /* --------------------------
-     Global search hook
-  -------------------------- */
+  /* ---------------- Hooks ---------------- */
   function hookGlobalSearch(){
     const inp = byId("globalSearch");
     if(!inp) return;
     inp.addEventListener("input", debounce(()=>unifyGlobal(), 180), {passive:true});
   }
 
-  /* --------------------------
-     Tiendas auto-estandarizar (menos toques)
-  -------------------------- */
   function hookStoreAuto(){
     const input = byId("storeInput");
     const sel = byId("selStore");
@@ -1484,7 +1150,7 @@
     const run = debounce(()=>{
       const code = sel.value;
       const txt = input.value || "";
-      pushUndo("auto-standardize"); // 1 snapshot (debounced) => no spamea
+      pushUndo("auto-standardize");
       estandarizarStore(code, txt);
       renderStoreTable(code);
       idle(()=>unifyGlobal());
@@ -1499,41 +1165,18 @@
       renderStoreTable(code);
     }, {passive:true});
 
-    // inicial
     input.value = storeToTextarea(sel.value);
     renderStoreTable(sel.value);
-  }
-
-  /* --------------------------
-     Diccionario actions
-  -------------------------- */
-  function saveVocabAndSyn(){
-    pushUndo("save-vocab-syn");
-
-    // vocab unique
-    const lines = uniqueVocab(toLines(byId("vocabTxt").value||""));
-    byId("vocabTxt").value = lines.join("\n");
-    VOCAB_CACHE = null; VOCAB_SIG = null;
-
-    // syn parse
-    state.synonyms = parseSynonymsText(byId("synTxt").value||"");
-    persistAllDebounced();
-
-    // re-evaluar flags de stores (ok/revisar) aplicando synonyms
-    refreshStoresFlags();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
-
-    alert("Guardado ✅");
   }
 
   function addWord(){
     const entry = prompt("Nuevo producto (puedes pegar varias líneas):");
     if(!entry) return;
     pushUndo("add-word");
-    const cur = toLines(byId("vocabTxt").value||"");
+    const cur = toLines(byId("vocabTxt") ? byId("vocabTxt").value : "");
     const add = toLines(entry);
     const merged = uniqueVocab(cur.concat(add));
-    byId("vocabTxt").value = merged.join("\n");
+    if(byId("vocabTxt")) byId("vocabTxt").value = merged.join("\n");
     persistAllDebounced();
   }
 
@@ -1552,18 +1195,27 @@
     persistAllDebounced();
   }
 
-  /* --------------------------
-     Productos tab provider filter
-  -------------------------- */
-  function refreshProductsProvFilter(){
-    const sel = byId("prodProvFilter");
-    if(!sel) return;
-    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${p}">${p}</option>`).join("");
+  function saveVocabAndSyn(){
+    pushUndo("save-vocab-syn");
+
+    const v = byId("vocabTxt");
+    const s = byId("synTxt");
+
+    if(v){
+      const lines = uniqueVocab(toLines(v.value||""));
+      v.value = lines.join("\n");
+      localStorage.setItem(LS.VOCAB, v.value);
+      VOCAB_CACHE = null; VOCAB_SIG = null;
+    }
+
+    state.synonyms = parseSynonymsText(s ? s.value : "");
+    if(s) localStorage.setItem(LS.SYN, String(s.value||""));
+
+    refreshStoresFlags();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
+    alert("Guardado ✅");
   }
 
-  /* --------------------------
-     UI Tabs + FAB
-  -------------------------- */
   function showTab(key){
     const tabs = ["dic","tiendas","global","proveedores","productos"];
     tabs.forEach(k=>{
@@ -1573,9 +1225,8 @@
       if(btn) btn.classList.toggle("active", k===key);
     });
 
-    // actualizar UI por tab
     if(key==="global"){
-      idle(()=>{ unifyGlobal(); buildProvBar(); });
+      idle(()=>{ buildProvBar(); unifyGlobal(); });
     }
     if(key==="proveedores"){
       idle(()=>{ renderProvidersPanels(); });
@@ -1587,6 +1238,7 @@
 
   function toggleFab(forceHide){
     const m = byId("fabMenu");
+    if(!m) return;
     if(forceHide){ m.classList.remove("show"); return; }
     m.classList.toggle("show");
   }
@@ -1613,12 +1265,8 @@
     });
   }
 
-  /* --------------------------
-     Integrity check
-  -------------------------- */
   function integrityCheck(){
     let ok = true;
-
     if(!state.providers || !state.providers.length) ok = false;
     if(!state.stores || typeof state.stores!=="object") ok = false;
     if(!state.orders || typeof state.orders!=="object") ok = false;
@@ -1631,9 +1279,6 @@
     return ok;
   }
 
-  /* --------------------------
-     Hard refresh UI
-  -------------------------- */
   function hardRefreshUI(){
     updateBackupPill();
     refreshProductsProvFilter();
@@ -1643,165 +1288,120 @@
     renderProvidersPanels();
     renderProductsTable();
 
-    // tiendas
-    const code = byId("selStore") ? byId("selStore").value : "sp";
-    if(byId("storeInput")) byId("storeInput").value = storeToTextarea(code);
+    const sel = byId("selStore");
+    const code = sel ? sel.value : "sp";
+    const storeInput = byId("storeInput");
+    if(storeInput) storeInput.value = storeToTextarea(code);
     renderStoreTable(code);
 
     integrityCheck();
   }
 
-  /* --------------------------
-     Load / Init
-  -------------------------- */
+  /* ---------------- Load ---------------- */
   function load(){
-    // theme
     const savedTheme = localStorage.getItem(LS.THEME) ||
       (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     applyTheme(savedTheme);
 
-    // vocab/syn
     const vocabSaved = localStorage.getItem(LS.VOCAB) || "";
     const synSaved = localStorage.getItem(LS.SYN) || "";
-
     if(byId("vocabTxt")) byId("vocabTxt").value = vocabSaved;
     if(byId("synTxt")) byId("synTxt").value = synSaved;
 
     state.vocab = uniqueVocab(toLines(vocabSaved));
     state.synonyms = parseSynonymsText(synSaved);
 
-    // stores
     try{ state.stores = JSON.parse(localStorage.getItem(LS.STORES)||"{}"); }catch{ state.stores = {sp:[],sl:[],st:[]}; }
     if(!state.stores || typeof state.stores!=="object") state.stores = {sp:[],sl:[],st:[]};
     ["sp","sl","st"].forEach(k=>{ if(!Array.isArray(state.stores[k])) state.stores[k]=[]; });
 
-    // providers
     try{ state.providers = JSON.parse(localStorage.getItem(LS.PROVS)||"[]"); }catch{ state.providers = []; }
     if(!Array.isArray(state.providers) || !state.providers.length) state.providers = DEFAULT_PROVS.slice();
     state.activeProv = state.providers[0];
 
-    // assignments/orders
     try{ state.assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||"{}"); }catch{ state.assignments = {}; }
     try{ state.orders = JSON.parse(localStorage.getItem(LS.ORDERS)||"{}"); }catch{ state.orders = {}; }
     ensureOrdersBuckets();
 
-    // catalog
     try{ state.catalog = JSON.parse(localStorage.getItem(LS.CATALOG)||"{}"); }catch{ state.catalog = {}; }
     if(!state.catalog || typeof state.catalog!=="object") state.catalog = {};
 
-    // undo stack
     try{ state.undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||"[]"); }catch{ state.undoStack = []; }
     if(!Array.isArray(state.undoStack)) state.undoStack = [];
 
-    // UI labels
-    byId("pillMode").textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+    const pillMode = byId("pillMode");
+    if(pillMode) pillMode.textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
 
     updateBackupPill();
     integrityCheck();
   }
 
-  /* --------------------------
-     Hooks
-  -------------------------- */
+  /* ---------------- UI wiring (SAFE) ---------------- */
   function hookUI(){
-    // tabs
     document.querySelectorAll(".tabbar button[data-tab]").forEach(btn=>{
       btn.onclick = ()=> showTab(btn.getAttribute("data-tab"));
     });
 
-    // theme
-    byId("btnTheme").onclick = toggleTheme;
+    const bTheme = byId("btnTheme"); if(bTheme) bTheme.onclick = toggleTheme;
+    const bUndoTop = byId("btnUndoTop"); if(bUndoTop) bUndoTop.onclick = undo;
+    const bBackup = byId("btnBackup"); if(bBackup) bBackup.onclick = saveBackup;
+    const bReset = byId("btnSafeReset"); if(bReset) bReset.onclick = safeReset;
 
-    // undo
-    byId("btnUndoTop").onclick = undo;
+    const bAddWord = byId("btnAddWord"); if(bAddWord) bAddWord.onclick = addWord;
+    const bSaveVocab = byId("btnSaveVocab"); if(bSaveVocab) bSaveVocab.onclick = saveVocabAndSyn;
 
-    // backup
-    byId("btnBackup").onclick = saveBackup;
+    const bExportJSON = byId("btnExportJSON"); if(bExportJSON) bExportJSON.onclick = exportJSON;
+    const bImportJSON = byId("btnImportJSON"); if(bImportJSON) bImportJSON.onclick = ()=> { const f=byId("fileImport"); if(f) f.click(); };
+    const fileImport = byId("fileImport");
+    if(fileImport){
+      fileImport.addEventListener("change", (e)=>{
+        const f = e.target.files && e.target.files[0];
+        if(f) importJSONFile(f);
+        e.target.value = "";
+      });
+    }
 
-    // reset safe
-    byId("btnSafeReset").onclick = safeReset;
+    const bStoreTXT = byId("btnStoreTXT"); if(bStoreTXT) bStoreTXT.onclick = ()=>{ const s=byId("selStore"); storeExportTXT(s?s.value:"sp"); };
+    const bStoreWA = byId("btnStoreWA"); if(bStoreWA) bStoreWA.onclick = ()=>{ const s=byId("selStore"); storeSendWA(s?s.value:"sp"); };
+    const bStoreSave = byId("btnStoreSave"); if(bStoreSave) bStoreSave.onclick = ()=>{ pushUndo("store-save"); const s=byId("selStore"); const code=s?s.value:"sp"; const t=byId("storeInput"); if(t) t.value = storeToTextarea(code); alert("Guardado en textarea ✅"); };
+    const bMerge = byId("btnMergeStoreDup"); if(bMerge) bMerge.onclick = mergeStoreDuplicatesCurrent;
 
-    // vocab actions
-    byId("btnAddWord").onclick = addWord;
-    byId("btnSaveVocab").onclick = saveVocabAndSyn;
+    const bUnify = byId("btnUnify"); if(bUnify) bUnify.onclick = ()=>{ pushUndo("unify"); unifyGlobal(); };
+    const bCopyG = byId("btnCopyGlobal"); if(bCopyG) bCopyG.onclick = copyGlobal;
+    const bTxtG = byId("btnTXTGlobal"); if(bTxtG) bTxtG.onclick = exportGlobalTXT;
+    const bXlsxG = byId("btnXLSXGlobal"); if(bXlsxG) bXlsxG.onclick = exportGlobalXLSX;
+    const bResG = byId("btnResumenGlobal"); if(bResG) bResG.onclick = exportResumenGlobalTXT;
 
-    // export/import JSON
-    byId("btnExportJSON").onclick = exportJSON;
-    byId("btnImportJSON").onclick = ()=> byId("fileImport").click();
-    byId("fileImport").addEventListener("change", (e)=>{
-      const f = e.target.files && e.target.files[0];
-      if(f) importJSONFile(f);
-      e.target.value = "";
-    });
+    const bUndoAssign = byId("btnUndoAssign"); if(bUndoAssign) bUndoAssign.onclick = undoAssign;
 
-    // tiendas buttons
-    byId("btnStoreTXT").onclick = ()=>{
-      const code = byId("selStore").value;
-      storeExportTXT(code);
-    };
-    byId("btnStoreWA").onclick = ()=>{
-      const code = byId("selStore").value;
-      storeSendWA(code);
-    };
-    byId("btnStoreSave").onclick = ()=>{
-      pushUndo("store-save-to-textarea");
-      const code = byId("selStore").value;
-      byId("storeInput").value = storeToTextarea(code);
-      alert("Guardado en textarea ✅");
-    };
-    byId("btnMergeStoreDup").onclick = mergeStoreDuplicatesCurrent;
+    const bScan = byId("btnScanProducts"); if(bScan) bScan.onclick = scanProductsFromPurchases;
+    const bExpP = byId("btnExportPrices"); if(bExpP) bExpP.onclick = exportPricesJSON;
+    const bImpP = byId("btnImportPrices"); if(bImpP) bImpP.onclick = ()=>{ const f=byId("fileImportPrices"); if(f) f.click(); };
+    const fileImpP = byId("fileImportPrices");
+    if(fileImpP){
+      fileImpP.addEventListener("change", (e)=>{
+        const f = e.target.files && e.target.files[0];
+        if(f) importPricesJSONFile(f);
+        e.target.value = "";
+      });
+    }
 
-    // global buttons
-    byId("btnUnify").onclick = ()=>{ pushUndo("unify"); unifyGlobal(); };
-    byId("btnCopyGlobal").onclick = copyGlobal;
-    byId("btnTXTGlobal").onclick = exportGlobalTXT;
-    byId("btnXLSXGlobal").onclick = exportGlobalXLSX;
-    byId("btnResumenGlobal").onclick = exportResumenGlobalTXT;
+    const prodSearch = byId("prodSearch");
+    if(prodSearch) prodSearch.addEventListener("input", debounce(renderProductsTable, 180), {passive:true});
+    const prodFilter = byId("prodProvFilter");
+    if(prodFilter) prodFilter.addEventListener("change", renderProductsTable, {passive:true});
 
-    // undo assign
-    byId("btnUndoAssign").onclick = undoAssign;
-
-    // proveedores manage/add
-    byId("btnAddProv").onclick = addProviderQuick;
-    byId("btnManageProv").onclick = openProvModal;
-    byId("btnCloseProv").onclick = closeProvModal;
-
-    // reparto
-    byId("selReparto").addEventListener("change", renderReparto, {passive:true});
-    byId("btnRepartoTXT").onclick = exportRepartoTXT;
-    byId("btnRepartoWA").onclick = sendRepartoWA;
-
-    // productos tab
-    byId("btnScanProducts").onclick = scanProductsFromPurchases;
-    byId("btnExportPrices").onclick = exportPricesJSON;
-    byId("btnImportPrices").onclick = ()=> byId("fileImportPrices").click();
-    byId("fileImportPrices").addEventListener("change", (e)=>{
-      const f = e.target.files && e.target.files[0];
-      if(f) importPricesJSONFile(f);
-      e.target.value = "";
-    });
-
-    byId("prodSearch").addEventListener("input", debounce(renderProductsTable, 180), {passive:true});
-    byId("prodProvFilter").addEventListener("change", renderProductsTable, {passive:true});
-
-    // global search
     hookGlobalSearch();
-
-    // store auto
     hookStoreAuto();
-
-    // FAB
     hookFAB();
 
-    // resize label
     window.addEventListener("resize", debounce(()=>{
-      byId("pillMode").textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+      const pillMode = byId("pillMode");
+      if(pillMode) pillMode.textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
     }, 200), {passive:true});
   }
 
-  /* --------------------------
-     Init
-  -------------------------- */
+  /* ---------------- Init ---------------- */
   load();
   hookUI();
   showTab("dic");
