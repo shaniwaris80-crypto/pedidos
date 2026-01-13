@@ -1,13 +1,7 @@
-/* =========================
-FILE: style.css
-ARSLAN LISTAS v3.5 — KIWI MOBILE TABS
-========================= */
-
 :root{
   --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
   --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
 }
-/* Tema oscuro */
 [data-theme="dark"]{
   --bg:#0b0f14; --ink:#e5e7eb; --muted:#9aa0a6; --border:#1f2937; --panel:#111827; --shadow:0 2px 10px rgba(0,0,0,.35);
 }
@@ -18,7 +12,6 @@ body{
   transition: background .2s ease, color .2s ease;
 }
 h1{font-size:18px;margin:0;color:var(--ink)}
-/* Topbar fija */
 .topbar{
   position:sticky; top:0; z-index:1000; background:var(--bg); border-bottom:1px solid var(--border);
   display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
@@ -26,7 +19,7 @@ h1{font-size:18px;margin:0;color:var(--ink)}
 }
 .topbar .left{display:flex; align-items:center; gap:8px}
 .theme-toggle{border:1px solid var(--border); background:var(--panel); color:var(--ink); border-radius:10px; padding:6px 10px; cursor:pointer; font-size:13px}
-.container{padding:12px 12px 76px} /* bottom space for tabbar */
+.container{padding:12px 12px 76px}
 .hint{font-size:12px;color:var(--muted)}
 .card{border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow);margin-bottom:12px; transition: transform .12s ease}
 .card:active{transform:scale(.998)}
@@ -62,7 +55,7 @@ th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
 .dup{background:#fff5f5}
 [data-theme="dark"] .dup{background:#2b0d0d}
 .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-/* Tabbar móvil fija */
+
 .tabbar{
   position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);
   display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
@@ -75,7 +68,6 @@ th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
 .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
 
-/* FAB */
 .fab{
   position:fixed; right:14px; bottom:72px; z-index:1001;
   width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
@@ -89,7 +81,6 @@ th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
 }
 .fab-menu.show{display:flex}
 
-/* Chips extras */
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{
   border:1px solid var(--border);
@@ -105,7 +96,6 @@ th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
 }
 .chip.active{border-color:var(--kiwi); color:var(--kiwi); background:rgba(22,163,74,.08)}
 
-/* Tabs mini */
 .tabs{display:flex;gap:8px;flex-wrap:wrap}
 .tabpill{
   padding:8px 12px;
@@ -123,7 +113,6 @@ th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
   font-weight:600;
 }
 
-/* Clickable list */
 ul.clicklist{list-style:none;padding:0;margin:0}
 ul.clicklist li{
   display:flex; gap:10px; align-items:flex-start;
@@ -144,4 +133,16 @@ select{
   color:var(--ink);
   padding:8px 10px;
   border-radius:10px;
+}
+
+/* botón precio reparto */
+.price-btn{
+  border:1px solid var(--border);
+  background:var(--bg);
+  color:var(--ink);
+  border-radius:10px;
+  padding:6px 8px;
+  cursor:pointer;
+  font-size:13px;
+  line-height:1;
 }
