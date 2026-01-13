@@ -145,7 +145,6 @@ th{
 .green{color:var(--ok); font-weight:700}
 .dupRow{background:#fff5f5}
 [data-theme="dark"] .dupRow{background:#2b0d0d}
-
 .flag{color:#b91c1c; font-weight:800; margin-left:6px}
 
 .prov-bar{display:flex; gap:8px; flex-wrap:wrap}
