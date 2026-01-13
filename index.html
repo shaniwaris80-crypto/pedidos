@@ -12,6 +12,7 @@
 </head>
 <body>
 
+  <!-- Topbar fija -->
   <div class="topbar" id="topbar">
     <div class="left">
       <h1>🍈 ARSLAN LISTAS v3.5 — KIWI MOBILE TABS</h1>
@@ -26,10 +27,10 @@
   <div class="container" id="appContainer">
 
     <div class="hint" style="margin-bottom:10px" id="appHint">
-      Flujo: Diccionario → Tiendas → Global → Proveedores
+      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp/Clickable/Links)
     </div>
 
-    <!-- SHARE VIEW -->
+    <!-- ===================== SHARE VIEW (solo cuando hay ?t=TOKEN o #p=PAYLOAD) ===================== -->
     <section class="tab" id="tab-share" style="display:none">
       <div class="card">
         <div class="hd">
@@ -43,10 +44,14 @@
         </div>
         <div class="bd">
           <div class="hint" id="shareMeta"></div>
-          <div class="hint" style="margin-top:6px">✅ Click en fila para marcar. Los marcados bajan al final.</div>
+          <div class="hint" style="margin-top:6px">
+            ✅ Click en fila para marcar. Los marcados bajan al final.
+          </div>
 
           <div class="card" style="margin-top:10px">
-            <div class="bd"><div class="tabs" id="shareTabs"></div></div>
+            <div class="bd">
+              <div class="tabs" id="shareTabs"></div>
+            </div>
           </div>
 
           <div class="card" style="margin-top:10px">
@@ -68,8 +73,10 @@
         </div>
       </div>
     </section>
+    <!-- ===================== END SHARE VIEW ===================== -->
 
-    <!-- DICCIONARIO -->
+
+    <!-- ========== TAB: Diccionario ========== -->
     <section class="tab" id="tab-dic">
       <div class="card">
         <div class="hd">
@@ -81,16 +88,19 @@
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a MAYÚSCULAS sin tildes.</div>
+          <div class="hint" style="margin-bottom:6px">
+            Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
+          </div>
           <textarea id="vocabTxt"></textarea>
         </div>
       </div>
     </section>
 
-    <!-- TIENDAS -->
+    <!-- ========== TAB: Tiendas ========== -->
     <section class="tab" id="tab-tiendas" style="display:none">
 
       <div class="grid-3">
+        <!-- San Pablo -->
         <div class="card">
           <div class="hd">
             <strong>🏪 San Pablo</strong>
@@ -102,12 +112,13 @@
             </div>
           </div>
           <div class="bd">
-            <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo.</div>
+            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
+        <!-- San Lesmes -->
         <div class="card">
           <div class="hd">
             <strong>🏪 San Lesmes</strong>
@@ -120,11 +131,12 @@
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
+        <!-- Santiago -->
         <div class="card">
           <div class="hd">
             <strong>🏪 Santiago</strong>
@@ -137,12 +149,13 @@
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
       </div>
 
+      <!-- Pedidos extra -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>🏨 Pedidos extra (opcionales)</strong>
@@ -152,28 +165,32 @@
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Estos pedidos solo suman al total si están activados.</div>
+          <div class="hint">
+            Aquí pegas pedidos de hoteles/restaurantes (Riviera, Braseros…). Solo suman al total si están activados.
+          </div>
           <div id="extra_orders_wrap" style="margin-top:10px"></div>
         </div>
       </div>
 
     </section>
 
-    <!-- GLOBAL -->
+    <!-- ========== TAB: Global ========== -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
         <div class="hd">
           <strong>🧮 Unificación global</strong>
           <div class="toolbar">
             <button class="btn ghost" onclick="unificarGlobal()">Unificar (tiendas + extras activos)</button>
-            <button class="btn muted" onclick="exportarGlobalTXT()">TXT</button>
+            <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
             <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
-            <button class="btn" onclick="exportResumenGlobalTXT()">🧾 TXT Global</button>
+            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
             <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">✅ asigna al proveedor activo. Duplicados probables se marcan ⚠️</div>
+          <div class="hint">
+            ✅ asigna al proveedor activo. Duplicados probables se <span class="red">marcan</span> (⚠️).
+          </div>
 
           <div class="card" style="margin-top:8px">
             <div class="bd">
@@ -184,7 +201,9 @@
 
               <div class="card" style="margin-top:10px">
                 <div class="bd">
-                  <div class="hint" style="margin-bottom:6px">Extras incluidos (activos):</div>
+                  <div class="hint" style="margin-bottom:6px">
+                    Extras incluidos (activos): lo que actives en “Pedidos extra” suma al total.
+                  </div>
                   <div class="chips" id="extraChips"></div>
                 </div>
               </div>
@@ -197,27 +216,36 @@
       </div>
     </section>
 
-    <!-- PROVEEDORES -->
+    <!-- ========== TAB: Proveedores ========== -->
     <section class="tab" id="tab-proveedores" style="display:none">
 
       <div class="card">
         <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
-        <div class="bd"><div class="grid-3" id="provPanels" style="margin-top:8px"></div></div>
+        <div class="bd">
+          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
+        </div>
       </div>
 
+      <!-- CLICKABLE GLOBAL FINAL + LINKS -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>✅ Compra final (clickable) + Links</strong>
           <div class="toolbar">
             <button class="btn small" onclick="renderFinalClickable('GLOBAL')">🛒 Ver compra global</button>
-            <button class="btn small muted" onclick="copyShareLinkForCurrent()">🔗 Copiar link</button>
+            <button class="btn small muted" onclick="copyShareLinkForCurrent()">🔗 Copiar link (vista entrega)</button>
             <button class="btn small muted" onclick="openShareLinkForCurrent()">🌍 Abrir link</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Al marcar, baja al final. El link abre vista ligera.</div>
+          <div class="hint">
+            Lista clickable: al marcar, baja al final. El link abre una vista ligera para repartidores/clientes.
+          </div>
 
-          <div class="card" style="margin-top:10px"><div class="bd"><div class="tabs" id="finalTabs"></div></div></div>
+          <div class="card" style="margin-top:10px">
+            <div class="bd">
+              <div class="tabs" id="finalTabs"></div>
+            </div>
+          </div>
 
           <div class="card" style="margin-top:10px">
             <div class="bd">
@@ -239,6 +267,7 @@
         </div>
       </div>
 
+      <!-- REPARTO POR DESTINOS -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>🚚 Reparto por destinos (clickable)</strong>
@@ -268,7 +297,7 @@
             <button class="btn muted small" onclick="repartoResetChecks()">↩️ Reset</button>
           </div>
 
-          <div class="hint" id="repartoHint">Click para marcar y bajar al final. Mantén pulsado (o click derecho) para precio.</div>
+          <div class="hint" id="repartoHint">Click para marcar y bajar al final. Precio opcional (botón 💶).</div>
           <div id="reparto_click_wrap" style="margin-top:10px"></div>
         </div>
       </div>
@@ -277,15 +306,17 @@
 
   </div>
 
+  <!-- FAB Global -->
   <button class="fab" id="fab" title="Acciones rápidas" style="display:none" onclick="toggleFabMenu()">⚙️</button>
   <div class="fab-menu" id="fabMenu">
     <button class="fab-item" onclick="unificarGlobal(); toggleFabMenu(true)">🔄 Unificar</button>
-    <button class="fab-item" onclick="exportarGlobalTXT(); toggleFabMenu(true)">📄 TXT</button>
+    <button class="fab-item" onclick="exportarGlobalTXT(); toggleFabMenu(true)">📄 TXT visible</button>
     <button class="fab-item" onclick="exportarGlobalXLSX(); toggleFabMenu(true)">📊 Excel</button>
     <button class="fab-item" onclick="copiarGlobal(); toggleFabMenu(true)">📋 Copiar</button>
     <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
   </div>
 
+  <!-- Tabbar móvil -->
   <nav class="tabbar" id="tabbar">
     <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
@@ -293,7 +324,9 @@
     <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
   </nav>
 
-  <!-- ✅ SOLO UN JS -->
-  <script src="./app.js?v=35"></script>
+  <!-- app.js dividido en 3 partes -->
+  <script src="./app.part1.js?v=35"></script>
+  <script src="./app.part2.js?v=35"></script>
+  <script src="./app.part3.js?v=35"></script>
 </body>
 </html>
