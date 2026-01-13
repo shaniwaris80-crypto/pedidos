@@ -9,11 +9,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- XLSX export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- XLSX (opcional; si falla la carga, la app NO rompe) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
   <!-- Topbar -->
   <header class="topbar">
@@ -25,7 +26,7 @@
           <div class="sub">KIWI PRO · rápido · precios · undo · proveedores</div>
         </div>
       </div>
-      <span class="pill" id="pillMode">Modo móvil</span>
+      <span class="pill" id="pillMode">Modo</span>
     </div>
 
     <div class="right">
@@ -176,6 +177,7 @@ Ej:
             <button class="btn muted" id="btnManageProv">⚙️ Gestionar</button>
           </div>
         </div>
+
         <div class="bd">
           <div id="provPanels" class="grid-3"></div>
         </div>
@@ -189,6 +191,7 @@ Ej:
             <button class="btn small" id="btnRepartoWA">📲 WhatsApp</button>
           </div>
         </div>
+
         <div class="bd">
           <div class="row">
             <select id="selReparto">
@@ -235,6 +238,7 @@ Ej:
             <input id="fileImportPrices" type="file" accept="application/json" style="display:none" />
           </div>
         </div>
+
         <div class="bd">
           <div class="row mb8">
             <input id="prodSearch" class="input" placeholder="Buscar producto..." />
@@ -243,13 +247,18 @@ Ej:
             </select>
             <span class="pill" id="pillProdCount">0</span>
           </div>
+
           <div id="prodWrap" class="scroll-x"></div>
 
           <div class="divider"></div>
+
           <div class="card soft">
             <div class="bd">
-              <div class="hint mb6"><b>Cómo funciona</b>: cada producto guarda historial. Puedes registrar precio por proveedor y fecha.</div>
-              <div class="hint">Tip: “🔎 Cargar desde compras” crea catálogo con todo lo ya comprado.</div>
+              <div class="hint mb6">
+                <b>Cómo funciona</b>: Cada producto tiene historial interno. Puedes registrar precio por proveedor y fecha.
+                Luego, al asignar productos a proveedor, tendrás precios a mano.
+              </div>
+              <div class="hint">Tip: usa “🔎 Cargar desde compras” para crear catálogo con todo lo que ya has comprado.</div>
             </div>
           </div>
         </div>
