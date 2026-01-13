@@ -1,40 +1,44 @@
+<!-- index.html -->
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>ARSLAN LISTAS v3.5 — KIWI PRO</title>
+  <title>ARSLAN LISTAS v3.5 — KIWI MOBILE TABS</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
   <!-- Topbar -->
   <header class="topbar">
     <div class="left">
-      <div class="brand">
-        <div class="logo">🍈</div>
-        <div class="titles">
-          <div class="h1">ARSLAN LISTAS v3.5</div>
-          <div class="sub">KIWI PRO · rápido · precios · undo · proveedores</div>
-        </div>
-      </div>
-      <span class="pill" id="pillMode">Modo móvil</span>
+      <h1>🍈 ARSLAN LISTAS <span class="vtag">v3.5</span> — KIWI MOBILE TABS</h1>
+      <span class="pill">Móvil rápido</span>
+      <span class="pill muted" id="qualityPill">Calidad: —</span>
+      <span class="pill ok" id="autosavePill" title="Guardado local automático">💾 Auto</span>
     </div>
-
     <div class="right">
-      <button class="btn muted small" id="btnUndoTop" title="Deshacer último cambio">↩️ Undo</button>
-      <button class="btn muted small" id="btnBackup" title="Guardar backup ahora">💾 Backup</button>
-      <button class="btn ghost small" id="btnTheme" title="Cambiar tema">🌗 Tema</button>
+      <button class="btn small muted" id="btnBackup">⬇️ Backup</button>
+      <button class="btn small muted" id="btnRestore">⬆️ Import</button>
+      <button class="btn small ghost" id="btnUndoTop">↩️ Deshacer</button>
+      <button class="btn small" id="btnTheme">🌗 Tema</button>
     </div>
   </header>
 
+  <!-- Subhint -->
+  <div class="subhint">
+    Flujo: <b>Diccionario</b> → <b>Tiendas</b> → <b>Global</b> → <b>Proveedores</b> → <b>Catálogo</b> (precios e historial)
+  </div>
+
   <main class="container">
-    <div class="hint mb10">
-      Flujo recomendado: <b>Diccionario</b> → <b>Tiendas</b> (auto) → <b>Global</b> (asignar proveedor) → <b>Proveedores</b> (TXT) → <b>Productos/Precios</b> (historial)
-    </div>
 
     <!-- TAB: Diccionario -->
     <section class="tab" id="tab-dic">
@@ -42,44 +46,20 @@
         <div class="hd">
           <strong>📚 Vocabulario estandarizado</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnAddWord">+ Nuevo</button>
-            <button class="btn ghost" id="btnSaveVocab">Guardar</button>
-            <button class="btn muted" id="btnSafeReset">🧹 Reset seguro</button>
+            <button class="btn ghost" id="btnAddWord">+ Nuevo producto</button>
+            <button class="btn ghost" id="btnSaveVocab">Guardar vocabulario</button>
+            <button class="btn muted" id="btnResetAll">🧹 Limpiar todo</button>
           </div>
         </div>
         <div class="bd">
-          <div class="grid-2">
-            <div>
-              <div class="hint mb6">Un producto por línea. Se normaliza a MAYÚSCULAS sin tildes. Sin duplicados.</div>
-              <textarea id="vocabTxt" spellcheck="false"></textarea>
-            </div>
-            <div>
-              <div class="hint mb6"><b>Equivalencias / Sinónimos</b> (1 por línea) · Formato: <code>ORIGEN = DESTINO</code></div>
-              <textarea id="synTxt" spellcheck="false" placeholder="Ej:
-GUNDEYA = GUINDILLA
-PINA = PIÑA"></textarea>
+          <div class="hint">
+            Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
+            Autocompletar y autocorrección funcionan al <b>elegir</b> y al <b>salir</b> del campo.
+          </div>
+          <textarea id="vocabTxt" spellcheck="false"></textarea>
 
-              <div class="divider"></div>
-
-              <div class="hint mb6"><b>Seguridad</b>: exporta/importa tu sistema completo</div>
-              <div class="toolbar">
-                <button class="btn muted" id="btnExportJSON">⬇️ Export JSON</button>
-                <button class="btn muted" id="btnImportJSON">⬆️ Import JSON</button>
-                <input id="fileImport" type="file" accept="application/json" style="display:none" />
-              </div>
-
-              <div class="divider"></div>
-
-              <div class="hint">
-                Backups automáticos: <span class="pill" id="pillBackups">0</span>
-                · Integridad: <span class="pill ok" id="pillIntegrity">OK</span>
-              </div>
-
-              <div class="divider"></div>
-              <div class="hint">
-                ✅ Autocompletar activo: en tablas verás campos con sugerencias del vocabulario.
-              </div>
-            </div>
+          <div class="miniRow">
+            <div class="hint">✅ Consejo: pega tu lista oficial aquí. El sistema crea un índice rápido y mejora la detección de nombres.</div>
           </div>
         </div>
       </div>
@@ -87,37 +67,59 @@ PINA = PIÑA"></textarea>
 
     <!-- TAB: Tiendas -->
     <section class="tab" id="tab-tiendas" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>🏪 Tiendas</strong>
-          <div class="toolbar">
-            <span class="pill">Auto-estandarizar: ON</span>
-            <button class="btn muted small" id="btnMergeStoreDup">🧩 Fusionar repetidos</button>
+      <div class="grid-3">
+        <!-- San Pablo -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 San Pablo</strong>
+            <div class="toolbar">
+              <button class="btn ghost" data-est="sp">Estandarizar</button>
+              <button class="btn" data-save="sp">Guardar tienda</button>
+              <button class="btn muted" data-txt="sp">📄 TXT</button>
+              <button class="btn muted" data-wa="sp">📲 WhatsApp</button>
+            </div>
+          </div>
+          <div class="bd">
+            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4" spellcheck="false"></textarea>
+            <div class="hint">Tabla editable: el nombre se autocorrige al elegir sugerencia / salir del campo.</div>
+            <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
-        <div class="bd">
-          <div class="store-switch">
-            <select id="selStore">
-              <option value="sp">🏪 San Pablo</option>
-              <option value="sl">🏪 San Lesmes</option>
-              <option value="st">🏪 Santiago</option>
-            </select>
-            <button class="btn small muted" id="btnStoreTXT">📄 TXT</button>
-            <button class="btn small muted" id="btnStoreWA">📲 WhatsApp</button>
-            <button class="btn small" id="btnStoreSave">Guardar tienda</button>
-          </div>
 
-          <textarea id="storeInput" spellcheck="false" placeholder="Pega lista aquí... (auto-estandariza)
-Ej:
-3 cajas tomate daniela
-2,5kg zanahoria
-1/2 kg jengibre
-2x3 limon"></textarea>
-
-          <div class="hint mt8">
-            Edita en la tabla (con autocompletar): <span class="pill ok">OK</span> si existe en vocab · <span class="pill warn">Revisar</span> si no.
+        <!-- San Lesmes -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 San Lesmes</strong>
+            <div class="toolbar">
+              <button class="btn ghost" data-est="sl">Estandarizar</button>
+              <button class="btn" data-save="sl">Guardar tienda</button>
+              <button class="btn muted" data-txt="sl">📄 TXT</button>
+              <button class="btn muted" data-wa="sl">📲 WhatsApp</button>
+            </div>
           </div>
-          <div id="storeTableWrap" class="scroll-x mt8"></div>
+          <div class="bd">
+            <textarea id="in_sl" placeholder="Pega lista San Lesmes..." spellcheck="false"></textarea>
+            <div class="hint">Tabla editable: duplicados se consolidan automáticamente.</div>
+            <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <!-- Santiago -->
+        <div class="card">
+          <div class="hd">
+            <strong>🏪 Santiago</strong>
+            <div class="toolbar">
+              <button class="btn ghost" data-est="st">Estandarizar</button>
+              <button class="btn" data-save="st">Guardar tienda</button>
+              <button class="btn muted" data-txt="st">📄 TXT</button>
+              <button class="btn muted" data-wa="st">📲 WhatsApp</button>
+            </div>
+          </div>
+          <div class="bd">
+            <textarea id="in_st" placeholder="Pega lista Santiago..." spellcheck="false"></textarea>
+            <div class="hint">Autocompletar PRO (dropdown propio) compatible móvil.</div>
+            <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -126,37 +128,46 @@ Ej:
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>🧮 Global</strong>
+          <strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnUnify">Unificar</button>
+            <button class="btn ghost" id="btnUnify">Unificar 3 tiendas</button>
+            <button class="btn muted" id="btnGlobalTXT">TXT visible</button>
+            <button class="btn muted" id="btnGlobalXLSX">Excel</button>
+            <button class="btn" id="btnResumenTXT">📄 TXT Global (asignados + pendientes)</button>
             <button class="btn muted" id="btnCopyGlobal">📋 Copiar</button>
-            <button class="btn muted" id="btnTXTGlobal">📄 TXT visible</button>
-            <button class="btn muted" id="btnXLSXGlobal">📊 Excel</button>
-            <button class="btn" id="btnResumenGlobal">🧾 TXT Global</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint mb8">
-            Proveedor activo: <b id="activeProvName"></b> · Asigna con ✅. <b>Undo asignación</b> disponible (↩️).
+          <div class="hint">
+            ✅ Asigna con <b>✅</b> al proveedor activo. Duplicados probables se marcan con <b>⚠️</b>.
+            <b>Deshacer</b> también funciona al asignar proveedor.
           </div>
 
-          <div class="card soft">
-            <div class="bd">
-              <div class="row">
-                <div class="prov-bar" id="provBar"></div>
-                <div class="toolbar">
-                  <button class="btn muted small" id="btnUndoAssign">↩️ Undo asignación</button>
-                </div>
+          <div class="miniCard">
+            <div class="miniRow">
+              <span class="hint">Proveedor activo:</span>
+              <div class="prov-bar" id="provBar"></div>
+              <div class="miniRight">
+                <button class="btn small muted" id="btnEditProv">✏️ Proveedores</button>
               </div>
             </div>
           </div>
 
-          <div class="row mt8">
-            <input id="globalSearch" class="input" placeholder="Buscar en Global..." />
-            <span class="pill" id="pillGlobalCount">0</span>
-          </div>
+          <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
+        </div>
+      </div>
 
-          <div id="globalWrap" class="scroll-x mt8"></div>
+      <div class="card" style="margin-top:12px">
+        <div class="hd">
+          <strong>⚙️ Proveedores (gestión rápida)</strong>
+          <div class="toolbar">
+            <button class="btn muted" id="btnProvAdd">+ Añadir proveedor</button>
+            <button class="btn muted" id="btnProvReorder">↕️ Ordenar A→Z</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint">Añade/quita proveedores sin romper tus pedidos. Se guarda en localStorage.</div>
+          <div id="provManageWrap"></div>
         </div>
       </div>
     </section>
@@ -165,116 +176,98 @@ Ej:
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>📦 Proveedores</strong>
+          <strong>📦 Distribución por proveedor</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnAddProv">+ Añadir proveedor</button>
-            <button class="btn muted" id="btnManageProv">⚙️ Gestionar</button>
+            <button class="btn small ghost" id="btnProvClearEmpty">🧹 Quitar vacíos</button>
+            <button class="btn small muted" id="btnProvNormalize">✨ Normalizar nombres</button>
           </div>
         </div>
         <div class="bd">
-          <div id="provPanels" class="grid-3"></div>
+          <div class="grid-3" id="provPanels"></div>
         </div>
       </div>
 
-      <div class="card mt12">
+      <!-- Reparto por tiendas -->
+      <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>🚚 Reparto por tiendas</strong>
           <div class="toolbar">
-            <button class="btn small muted" id="btnRepartoTXT">📄 TXT</button>
             <button class="btn small" id="btnRepartoWA">📲 WhatsApp</button>
+            <button class="btn small muted" id="btnRepartoTXT">📄 TXT</button>
           </div>
         </div>
         <div class="bd">
-          <div class="row">
-            <select id="selReparto">
+          <div class="miniRow" style="margin-bottom:8px;">
+            <select id="selRepartoTienda" class="select">
               <option value="">Selecciona tienda...</option>
               <option value="sp">🏪 San Pablo</option>
               <option value="sl">🏪 San Lesmes</option>
               <option value="st">🏪 Santiago</option>
             </select>
-            <span class="pill" id="pillRepartoCount">0</span>
+            <span class="hint">Marca lo que va en el reparto y añade precios si quieres.</span>
           </div>
-          <div id="repartoWrap" class="scroll-x mt8"></div>
-        </div>
-      </div>
-
-      <!-- Modal gestionar proveedores -->
-      <div class="modal" id="modalProv" style="display:none">
-        <div class="modal-card">
-          <div class="modal-hd">
-            <strong>⚙️ Gestionar proveedores</strong>
-            <button class="btn muted small" id="btnCloseProv">✖</button>
-          </div>
-          <div class="modal-bd">
-            <div class="hint mb8">Añadir, renombrar o eliminar. (Eliminar quita asignaciones del proveedor eliminado.)</div>
-            <div id="provManageList"></div>
-            <div class="divider"></div>
-            <div class="toolbar">
-              <button class="btn" id="btnProvSave">Guardar cambios</button>
-              <button class="btn muted" id="btnProvCancel">Cancelar</button>
-            </div>
-          </div>
+          <div id="reparto_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
 
-    <!-- TAB: Productos / Precios -->
-    <section class="tab" id="tab-productos" style="display:none">
+    <!-- TAB: Catálogo -->
+    <section class="tab" id="tab-catalogo" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>📈 Productos / Precios (historial)</strong>
+          <strong>🧾 Catálogo / Productos comprados</strong>
           <div class="toolbar">
-            <button class="btn muted" id="btnScanProducts">🔎 Cargar desde compras</button>
-            <button class="btn muted" id="btnExportPrices">⬇️ Export precios</button>
-            <button class="btn muted" id="btnImportPrices">⬆️ Import precios</button>
-            <input id="fileImportPrices" type="file" accept="application/json" style="display:none" />
+            <button class="btn ghost" id="btnCatalogSync">🔄 Actualizar desde pedidos</button>
+            <button class="btn muted" id="btnCatalogExport">📤 Export catálogo</button>
+            <button class="btn muted" id="btnCatalogImport">📥 Import catálogo</button>
           </div>
         </div>
         <div class="bd">
-          <div class="row mb8">
-            <input id="prodSearch" class="input" placeholder="Buscar producto..." />
-            <select id="prodProvFilter">
-              <option value="">Proveedor (todos)</option>
+          <div class="hint">
+            Aquí tienes <b>todos los productos</b> que han aparecido en tiendas/proveedores. Guarda <b>precio actual</b>, <b>unidad</b>
+            e <b>historial de precio</b>. También soporta “cantidades inteligentes” (unidad sugerida).
+          </div>
+
+          <div class="miniRow" style="gap:10px;flex-wrap:wrap">
+            <input id="catalogSearch" class="input" placeholder="Buscar producto…" />
+            <select id="catalogFilter" class="select">
+              <option value="all">Todos</option>
+              <option value="priced">Con precio</option>
+              <option value="unpriced">Sin precio</option>
             </select>
-            <span class="pill" id="pillProdCount">0</span>
+            <button class="btn small muted" id="btnCatalogAdd">+ Añadir producto</button>
           </div>
 
-          <div id="prodWrap" class="scroll-x"></div>
-
-          <div class="divider"></div>
-
-          <div class="card soft">
-            <div class="bd">
-              <div class="hint mb6"><b>Cómo funciona</b>: Cada producto tiene historial interno. Puedes registrar precio por proveedor y fecha.</div>
-              <div class="hint">Tip: usa “🔎 Cargar desde compras” para crear catálogo con todo lo que ya has comprado.</div>
-            </div>
-          </div>
+          <div id="catalogWrap" class="scroll-x" style="margin-top:10px"></div>
         </div>
       </div>
     </section>
-
   </main>
 
-  <!-- DATALIST GLOBAL (AUTOCOMPLETAR VOCAB) -->
-  <datalist id="vocabList"></datalist>
-
   <!-- FAB -->
-  <button class="fab" id="fab" title="Acciones rápidas">⚙️</button>
+  <button class="fab" id="fab" title="Acciones rápidas" style="display:none">⚙️</button>
   <div class="fab-menu" id="fabMenu">
-    <button class="fab-item" data-action="unify">🔄 Unificar</button>
-    <button class="fab-item" data-action="undo">↩️ Undo</button>
-    <button class="fab-item" data-action="backup">💾 Backup</button>
-    <button class="fab-item" data-action="copyGlobal">📋 Copiar Global</button>
+    <button class="fab-item" id="fabUnify">🔄 Unificar 3 tiendas</button>
+    <button class="fab-item" id="fabTXT">📄 TXT visible</button>
+    <button class="fab-item" id="fabXLSX">📊 Excel</button>
+    <button class="fab-item" id="fabCopy">📋 Copiar</button>
+    <button class="fab-item" id="fabResumen">🧾 TXT Global</button>
   </div>
 
   <!-- Tabbar -->
-  <nav class="tabbar">
+  <nav class="tabbar" id="tabbar">
     <button id="btn-dic" class="active" data-tab="dic">📚<span>Diccionario</span></button>
     <button id="btn-tiendas" data-tab="tiendas">🏪<span>Tiendas</span></button>
     <button id="btn-global" data-tab="global">🧮<span>Global</span></button>
     <button id="btn-proveedores" data-tab="proveedores">📦<span>Proveedores</span></button>
-    <button id="btn-productos" data-tab="productos">📈<span>Productos</span></button>
+    <button id="btn-catalogo" data-tab="catalogo">🧾<span>Catálogo</span></button>
   </nav>
+
+  <!-- Autocomplete dropdown root -->
+  <div id="acRoot" class="ac-root" style="display:none"></div>
+
+  <input id="fileImport" type="file" accept=".json,application/json" style="display:none" />
+  <input id="fileCatalogImport" type="file" accept=".json,application/json" style="display:none" />
 
   <script src="./app.js"></script>
 </body>
