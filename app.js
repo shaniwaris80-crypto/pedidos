@@ -13,7 +13,7 @@
    - FIX: XLSX opcional (si no existe, aviso sin crash)
 ========================== */
 
-(() => {
+window.addEventListener("DOMContentLoaded", () => {
   /* --------------------------
      Helpers / DOM (SAFE)
   -------------------------- */
@@ -1613,7 +1613,11 @@
     const vocabSaved = localStorage.getItem(LS.VOCAB) || DEFAULT_VOCAB_SEED;
     const synSaved = localStorage.getItem(LS.SYN) || DEFAULT_SYN_SEED;
 
-    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = vocabSaved;
+// ✅ FORZAR VOCAB SIEMPRE (aunque algo lo haya vaciado)
+if (safeEl("vocabTxt") && !String(safeEl("vocabTxt").value || "").trim()) {
+  safeEl("vocabTxt").value = DEFAULT_VOCAB_SEED;
+  localStorage.setItem(LS.VOCAB, DEFAULT_VOCAB_SEED);
+}
     if(safeEl("synTxt")) safeEl("synTxt").value = synSaved;
 
     state.vocab = uniqueVocab(toLines(vocabSaved));
@@ -1759,4 +1763,4 @@
   showTab("dic");
   idle(()=>hardRefreshUI());
 
-})();
+});
