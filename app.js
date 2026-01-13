@@ -1,5 +1,5 @@
 /* ==========================
-   ARSLAN LISTAS v3.5 — KIWI PRO (SAFE)
+   ARSLAN LISTAS v3.5 — KIWI PRO (FIXED NO-ERROR)
    - Productos/Precios con historial
    - Cantidades inteligentes + unidades
    - Auto-estandarizar (menos toques)
@@ -8,16 +8,39 @@
    - Añadir proveedores (UI)
    - Seguridad: backups, export/import JSON, reset BORRAR
    - UX móvil: selector tienda + tabbar + FAB
+   - FIX: Carga vocabulario SIEMPRE (si está vacío, seed)
+   - FIX: Ningún handler rompe por null/undefined
+   - FIX: XLSX opcional (si no existe, aviso sin crash)
 ========================== */
 
 (() => {
+  /* --------------------------
+     Helpers / DOM (SAFE)
+  -------------------------- */
   const $ = (q) => document.querySelector(q);
   const byId = (id) => document.getElementById(id);
+
+  function safeEl(id){ return byId(id) || null; }
+  function setText(id, txt){ const el = safeEl(id); if(el) el.textContent = String(txt); }
+  function setHTML(id, html){ const el = safeEl(id); if(el) el.innerHTML = String(html); }
+  function onClick(id, fn){
+    const el = safeEl(id);
+    if(el) el.addEventListener("click", fn);
+  }
+  function onInput(id, fn){
+    const el = safeEl(id);
+    if(el) el.addEventListener("input", fn, {passive:true});
+  }
+  function onChange(id, fn){
+    const el = safeEl(id);
+    if(el) el.addEventListener("change", fn, {passive:true});
+  }
+
   const nowISO = () => new Date().toISOString();
   const todayISO = () => new Date().toISOString().slice(0,10);
 
   const toLines = (t) => String(t||"")
-    .split(/\r?\n|,/g)
+    .split(/\r?\n/g)
     .map(x=>x.trim())
     .filter(Boolean);
 
@@ -29,7 +52,7 @@
     };
   };
 
-  const idle = (cb) => (window.requestIdleCallback ? requestIdleCallback(cb) : setTimeout(cb, 1));
+  const idle = (cb) => (window.requestIdleCallback ? requestIdleCallback(()=>cb(), {timeout:250}) : setTimeout(cb, 1));
 
   function removeDiacriticsUpper(s){
     return String(s||"")
@@ -44,6 +67,9 @@
       .trim();
   }
 
+  /* --------------------------
+     LocalStorage keys
+  -------------------------- */
   const LS = {
     THEME: "arslan_theme",
     VOCAB: "arslan_v35_vocab",
@@ -57,8 +83,23 @@
     UNDO: "arslan_v35_undo_stack"
   };
 
-  const DEFAULT_PROVS = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-  const IGNORE_WORDS = ["caja","cajas","kg","kgs","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
+  /* --------------------------
+     Defaults (seed)
+  -------------------------- */
+  const DEFAULT_PROVS = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO"];
+  const DEFAULT_VOCAB_SEED = [
+    "PLATANO CANARIO","PLATANO MACHO VERDE","PLATANO MACHO MADURO","GUINDILLA","LIMON","LIMA",
+    "TOMATE DANIELA","TOMATE PERA","TOMATE RAMA","TOMATE CHERRY","CEBOLLA","CEBOLLA MORADA",
+    "PATATA","ZANAHORIA","LECHUGA ICEBERG","LECHUGA BATAVIA","BROCOLI","PIMIENTO VERDE","PIMIENTO ROJO",
+    "MANZANA GOLDEN","MANZANA GRANNY","PERA CONFERENCIA","NARANJA ZUMO","MANGO","AGUACATE HASS","AGUACATE TROPICAL"
+  ].join("\n");
+
+  const DEFAULT_SYN_SEED = [
+    "GUNDEYA = GUINDILLA",
+    "PINA = PIÑA"
+  ].join("\n");
+
+  const IGNORE_WORDS = ["caja","cajas","kg","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
   const MATCH_THRESHOLD = 0.78;
   const SIM_DUP_THRESHOLD = 0.86;
 
@@ -68,6 +109,9 @@
     st:{name:"Santiago", icon:"🏪"}
   };
 
+  /* --------------------------
+     State
+  -------------------------- */
   let VOCAB_CACHE = null;
   let VOCAB_SIG = null;
 
@@ -85,17 +129,21 @@
     assignUndo: []
   };
 
-  /* ---------------- Theme ---------------- */
+  /* --------------------------
+     Theme
+  -------------------------- */
   function applyTheme(t){
-    document.documentElement.setAttribute("data-theme", t==="dark"?"dark":"light");
-    localStorage.setItem(LS.THEME, t);
+    document.documentElement.setAttribute("data-theme", t==="dark" ? "dark" : "light");
+    localStorage.setItem(LS.THEME, t==="dark" ? "dark" : "light");
   }
   function toggleTheme(){
     const cur = localStorage.getItem(LS.THEME) || "light";
-    applyTheme(cur==="light"?"dark":"light");
+    applyTheme(cur==="light" ? "dark" : "light");
   }
 
-  /* ---------------- Safety / Undo / Backups ---------------- */
+  /* --------------------------
+     Safety / Backups / Undo
+  -------------------------- */
   function snapshot(label=""){
     return {
       label,
@@ -105,8 +153,8 @@
       activeProv: state.activeProv,
       assignments: JSON.parse(JSON.stringify(state.assignments)),
       orders: JSON.parse(JSON.stringify(state.orders)),
-      vocabText: byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "",
-      synText: byId("synTxt") ? String(byId("synTxt").value||"") : "",
+      vocabText: safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : "",
+      synText: safeEl("synTxt") ? String(safeEl("synTxt").value||"") : "",
       catalog: JSON.parse(JSON.stringify(state.catalog))
     };
   }
@@ -119,6 +167,18 @@
       localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack));
     }catch{}
   }
+
+  function persistAll(){
+    if(safeEl("vocabTxt")) localStorage.setItem(LS.VOCAB, String(safeEl("vocabTxt").value||""));
+    if(safeEl("synTxt")) localStorage.setItem(LS.SYN, String(safeEl("synTxt").value||""));
+    localStorage.setItem(LS.STORES, JSON.stringify(state.stores));
+    localStorage.setItem(LS.PROVS, JSON.stringify(state.providers));
+    localStorage.setItem(LS.ASSIGN, JSON.stringify(state.assignments));
+    localStorage.setItem(LS.ORDERS, JSON.stringify(state.orders));
+    localStorage.setItem(LS.CATALOG, JSON.stringify(state.catalog));
+    localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack||[]));
+  }
+  const persistAllDebounced = debounce(persistAll, 250);
 
   function undo(){
     const stack = state.undoStack || [];
@@ -137,8 +197,11 @@
     state.orders = snap.orders || {};
     state.catalog = snap.catalog || {};
 
-    if(byId("vocabTxt")) byId("vocabTxt").value = snap.vocabText || byId("vocabTxt").value;
-    if(byId("synTxt")) byId("synTxt").value = snap.synText || byId("synTxt").value;
+    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = snap.vocabText || safeEl("vocabTxt").value;
+    if(safeEl("synTxt")) safeEl("synTxt").value = snap.synText || safeEl("synTxt").value;
+
+    // recargar synonyms
+    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
 
     persistAll();
     hardRefreshUI();
@@ -149,8 +212,8 @@
       version: "v3.5",
       exportedAt: nowISO(),
       theme: localStorage.getItem(LS.THEME) || "light",
-      vocab: byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "",
-      synonyms: byId("synTxt") ? String(byId("synTxt").value||"") : "",
+      vocab: safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : "",
+      synonyms: safeEl("synTxt") ? String(safeEl("synTxt").value||"") : "",
       stores: state.stores,
       providers: state.providers,
       activeProv: state.activeProv,
@@ -169,12 +232,6 @@
     a.click();
   }
 
-  function updateBackupPill(){
-    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
-    const pill = byId("pillBackups");
-    if(pill) pill.textContent = String(backups.length);
-  }
-
   function saveBackup(){
     pushUndo("backup-before");
     const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
@@ -185,6 +242,11 @@
     alert("Backup guardado ✅");
   }
 
+  function updateBackupPill(){
+    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
+    setText("pillBackups", String(backups.length));
+  }
+
   function safeReset(){
     const v = prompt("Escribe BORRAR para limpiar todo (reset seguro):");
     if(v !== "BORRAR") return;
@@ -193,7 +255,8 @@
   }
 
   function exportJSON(){
-    downloadJSON(exportAllDataObject(), `arslan_listas_backup_${todayISO()}.json`);
+    const obj = exportAllDataObject();
+    downloadJSON(obj, `arslan_listas_backup_${todayISO()}.json`);
   }
 
   function importJSONFile(file){
@@ -203,7 +266,7 @@
         const obj = JSON.parse(String(reader.result||"{}"));
         applyImportedObject(obj);
         alert("Importado ✅");
-      }catch{
+      }catch(e){
         alert("JSON inválido.");
       }
     };
@@ -213,14 +276,14 @@
   function applyImportedObject(obj){
     pushUndo("import-json");
 
-    if(obj.theme) applyTheme(obj.theme);
+    if(obj && obj.theme) applyTheme(obj.theme);
 
-    if(byId("vocabTxt") && typeof obj.vocab==="string"){
-      byId("vocabTxt").value = obj.vocab;
+    if(safeEl("vocabTxt") && typeof obj.vocab==="string"){
+      safeEl("vocabTxt").value = obj.vocab;
       localStorage.setItem(LS.VOCAB, obj.vocab);
     }
-    if(byId("synTxt") && typeof obj.synonyms==="string"){
-      byId("synTxt").value = obj.synonyms;
+    if(safeEl("synTxt") && typeof obj.synonyms==="string"){
+      safeEl("synTxt").value = obj.synonyms;
       localStorage.setItem(LS.SYN, obj.synonyms);
     }
 
@@ -230,28 +293,22 @@
     state.assignments = obj.assignments || {};
     state.orders = obj.orders || {};
     state.catalog = obj.catalog || {};
-
     if(Array.isArray(obj.backups)){
       localStorage.setItem(LS.BACKUPS, JSON.stringify(obj.backups.slice(0,7)));
     }
 
+    // reload synonyms + vocab cache reset
+    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
+    VOCAB_CACHE = null; VOCAB_SIG = null;
+
+    ensureOrdersBuckets();
     persistAll();
     hardRefreshUI();
   }
 
-  function persistAll(){
-    if(byId("vocabTxt")) localStorage.setItem(LS.VOCAB, String(byId("vocabTxt").value||""));
-    if(byId("synTxt")) localStorage.setItem(LS.SYN, String(byId("synTxt").value||""));
-    localStorage.setItem(LS.STORES, JSON.stringify(state.stores));
-    localStorage.setItem(LS.PROVS, JSON.stringify(state.providers));
-    localStorage.setItem(LS.ASSIGN, JSON.stringify(state.assignments));
-    localStorage.setItem(LS.ORDERS, JSON.stringify(state.orders));
-    localStorage.setItem(LS.CATALOG, JSON.stringify(state.catalog));
-    localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack||[]));
-  }
-  const persistAllDebounced = debounce(persistAll, 250);
-
-  /* ---------------- Vocab + Synonyms ---------------- */
+  /* --------------------------
+     Vocab + Synonyms (CARGA SIEMPRE)
+  -------------------------- */
   function uniqueVocab(lines){
     const seen = new Set(); const out=[];
     for(const l of lines){
@@ -263,8 +320,40 @@
     return out;
   }
 
+  function ensureVocabSeed(){
+    const stored = localStorage.getItem(LS.VOCAB);
+    const hasStored = stored && String(stored).trim().length > 0;
+
+    // Si no existe vocab en localStorage, lo sembramos
+    if(!hasStored){
+      localStorage.setItem(LS.VOCAB, DEFAULT_VOCAB_SEED);
+    }
+
+    // Si el textarea existe, lo llenamos
+    if(safeEl("vocabTxt")){
+      const v = localStorage.getItem(LS.VOCAB) || DEFAULT_VOCAB_SEED;
+      if(!String(safeEl("vocabTxt").value||"").trim()){
+        safeEl("vocabTxt").value = v;
+      }
+    }
+  }
+
+  function ensureSynSeed(){
+    const stored = localStorage.getItem(LS.SYN);
+    const hasStored = stored && String(stored).trim().length > 0;
+    if(!hasStored){
+      localStorage.setItem(LS.SYN, DEFAULT_SYN_SEED);
+    }
+    if(safeEl("synTxt")){
+      const v = localStorage.getItem(LS.SYN) || DEFAULT_SYN_SEED;
+      if(!String(safeEl("synTxt").value||"").trim()){
+        safeEl("synTxt").value = v;
+      }
+    }
+  }
+
   function getVocabCached(){
-    const txt = byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "";
+    const txt = safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : (localStorage.getItem(LS.VOCAB)||"");
     const sig = txt.length + "|" + txt.slice(0,60) + "|" + txt.slice(-60);
     if(VOCAB_CACHE && VOCAB_SIG===sig) return VOCAB_CACHE;
     const list = uniqueVocab(toLines(txt));
@@ -294,7 +383,9 @@
     return syn ? syn : name;
   }
 
-  /* ---------------- Similarity ---------------- */
+  /* --------------------------
+     Similarity (Dice + TokenSet)
+  -------------------------- */
   function stripGenericWords(s){
     const tokens = normKey(s).split(" ").filter(t=>!IGNORE_WORDS.includes(String(t||"").toLowerCase()));
     return tokens.join(" ").trim();
@@ -336,7 +427,9 @@
     return best;
   }
 
-  /* ---------------- Smart Parser ---------------- */
+  /* --------------------------
+     Smart Parser (qty + unit + name)
+  -------------------------- */
   const UNIT_MAP = [
     {re:/(^|\s)(kg|kgs|kilo|kilos)(\s|$)/i, unit:"KG"},
     {re:/(^|\s)(caja|cajas)(\s|$)/i, unit:"CAJA"},
@@ -344,12 +437,14 @@
     {re:/(^|\s)(saco|sacos)(\s|$)/i, unit:"SACO"},
     {re:/(^|\s)(ud|uds|u|unidad|unidades)(\s|$)/i, unit:"UD"}
   ];
+
   function detectUnit(text){
     for(const u of UNIT_MAP){
       if(u.re.test(text)) return u.unit;
     }
     return "";
   }
+
   function toNumberSmart(s){
     const x = String(s||"").trim();
     if(!x) return null;
@@ -362,6 +457,7 @@
     const n = Number(x.replace(",","."));
     return isNaN(n) ? null : n;
   }
+
   function cleanNameKeepLetters(s){
     return removeDiacriticsUpper(s)
       .replace(/[^A-Z0-9\s]/g," ")
@@ -433,13 +529,9 @@
     };
   }
 
-  function fmtQty(n){
-    const x = Number(n)||0;
-    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
-    return x.toFixed(2);
-  }
-
-  /* ---------------- Store ops ---------------- */
+  /* --------------------------
+     Store ops
+  -------------------------- */
   function sumDuplicatesRows(rows){
     const map = new Map();
     rows.forEach(r=>{
@@ -496,11 +588,7 @@
       const u = r.u ? ` ${r.u}` : "";
       return `${fmtQty(r.q)} ${r.e}${u}`;
     }).join("\n");
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${code}_estandarizado_${todayISO()}.txt`;
-    a.click();
+    downloadText(txt, `${code}_estandarizado_${todayISO()}.txt`);
   }
 
   function storeSendWA(code){
@@ -517,7 +605,9 @@
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
-  /* ---------------- Global unify ---------------- */
+  /* --------------------------
+     Global unify + duplicates detect
+  -------------------------- */
   let globalRows = [];
   let globalAll = [];
 
@@ -538,7 +628,7 @@
 
     const visible = globalAll.filter(it => !state.assignments[normKey(it.name) + "||" + (it.unit||"")]);
 
-    const q = normKey(byId("globalSearch") ? byId("globalSearch").value : "");
+    const q = normKey(safeEl("globalSearch") ? safeEl("globalSearch").value : "");
     globalRows = q ? visible.filter(x => normKey(x.name).includes(q)) : visible;
 
     renderGlobalTable();
@@ -560,13 +650,579 @@
     return similarSet;
   }
 
-  /* ---------------- Catalog / Prices ---------------- */
-  function catalogKey(name, unit){
-    return normKey(name) + "||" + (removeDiacriticsUpper(unit||""));
+  function renderGlobalTable(){
+    const wrap = safeEl("globalWrap");
+    if(safeEl("pillGlobalCount")) setText("pillGlobalCount", String(globalRows.length));
+    if(!wrap) return;
+
+    if(!globalRows.length){
+      wrap.innerHTML = `<div class="hint">Sin productos (todo asignado o vacío).</div>`;
+      return;
+    }
+
+    const similarSet = detectSimilarSet(globalRows);
+
+    let html = `<div class="scroll-x"><table>
+      <thead><tr>
+        <th></th>
+        <th>Producto</th>
+        <th>Total</th>
+        <th>Unidad</th>
+        <th>Estado</th>
+        <th>Precio</th>
+      </tr></thead><tbody>`;
+
+    globalRows.forEach((r,idx)=>{
+      const keyShow = (r.name + (r.unit?(" "+r.unit):""));
+      const isSimilar = similarSet.has(keyShow);
+      const priceInfo = getLastPriceInfoFor(r.name, state.activeProv);
+
+      html += `<tr data-i="${idx}" class="${isSimilar?'dupRow':''}">
+        <td><button class="ok-assign" data-assign="${idx}">✅</button></td>
+        <td contenteditable="true" data-f="name">${escapeHTML(r.name)}${isSimilar?`<span class="flag">⚠️</span>`:""}</td>
+        <td contenteditable="true" data-f="total">${escapeHTML(fmtQty(r.total))}</td>
+        <td contenteditable="true" data-f="unit">${escapeHTML(r.unit||"")}</td>
+        <td>${isSimilar?`<span class="pill warn">Posible duplicado</span>`:`<span class="pill ok">OK</span>`}</td>
+        <td>${priceInfo}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll("[data-assign]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const idx = Number(btn.getAttribute("data-assign"));
+        assignFromGlobal(idx);
+      });
+    });
+
+    wrap.querySelectorAll("td[contenteditable]").forEach(cell=>{
+      cell.addEventListener("blur", ()=>{
+        const tr = cell.closest("tr");
+        if(!tr) return;
+        const idx = Number(tr.getAttribute("data-i"));
+        const f = cell.getAttribute("data-f");
+        const val = String(cell.innerText||"").trim();
+        if(!globalRows[idx]) return;
+
+        if(f==="total"){
+          globalRows[idx].total = Number(String(val).replace(",", ".")) || 0;
+        }else if(f==="unit"){
+          globalRows[idx].unit = removeDiacriticsUpper(val);
+        }else{
+          globalRows[idx].name = applySynonyms(removeDiacriticsUpper(val));
+        }
+
+        persistAllDebounced();
+        idle(()=>unifyGlobal());
+      }, {passive:true});
+    });
   }
 
+  function fmtQty(n){
+    const x = Number(n)||0;
+    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+    return x.toFixed(2);
+  }
+
+  function escapeHTML(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function downloadText(txt, filename){
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  /* --------------------------
+     Providers / Assign / Undo assign
+  -------------------------- */
+  function ensureOrdersBuckets(){
+    if(!state.orders || typeof state.orders!=="object") state.orders = {};
+    state.providers.forEach(p=>{
+      if(!Array.isArray(state.orders[p])) state.orders[p] = [];
+    });
+  }
+
+  function assignFromGlobal(idx){
+    const item = globalRows[idx];
+    if(!item) return;
+
+    pushUndo("assign-from-global");
+
+    const k = normKey(item.name) + "||" + (item.unit||"");
+    const prov = state.activeProv || (state.providers[0]||"");
+
+    state.assignUndo.unshift({
+      at: Date.now(),
+      prov,
+      key: k,
+      name: item.name,
+      unit: item.unit||"",
+      qty: Number(item.total)||0
+    });
+    state.assignUndo = state.assignUndo.slice(0, 50);
+
+    state.assignments[k] = prov;
+
+    ensureOrdersBuckets();
+    const list = state.orders[prov] || [];
+    const exIdx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === k);
+    if(exIdx>-1){
+      list[exIdx].qty += Number(item.total)||0;
+    }else{
+      list.push({name:item.name, qty:Number(item.total)||0, unit:item.unit||""});
+    }
+    state.orders[prov] = list;
+
+    ensureCatalogEntry(item.name, item.unit||"");
+
+    persistAllDebounced();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
+  }
+
+  function undoAssign(){
+    const a = state.assignUndo.shift();
+    if(!a){
+      alert("No hay asignación para deshacer.");
+      return;
+    }
+
+    pushUndo("undo-assign");
+
+    delete state.assignments[a.key];
+
+    const list = state.orders[a.prov] || [];
+    const idx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === a.key);
+    if(idx>-1){
+      list[idx].qty -= a.qty;
+      if(list[idx].qty <= 0) list.splice(idx,1);
+    }
+    state.orders[a.prov] = list;
+
+    persistAllDebounced();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); });
+  }
+
+  function buildProvBar(){
+    const bar = safeEl("provBar");
+    if(!bar) return;
+    bar.innerHTML = "";
+
+    const ap = state.activeProv || (state.providers[0]||"");
+    state.activeProv = ap;
+    setText("activeProvName", state.activeProv);
+
+    state.providers.forEach(p=>{
+      const b = document.createElement("button");
+      b.className = "prov-btn" + (p===state.activeProv ? " active" : "");
+      b.textContent = p;
+      b.onclick = () => {
+        state.activeProv = p;
+        setText("activeProvName", p);
+        buildProvBar();
+        persistAllDebounced();
+        idle(()=>{ unifyGlobal(); renderProductsTable(); });
+      };
+      bar.appendChild(b);
+    });
+  }
+
+  function exportProvTXT(prov){
+    const list = state.orders[prov] || [];
+    if(!list.length){ alert("No hay líneas para " + prov); return; }
+    const txt = list
+      .slice()
+      .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
+      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
+      .join("\n");
+    downloadText(txt, `pedido_${prov}_${todayISO()}.txt`);
+  }
+
+  function sendProvWA(prov){
+    const list = state.orders[prov] || [];
+    if(!list.length){ alert("No hay líneas para " + prov); return; }
+    const txt = list
+      .slice()
+      .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
+      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
+      .join("\n");
+    const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}\n\nGracias`);
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  function renderProvidersPanels(){
+    const cont = safeEl("provPanels");
+    if(!cont) return;
+    cont.innerHTML = "";
+
+    ensureOrdersBuckets();
+
+    state.providers.forEach(prov=>{
+      const list = state.orders[prov] || [];
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const hd = document.createElement("div");
+      hd.className = "hd";
+      hd.innerHTML = `
+        <strong>${escapeHTML(prov)}</strong>
+        <div class="toolbar">
+          <button class="btn small muted" data-ptxt="${escapeHTML(prov)}">📄 TXT</button>
+          <button class="btn small" data-pwa="${escapeHTML(prov)}">📲 WhatsApp</button>
+        </div>
+      `;
+
+      const bd = document.createElement("div");
+      bd.className = "bd";
+
+      if(!list.length){
+        bd.innerHTML = `<div class="hint">Sin productos asignados.</div>`;
+      }else{
+        let html = `<div class="scroll-x"><table>
+          <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio</th></tr></thead><tbody>`;
+
+        list.forEach((it,ix)=>{
+          const priceInfo = getLastPriceInfoFor(it.name, prov);
+          html += `<tr>
+            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="name" class="green">${escapeHTML(it.name)}</td>
+            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="qty" class="green">${escapeHTML(fmtQty(it.qty))}</td>
+            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="unit" class="green">${escapeHTML(it.unit||"")}</td>
+            <td>${priceInfo}</td>
+          </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        bd.innerHTML = html;
+
+        bd.querySelectorAll("td[contenteditable]").forEach(cell=>{
+          cell.addEventListener("blur", ()=>{
+            pushUndo("edit-provider-line");
+
+            const prov2 = cell.getAttribute("data-prov");
+            const idx = Number(cell.getAttribute("data-idx"));
+            const f = cell.getAttribute("data-f");
+            const val = String(cell.innerText||"").trim();
+
+            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
+
+            if(f==="qty"){
+              state.orders[prov2][idx].qty = Number(String(val).replace(",",".")) || 0;
+              if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
+            }else if(f==="unit"){
+              state.orders[prov2][idx].unit = removeDiacriticsUpper(val);
+            }else{
+              const nm = applySynonyms(removeDiacriticsUpper(val));
+              state.orders[prov2][idx].name = nm;
+              ensureCatalogEntry(nm, state.orders[prov2][idx].unit||"");
+            }
+
+            persistAllDebounced();
+            idle(()=>{ renderProvidersPanels(); });
+          }, {passive:true});
+        });
+      }
+
+      card.appendChild(hd);
+      card.appendChild(bd);
+      cont.appendChild(card);
+
+      card.querySelectorAll("[data-ptxt]").forEach(b=>b.onclick=()=>exportProvTXT(prov));
+      card.querySelectorAll("[data-pwa]").forEach(b=>b.onclick=()=>sendProvWA(prov));
+    });
+  }
+
+  /* --------------------------
+     Providers manage modal
+  -------------------------- */
+  function openProvModal(){
+    const modal = safeEl("modalProv");
+    const list = safeEl("provManageList");
+    if(!modal || !list) return;
+
+    pushUndo("open-prov-modal");
+
+    modal.style.display = "flex";
+    const draft = state.providers.slice();
+
+    function renderDraft(){
+      list.innerHTML = "";
+      draft.forEach((p,idx)=>{
+        const row = document.createElement("div");
+        row.className = "miniRow";
+        row.innerHTML = `
+          <input value="${escapeHTML(p)}" data-i="${idx}" />
+          <button class="btn muted small" data-del="${idx}">Eliminar</button>
+        `;
+        list.appendChild(row);
+      });
+
+      list.querySelectorAll("button[data-del]").forEach(btn=>{
+        btn.onclick = () => {
+          const i = Number(btn.getAttribute("data-del"));
+          const name = draft[i];
+          if(!confirm(`Eliminar proveedor: ${name}?`)) return;
+          draft.splice(i,1);
+          renderDraft();
+        };
+      });
+    }
+
+    renderDraft();
+
+    onClick("btnProvSave", () => {
+      const arr = [];
+      list.querySelectorAll("input[data-i]").forEach(inp=>{
+        const v = String(inp.value||"").trim();
+        if(v) arr.push(v);
+      });
+
+      const seen = new Set();
+      const cleaned = [];
+      arr.forEach(p=>{
+        const k = normKey(p);
+        if(!seen.has(k)){ seen.add(k); cleaned.push(p); }
+      });
+
+      if(!cleaned.length){
+        alert("Debe haber al menos 1 proveedor.");
+        return;
+      }
+
+      pushUndo("save-providers");
+
+      state.providers = cleaned;
+
+      if(!state.providers.includes(state.activeProv)){
+        state.activeProv = state.providers[0];
+      }
+
+      const allowed = new Set(state.providers);
+      Object.keys(state.assignments).forEach(k=>{
+        const prov = state.assignments[k];
+        if(!allowed.has(prov)) delete state.assignments[k];
+      });
+
+      const newOrders = {};
+      state.providers.forEach(p=>{
+        newOrders[p] = Array.isArray(state.orders[p]) ? state.orders[p] : [];
+      });
+      state.orders = newOrders;
+
+      persistAllDebounced();
+      closeProvModal();
+      hardRefreshUI();
+    });
+
+    onClick("btnProvCancel", closeProvModal);
+  }
+
+  function closeProvModal(){
+    const modal = safeEl("modalProv");
+    if(modal) modal.style.display = "none";
+  }
+
+  function addProviderQuick(){
+    const p = prompt("Nombre del nuevo proveedor:");
+    if(!p) return;
+
+    pushUndo("add-provider");
+    const name = String(p).trim();
+    const key = normKey(name);
+    if(!key) return;
+
+    const exists = state.providers.some(x=>normKey(x)===key);
+    if(exists){ alert("Ya existe."); return; }
+
+    state.providers.push(name);
+    state.orders[name] = [];
+    if(!state.activeProv) state.activeProv = name;
+
+    persistAllDebounced();
+    hardRefreshUI();
+  }
+
+  /* --------------------------
+     Global exports
+  -------------------------- */
+  function copyGlobal(){
+    if(!globalRows.length){ alert("No hay datos."); return; }
+    const txt = globalRows.map(r => `- ${fmtQty(r.total)} ${r.name}${r.unit?(" "+r.unit):""}`).join("\n");
+    navigator.clipboard.writeText(txt);
+    alert("Copiado ✅");
+  }
+
+  function exportGlobalTXT(){
+    if(!globalRows.length){ alert("No hay datos."); return; }
+    const txt = globalRows.map(r => `${fmtQty(r.total)}\t${r.name}\t${r.unit||""}`).join("\n");
+    downloadText(txt, `lista_global_${todayISO()}.txt`);
+  }
+
+  function exportGlobalXLSX(){
+    if(!globalRows.length){ alert("No hay datos."); return; }
+
+    // XLSX puede no existir si CDN falla -> NO crash
+    if(typeof window.XLSX === "undefined"){
+      alert("No se pudo cargar XLSX (internet/CDN). Usa TXT por ahora.");
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([["Producto","Total","Unidad"], ...globalRows.map(r=>[r.name, r.total, r.unit||""])]);
+    XLSX.utils.book_append_sheet(wb, ws, "Global");
+    XLSX.writeFile(wb, `lista_global_${todayISO()}.xlsx`);
+  }
+
+  function exportResumenGlobalTXT(){
+    const all = globalAll.slice();
+    const byProv = {};
+    state.providers.forEach(p=>byProv[p]=[]);
+    const unassigned = [];
+
+    all.forEach(it=>{
+      const k = normKey(it.name) + "||" + (it.unit||"");
+      const prov = state.assignments[k];
+      if(prov && byProv[prov]){
+        byProv[prov].push({name:it.name, qty:it.total, unit:it.unit||""});
+      }else{
+        unassigned.push({name:it.name, qty:it.total, unit:it.unit||""});
+      }
+    });
+
+    let out = `📦 PEDIDOS POR PROVEEDOR\n\n`;
+    state.providers.forEach(p=>{
+      out += `> ${p}:\n`;
+      const arr = byProv[p] || [];
+      if(arr.length){
+        arr.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
+        arr.forEach(x=>{
+          out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`;
+        });
+      }else out += `- (sin líneas)\n`;
+      out += `\n`;
+    });
+
+    out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
+    if(unassigned.length){
+      unassigned.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
+      unassigned.forEach(x=>{
+        out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`;
+      });
+    }else out += `- (sin líneas)\n`;
+
+    downloadText(out, `resumen_pedidos_${todayISO()}.txt`);
+  }
+
+  /* --------------------------
+     Reparto
+  -------------------------- */
+  function renderReparto(){
+    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
+    const wrap = safeEl("repartoWrap");
+    if(!wrap) return;
+
+    if(!code){
+      wrap.innerHTML = `<div class="hint">Selecciona una tienda para ver su lista.</div>`;
+      setText("pillRepartoCount", "0");
+      return;
+    }
+
+    const lista = state.stores[code] || [];
+    if(!lista.length){
+      wrap.innerHTML = `<div class="hint">Sin datos en esta tienda.</div>`;
+      setText("pillRepartoCount", "0");
+      return;
+    }
+
+    if(!state.reparto[code] || state.reparto[code].length !== lista.length){
+      state.reparto[code] = lista.map(x => ({ name:x.e, qty:x.q, unit:x.u||"", price:"", checked:false }));
+    }
+
+    setText("pillRepartoCount", String(state.reparto[code].length));
+
+    let html = `<table><thead><tr>
+      <th></th><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio (€)</th>
+    </tr></thead><tbody>`;
+
+    state.reparto[code].forEach((r,i)=>{
+      html += `<tr>
+        <td><input type="checkbox" ${r.checked?"checked":""} data-rchk="${code}" data-i="${i}"></td>
+        <td>${escapeHTML(r.name)}</td>
+        <td>${escapeHTML(fmtQty(r.qty))}</td>
+        <td>${escapeHTML(r.unit||"")}</td>
+        <td contenteditable="true" data-rprice="${code}" data-i="${i}">${escapeHTML(r.price||"")}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll("input[data-rchk]").forEach(chk=>{
+      chk.onchange = () => {
+        const c = chk.getAttribute("data-rchk");
+        const i = Number(chk.getAttribute("data-i"));
+        state.reparto[c][i].checked = chk.checked;
+      };
+    });
+
+    wrap.querySelectorAll("td[data-rprice]").forEach(td=>{
+      td.addEventListener("blur", ()=>{
+        const c = td.getAttribute("data-rprice");
+        const i = Number(td.getAttribute("data-i"));
+        const v = String(td.innerText||"").trim().replace(",",".");
+        const n = Number(v);
+        state.reparto[c][i].price = isNaN(n) ? "" : n.toFixed(2);
+      }, {passive:true});
+    });
+  }
+
+  function exportRepartoTXT(){
+    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
+    if(!code){ alert("Selecciona tienda."); return; }
+    const sel = (state.reparto[code]||[]).filter(x=>x.checked);
+    if(!sel.length){ alert("No hay seleccionados."); return; }
+
+    const txt = sel.map(x => {
+      const pr = x.price ? ` — ${x.price}€` : "";
+      const u = x.unit ? ` ${x.unit}` : "";
+      return `${fmtQty(x.qty)} ${x.name}${u}${pr}`;
+    }).join("\n");
+
+    downloadText(txt, `reparto_${code}_${todayISO()}.txt`);
+  }
+
+  function sendRepartoWA(){
+    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
+    if(!code){ alert("Selecciona tienda."); return; }
+    const sel = (state.reparto[code]||[]).filter(x=>x.checked);
+    if(!sel.length){ alert("No hay seleccionados."); return; }
+
+    const meta = STORE_META[code];
+    let msg = `🚚 *Reparto ${meta.name}*\n\n`;
+    sel.forEach(x=>{
+      const u = x.unit ? ` ${x.unit}` : "";
+      msg += `- ${fmtQty(x.qty)} ${x.name}${u}`;
+      if(x.price) msg += ` — ${x.price}€`;
+      msg += `\n`;
+    });
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  }
+
+  /* --------------------------
+     Catalog / Prices
+  -------------------------- */
   function ensureCatalogEntry(name, unit){
-    const k = catalogKey(name, unit);
+    const k = normKey(name) + "||" + (unit||"");
     if(!state.catalog[k]){
       state.catalog[k] = {
         name: removeDiacriticsUpper(name),
@@ -579,22 +1235,22 @@
   }
 
   function getLastPriceInfoFor(name, prov){
-    const kPrefix = normKey(name) + "||";
-    const keys = Object.keys(state.catalog);
-    let foundKey = null;
+    const k1 = normKey(name);
+    const keys = Object.keys(state.catalog||{});
+    let bestKey = null;
     for(const k of keys){
-      if(k.startsWith(kPrefix)){ foundKey = k; break; }
+      if(k.startsWith(k1+"||")){ bestKey = k; break; }
     }
-    if(!foundKey) return `<span class="pill">sin precio</span>`;
+    if(!bestKey) return `<span class="pill">sin precio</span>`;
 
-    const entry = state.catalog[foundKey];
+    const entry = state.catalog[bestKey];
     if(!entry || !entry.last) return `<span class="pill">sin precio</span>`;
 
     const lastSame = (entry.prices||[]).slice().reverse().find(x=>x.prov===prov);
     const last = lastSame || entry.last;
     if(!last) return `<span class="pill">sin precio</span>`;
 
-    return `<span class="pill ok">${Number(last.price).toFixed(2)}€</span><span class="pill"> ${last.prov}</span>`;
+    return `<span class="pill ok">${Number(last.price).toFixed(2)}€</span><span class="pill"> ${escapeHTML(last.prov)}</span>`;
   }
 
   function scanProductsFromPurchases(){
@@ -611,26 +1267,26 @@
   }
 
   function refreshProductsProvFilter(){
-    const sel = byId("prodProvFilter");
+    const sel = safeEl("prodProvFilter");
     if(!sel) return;
-    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${p}">${p}</option>`).join("");
+    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join("");
   }
 
   function renderProductsTable(){
-    const wrap = byId("prodWrap");
-    const pill = byId("pillProdCount");
+    const wrap = safeEl("prodWrap");
     if(!wrap) return;
 
-    const q = normKey(byId("prodSearch") ? byId("prodSearch").value : "");
-    const provFilter = byId("prodProvFilter") ? byId("prodProvFilter").value : "";
+    const pill = safeEl("pillProdCount");
+    const q = normKey(safeEl("prodSearch") ? safeEl("prodSearch").value : "");
+    const provFilter = safeEl("prodProvFilter") ? safeEl("prodProvFilter").value : "";
 
-    const entries = Object.entries(state.catalog).map(([k,v])=>({key:k, ...v}));
+    const entries = Object.entries(state.catalog||{}).map(([k,v])=>({key:k, ...v}));
     let filtered = entries;
 
     if(q) filtered = filtered.filter(x => normKey(x.name).includes(q));
     if(provFilter) filtered = filtered.filter(x => (x.prices||[]).some(p=>p.prov===provFilter));
-    filtered.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
 
+    filtered.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
     if(pill) pill.textContent = String(filtered.length);
 
     if(!filtered.length){
@@ -648,19 +1304,19 @@
         <th>Historial</th>
       </tr></thead><tbody>`;
 
-    filtered.forEach(it=>{
+    filtered.forEach((it)=>{
       const hist = (it.prices||[]).slice(-3).reverse().map(p=>`${p.date} · ${p.prov} · ${Number(p.price).toFixed(2)}€`).join("<br>");
       html += `<tr>
-        <td>${it.name}</td>
-        <td>${it.unit||""}</td>
+        <td>${escapeHTML(it.name)}</td>
+        <td>${escapeHTML(it.unit||"")}</td>
         <td>
-          <select data-p-prov="${it.key}">
+          <select data-p-prov="${escapeHTML(it.key)}">
             <option value="">(elige)</option>
-            ${state.providers.map(p=>`<option value="${p}">${p}</option>`).join("")}
+            ${state.providers.map(p=>`<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join("")}
           </select>
         </td>
-        <td contenteditable="true" data-p-price="${it.key}" class="green"></td>
-        <td><button class="btn small" data-p-save="${it.key}">Guardar</button></td>
+        <td contenteditable="true" data-p-price="${escapeHTML(it.key)}" class="green"></td>
+        <td><button class="btn small" data-p-save="${escapeHTML(it.key)}">Guardar</button></td>
         <td>${hist || `<span class="pill">sin historial</span>`}</td>
       </tr>`;
     });
@@ -671,8 +1327,9 @@
     wrap.querySelectorAll("button[data-p-save]").forEach(btn=>{
       btn.onclick = () => {
         const key = btn.getAttribute("data-p-save");
-        const sel = wrap.querySelector(`select[data-p-prov="${key}"]`);
-        const td = wrap.querySelector(`td[data-p-price="${key}"]`);
+        const sel = wrap.querySelector(`select[data-p-prov="${CSS.escape(key)}"]`);
+        const td = wrap.querySelector(`td[data-p-price="${CSS.escape(key)}"]`);
+
         const prov = sel ? sel.value : "";
         const priceTxt = td ? String(td.innerText||"").trim().replace(",",".") : "";
         const price = Number(priceTxt);
@@ -682,12 +1339,7 @@
 
         pushUndo("save-price");
 
-        const entry = state.catalog[key];
-        if(!entry){
-          alert("Entrada no encontrada (catálogo). Pulsa “Cargar desde compras” y reintenta.");
-          return;
-        }
-
+        const entry = state.catalog[key] || ensureCatalogEntry(key.split("||")[0], key.split("||")[1]||"");
         const rec = {date: todayISO(), prov, price: Number(price)};
         entry.prices = Array.isArray(entry.prices) ? entry.prices : [];
         entry.prices.push(rec);
@@ -732,340 +1384,21 @@
         persistAllDebounced();
         renderProductsTable();
         alert("Precios importados ✅");
-      }catch{
+      }catch(e){
         alert("JSON de precios inválido.");
       }
     };
     reader.readAsText(file);
   }
 
-  /* ---------------- Providers / Assign ---------------- */
-  function ensureOrdersBuckets(){
-    state.providers.forEach(p=>{
-      if(!Array.isArray(state.orders[p])) state.orders[p] = [];
-    });
-  }
-
-  function buildProvBar(){
-    const bar = byId("provBar");
-    if(!bar) return;
-    bar.innerHTML = "";
-
-    state.providers.forEach(p=>{
-      const b = document.createElement("button");
-      b.className = "prov-btn" + (p===state.activeProv ? " active" : "");
-      b.textContent = p;
-      b.onclick = () => {
-        state.activeProv = p;
-        if(byId("activeProvName")) byId("activeProvName").textContent = p;
-        buildProvBar();
-        persistAllDebounced();
-        idle(()=>{ unifyGlobal(); renderProductsTable(); });
-      };
-      bar.appendChild(b);
-    });
-
-    if(byId("activeProvName")) byId("activeProvName").textContent = state.activeProv || "";
-  }
-
-  function assignFromGlobal(idx){
-    const item = globalRows[idx];
-    if(!item) return;
-
-    pushUndo("assign-from-global");
-
-    const k = normKey(item.name) + "||" + (item.unit||"");
-    const prov = state.activeProv;
-
-    state.assignUndo.unshift({
-      at: Date.now(),
-      prov,
-      key: k,
-      name: item.name,
-      unit: item.unit||"",
-      qty: Number(item.total)||0
-    });
-    state.assignUndo = state.assignUndo.slice(0, 50);
-
-    state.assignments[k] = prov;
-
-    ensureOrdersBuckets();
-    const list = state.orders[prov] || [];
-    const exIdx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === k);
-    if(exIdx>-1) list[exIdx].qty += Number(item.total)||0;
-    else list.push({name:item.name, qty:Number(item.total)||0, unit:item.unit||""});
-    state.orders[prov] = list;
-
-    ensureCatalogEntry(item.name, item.unit||"");
-
-    persistAllDebounced();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
-  }
-
-  function undoAssign(){
-    const a = state.assignUndo.shift();
-    if(!a){ alert("No hay asignación para deshacer."); return; }
-
-    pushUndo("undo-assign");
-    delete state.assignments[a.key];
-
-    const list = state.orders[a.prov] || [];
-    const idx = list.findIndex(x => (normKey(x.name) + "||" + (x.unit||"")) === a.key);
-    if(idx>-1){
-      list[idx].qty -= a.qty;
-      if(list[idx].qty <= 0) list.splice(idx,1);
-    }
-    state.orders[a.prov] = list;
-
-    persistAllDebounced();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); });
-  }
-
-  function exportProvTXT(prov){
-    const list = state.orders[prov] || [];
-    if(!list.length){ alert("No hay líneas para " + prov); return; }
-    const txt = list.slice().sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
-      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`).join("\n");
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `pedido_${prov}_${todayISO()}.txt`;
-    a.click();
-  }
-
-  function sendProvWA(prov){
-    const list = state.orders[prov] || [];
-    if(!list.length){ alert("No hay líneas para " + prov); return; }
-    const txt = list.slice().sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
-      .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`).join("\n");
-    const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}\n\nGracias`);
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
-
-  function renderProvidersPanels(){
-    const cont = byId("provPanels");
-    if(!cont) return;
-    cont.innerHTML = "";
-
-    ensureOrdersBuckets();
-
-    state.providers.forEach(prov=>{
-      const list = state.orders[prov] || [];
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const hd = document.createElement("div");
-      hd.className = "hd";
-      hd.innerHTML = `
-        <strong>${prov}</strong>
-        <div class="toolbar">
-          <button class="btn small muted" data-ptxt="${prov}">📄 TXT</button>
-          <button class="btn small" data-pwa="${prov}">📲 WhatsApp</button>
-        </div>
-      `;
-
-      const bd = document.createElement("div");
-      bd.className = "bd";
-
-      if(!list.length){
-        bd.innerHTML = `<div class="hint">Sin productos asignados.</div>`;
-      }else{
-        let html = `<div class="scroll-x"><table>
-          <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio</th></tr></thead><tbody>`;
-        list.forEach((it,ix)=>{
-          const priceInfo = getLastPriceInfoFor(it.name, prov);
-          html += `<tr>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="qty" class="green">${fmtQty(it.qty)}</td>
-            <td contenteditable="true" data-prov="${prov}" data-idx="${ix}" data-f="unit" class="green">${it.unit||""}</td>
-            <td>${priceInfo}</td>
-          </tr>`;
-        });
-        html += `</tbody></table></div>`;
-        bd.innerHTML = html;
-
-        bd.querySelectorAll("td[contenteditable]").forEach(cell=>{
-          cell.addEventListener("blur", ()=>{
-            pushUndo("edit-provider-line");
-
-            const prov2 = cell.getAttribute("data-prov");
-            const idx = Number(cell.getAttribute("data-idx"));
-            const f = cell.getAttribute("data-f");
-            const val = String(cell.innerText||"").trim();
-
-            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
-
-            if(f==="qty"){
-              state.orders[prov2][idx].qty = Number(String(val).replace(",",".")) || 0;
-              if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
-            }else if(f==="unit"){
-              state.orders[prov2][idx].unit = removeDiacriticsUpper(val);
-            }else{
-              const nm = applySynonyms(removeDiacriticsUpper(val));
-              state.orders[prov2][idx].name = nm;
-              ensureCatalogEntry(nm, state.orders[prov2][idx].unit||"");
-            }
-
-            persistAllDebounced();
-            idle(()=>{ renderProvidersPanels(); });
-          }, {passive:true});
-        });
-      }
-
-      card.appendChild(hd);
-      card.appendChild(bd);
-      cont.appendChild(card);
-
-      card.querySelectorAll("[data-ptxt]").forEach(b=>b.onclick=()=>exportProvTXT(prov));
-      card.querySelectorAll("[data-pwa]").forEach(b=>b.onclick=()=>sendProvWA(prov));
-    });
-  }
-
-  /* ---------------- Global table render ---------------- */
-  function renderGlobalTable(){
-    const wrap = byId("globalWrap");
-    const pill = byId("pillGlobalCount");
-    if(pill) pill.textContent = String(globalRows.length);
-
-    if(!wrap) return;
-    if(!globalRows.length){
-      wrap.innerHTML = `<div class="hint">Sin productos (todo asignado o vacío).</div>`;
-      return;
-    }
-
-    const similarSet = detectSimilarSet(globalRows);
-
-    let html = `<div class="scroll-x"><table>
-      <thead><tr>
-        <th></th>
-        <th>Producto</th>
-        <th>Total</th>
-        <th>Unidad</th>
-        <th>Estado</th>
-        <th>Precio</th>
-      </tr></thead><tbody>`;
-
-    globalRows.forEach((r,idx)=>{
-      const keyShow = (r.name + (r.unit?(" "+r.unit):""));
-      const isSimilar = similarSet.has(keyShow);
-      const priceInfo = getLastPriceInfoFor(r.name, state.activeProv);
-
-      html += `<tr data-i="${idx}" class="${isSimilar?'dupRow':''}">
-        <td><button class="ok-assign" data-assign="${idx}">✅</button></td>
-        <td contenteditable="true" data-f="name">${r.name}${isSimilar?`<span class="flag">⚠️</span>`:""}</td>
-        <td contenteditable="true" data-f="total">${fmtQty(r.total)}</td>
-        <td contenteditable="true" data-f="unit">${r.unit||""}</td>
-        <td>${isSimilar?`<span class="pill warn">Posible duplicado</span>`:`<span class="pill ok">OK</span>`}</td>
-        <td>${priceInfo}</td>
-      </tr>`;
-    });
-
-    html += `</tbody></table></div>`;
-    wrap.innerHTML = html;
-
-    wrap.querySelectorAll("[data-assign]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const idx = Number(btn.getAttribute("data-assign"));
-        assignFromGlobal(idx);
-      });
-    });
-
-    wrap.querySelectorAll("td[contenteditable]").forEach(cell=>{
-      cell.addEventListener("blur", ()=>{
-        const tr = cell.closest("tr");
-        const idx = Number(tr.getAttribute("data-i"));
-        const f = cell.getAttribute("data-f");
-        const val = String(cell.innerText||"").trim();
-
-        if(!globalRows[idx]) return;
-
-        if(f==="total"){
-          globalRows[idx].total = Number(String(val).replace(",", ".")) || 0;
-        }else if(f==="unit"){
-          globalRows[idx].unit = removeDiacriticsUpper(val);
-        }else{
-          globalRows[idx].name = applySynonyms(removeDiacriticsUpper(val));
-        }
-
-        persistAllDebounced();
-        idle(()=>unifyGlobal());
-      }, {passive:true});
-    });
-  }
-
-  /* ---------------- Exports Global ---------------- */
-  function copyGlobal(){
-    if(!globalRows.length){ alert("No hay datos."); return; }
-    const txt = globalRows.map(r => `- ${fmtQty(r.total)} ${r.name}${r.unit?(" "+r.unit):""}`).join("\n");
-    navigator.clipboard.writeText(txt);
-    alert("Copiado ✅");
-  }
-
-  function exportGlobalTXT(){
-    if(!globalRows.length){ alert("No hay datos."); return; }
-    const txt = globalRows.map(r => `${fmtQty(r.total)}\t${r.name}\t${r.unit||""}`).join("\n");
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `lista_global_${todayISO()}.txt`;
-    a.click();
-  }
-
-  function exportGlobalXLSX(){
-    if(!globalRows.length){ alert("No hay datos."); return; }
-    if(!window.XLSX){ alert("XLSX no cargado."); return; }
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([["Producto","Total","Unidad"], ...globalRows.map(r=>[r.name, r.total, r.unit||""])]);
-    XLSX.utils.book_append_sheet(wb, ws, "Global");
-    XLSX.writeFile(wb, `lista_global_${todayISO()}.xlsx`);
-  }
-
-  function exportResumenGlobalTXT(){
-    const all = globalAll.slice();
-    const byProv = {};
-    state.providers.forEach(p=>byProv[p]=[]);
-    const unassigned = [];
-
-    all.forEach(it=>{
-      const k = normKey(it.name) + "||" + (it.unit||"");
-      const prov = state.assignments[k];
-      if(prov && byProv[prov]){
-        byProv[prov].push({name:it.name, qty:it.total, unit:it.unit||""});
-      }else{
-        unassigned.push({name:it.name, qty:it.total, unit:it.unit||""});
-      }
-    });
-
-    let out = `📦 PEDIDOS POR PROVEEDOR\n\n`;
-    state.providers.forEach(p=>{
-      out += `> ${p}:\n`;
-      const arr = byProv[p] || [];
-      if(arr.length){
-        arr.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
-        arr.forEach(x=>{ out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`; });
-      }else out += `- (sin líneas)\n`;
-      out += `\n`;
-    });
-
-    out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
-    if(unassigned.length){
-      unassigned.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
-      unassigned.forEach(x=>{ out += `- ${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}\n`; });
-    }else out += `- (sin líneas)\n`;
-
-    const blob = new Blob([out], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `resumen_pedidos_${todayISO()}.txt`;
-    a.click();
-  }
-
-  /* ---------------- Store table render ---------------- */
+  /* --------------------------
+     Store Table render
+  -------------------------- */
   function renderStoreTable(code){
-    const wrap = byId("storeTableWrap");
-    const rows = state.stores[code] || [];
+    const wrap = safeEl("storeTableWrap");
     if(!wrap) return;
 
+    const rows = state.stores[code] || [];
     if(!rows.length){
       wrap.innerHTML = `<div class="hint">Pega una lista arriba.</div>`;
       return;
@@ -1082,10 +1415,10 @@
 
     rows.forEach((r,i)=>{
       html += `<tr data-i="${i}">
-        <td>${r.o}</td>
-        <td contenteditable="true" data-f="e" class="${r.a?'red':''}">${r.e}</td>
-        <td contenteditable="true" data-f="q">${fmtQty(r.q)}</td>
-        <td contenteditable="true" data-f="u">${r.u||""}</td>
+        <td>${escapeHTML(r.o)}</td>
+        <td contenteditable="true" data-f="e" class="${r.a?'red':''}">${escapeHTML(r.e)}</td>
+        <td contenteditable="true" data-f="q">${escapeHTML(fmtQty(r.q))}</td>
+        <td contenteditable="true" data-f="u">${escapeHTML(r.u||"")}</td>
         <td>${r.a?`<span class="pill warn">Revisar</span>`:`<span class="pill ok">OK</span>`}</td>
       </tr>`;
     });
@@ -1098,6 +1431,7 @@
         pushUndo("edit-store-cell");
 
         const tr = td.closest("tr");
+        if(!tr) return;
         const idx = Number(tr.getAttribute("data-i"));
         const f = td.getAttribute("data-f");
         const val = String(td.innerText||"").trim();
@@ -1126,8 +1460,7 @@
   }
 
   function mergeStoreDuplicatesCurrent(){
-    const sel = byId("selStore");
-    const code = sel ? sel.value : "sp";
+    const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
     pushUndo("merge-store-dups");
     state.stores[code] = sumDuplicatesRows(state.stores[code]||[]);
     persistAllDebounced();
@@ -1135,16 +1468,185 @@
     idle(()=>unifyGlobal());
   }
 
-  /* ---------------- Hooks ---------------- */
-  function hookGlobalSearch(){
-    const inp = byId("globalSearch");
-    if(!inp) return;
-    inp.addEventListener("input", debounce(()=>unifyGlobal(), 180), {passive:true});
+  /* --------------------------
+     Diccionario actions
+  -------------------------- */
+  function saveVocabAndSyn(){
+    pushUndo("save-vocab-syn");
+
+    const lines = uniqueVocab(toLines(safeEl("vocabTxt") ? safeEl("vocabTxt").value : ""));
+    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = lines.join("\n");
+    VOCAB_CACHE = null; VOCAB_SIG = null;
+
+    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
+    persistAllDebounced();
+
+    refreshStoresFlags();
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
+
+    alert("Guardado ✅");
   }
 
+  function addWord(){
+    const entry = prompt("Nuevo producto (puedes pegar varias líneas):");
+    if(!entry) return;
+    pushUndo("add-word");
+    const cur = toLines(safeEl("vocabTxt") ? safeEl("vocabTxt").value : "");
+    const add = toLines(entry);
+    const merged = uniqueVocab(cur.concat(add));
+    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = merged.join("\n");
+    persistAllDebounced();
+  }
+
+  function refreshStoresFlags(){
+    const vocab = getVocabCached();
+    ["sp","sl","st"].forEach(code=>{
+      const rows = state.stores[code]||[];
+      rows.forEach(r=>{
+        const nm = applySynonyms(r.e);
+        r.e = nm;
+        const exact = vocab.find(v => normKey(v)===normKey(nm));
+        r.a = exact ? false : true;
+      });
+      state.stores[code] = sumDuplicatesRows(rows);
+    });
+    persistAllDebounced();
+  }
+
+  /* --------------------------
+     UI Tabs + FAB
+  -------------------------- */
+  function showTab(key){
+    const tabs = ["dic","tiendas","global","proveedores","productos"];
+    tabs.forEach(k=>{
+      const sec = safeEl("tab-"+k);
+      const btn = safeEl("btn-"+k);
+      if(sec) sec.style.display = (k===key) ? "block" : "none";
+      if(btn) btn.classList.toggle("active", k===key);
+    });
+
+    if(key==="global") idle(()=>{ unifyGlobal(); buildProvBar(); });
+    if(key==="proveedores") idle(()=>{ renderProvidersPanels(); renderReparto(); });
+    if(key==="productos") idle(()=>{ refreshProductsProvFilter(); renderProductsTable(); });
+  }
+
+  function toggleFab(forceHide){
+    const m = safeEl("fabMenu");
+    if(!m) return;
+    if(forceHide){ m.classList.remove("show"); return; }
+    m.classList.toggle("show");
+  }
+
+  function hookFAB(){
+    const fab = safeEl("fab");
+    const menu = safeEl("fabMenu");
+    if(!fab || !menu) return;
+
+    fab.onclick = () => toggleFab(false);
+    document.addEventListener("click", (e)=>{
+      if(!menu.contains(e.target) && e.target!==fab) toggleFab(true);
+    }, {capture:true});
+
+    menu.querySelectorAll(".fab-item").forEach(btn=>{
+      btn.onclick = ()=>{
+        const a = btn.getAttribute("data-action");
+        if(a==="unify"){ pushUndo("unify"); unifyGlobal(); }
+        if(a==="undo"){ undo(); }
+        if(a==="backup"){ saveBackup(); }
+        if(a==="copyGlobal"){ copyGlobal(); }
+        toggleFab(true);
+      };
+    });
+  }
+
+  /* --------------------------
+     Integrity check
+  -------------------------- */
+  function integrityCheck(){
+    let ok = true;
+    if(!state.providers || !state.providers.length) ok = false;
+    if(!state.stores || typeof state.stores!=="object") ok = false;
+    if(!state.orders || typeof state.orders!=="object") ok = false;
+
+    const pill = safeEl("pillIntegrity");
+    if(pill){
+      pill.className = "pill " + (ok ? "ok" : "warn");
+      pill.textContent = ok ? "OK" : "REVISAR";
+    }
+    return ok;
+  }
+
+  /* --------------------------
+     Hard refresh UI
+  -------------------------- */
+  function hardRefreshUI(){
+    updateBackupPill();
+    refreshProductsProvFilter();
+    buildProvBar();
+    unifyGlobal();
+    renderProvidersPanels();
+    renderProductsTable();
+
+    const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
+    if(safeEl("storeInput")) safeEl("storeInput").value = storeToTextarea(code);
+    renderStoreTable(code);
+
+    const mode = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+    setText("pillMode", mode);
+
+    integrityCheck();
+  }
+
+  /* --------------------------
+     Load / Init
+  -------------------------- */
+  function load(){
+    const savedTheme = localStorage.getItem(LS.THEME) ||
+      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(savedTheme);
+
+    // SEED vocab/syn para asegurar que siempre cargue
+    ensureVocabSeed();
+    ensureSynSeed();
+
+    // cargar en textarea desde LS (ya garantizado)
+    const vocabSaved = localStorage.getItem(LS.VOCAB) || DEFAULT_VOCAB_SEED;
+    const synSaved = localStorage.getItem(LS.SYN) || DEFAULT_SYN_SEED;
+
+    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = vocabSaved;
+    if(safeEl("synTxt")) safeEl("synTxt").value = synSaved;
+
+    state.vocab = uniqueVocab(toLines(vocabSaved));
+    state.synonyms = parseSynonymsText(synSaved);
+
+    try{ state.stores = JSON.parse(localStorage.getItem(LS.STORES)||"{}"); }catch{ state.stores = {sp:[],sl:[],st:[]}; }
+    if(!state.stores || typeof state.stores!=="object") state.stores = {sp:[],sl:[],st:[]};
+    ["sp","sl","st"].forEach(k=>{ if(!Array.isArray(state.stores[k])) state.stores[k]=[]; });
+
+    try{ state.providers = JSON.parse(localStorage.getItem(LS.PROVS)||"[]"); }catch{ state.providers = []; }
+    if(!Array.isArray(state.providers) || !state.providers.length) state.providers = DEFAULT_PROVS.slice();
+    state.activeProv = state.providers[0];
+
+    try{ state.assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||"{}"); }catch{ state.assignments = {}; }
+    try{ state.orders = JSON.parse(localStorage.getItem(LS.ORDERS)||"{}"); }catch{ state.orders = {}; }
+    ensureOrdersBuckets();
+
+    try{ state.catalog = JSON.parse(localStorage.getItem(LS.CATALOG)||"{}"); }catch{ state.catalog = {}; }
+    if(!state.catalog || typeof state.catalog!=="object") state.catalog = {};
+
+    try{ state.undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||"[]"); }catch{ state.undoStack = []; }
+    if(!Array.isArray(state.undoStack)) state.undoStack = [];
+
+    updateBackupPill();
+    integrityCheck();
+  }
+
+  /* --------------------------
+     Hooks
+  -------------------------- */
   function hookStoreAuto(){
-    const input = byId("storeInput");
-    const sel = byId("selStore");
+    const input = safeEl("storeInput");
+    const sel = safeEl("selStore");
     if(!input || !sel) return;
 
     const run = debounce(()=>{
@@ -1169,239 +1671,89 @@
     renderStoreTable(sel.value);
   }
 
-  function addWord(){
-    const entry = prompt("Nuevo producto (puedes pegar varias líneas):");
-    if(!entry) return;
-    pushUndo("add-word");
-    const cur = toLines(byId("vocabTxt") ? byId("vocabTxt").value : "");
-    const add = toLines(entry);
-    const merged = uniqueVocab(cur.concat(add));
-    if(byId("vocabTxt")) byId("vocabTxt").value = merged.join("\n");
-    persistAllDebounced();
+  function hookGlobalSearch(){
+    const inp = safeEl("globalSearch");
+    if(!inp) return;
+    inp.addEventListener("input", debounce(()=>unifyGlobal(), 180), {passive:true});
   }
 
-  function refreshStoresFlags(){
-    const vocab = getVocabCached();
-    ["sp","sl","st"].forEach(code=>{
-      const rows = state.stores[code]||[];
-      rows.forEach(r=>{
-        const nm = applySynonyms(r.e);
-        r.e = nm;
-        const exact = vocab.find(v => normKey(v)===normKey(nm));
-        r.a = exact ? false : true;
-      });
-      state.stores[code] = sumDuplicatesRows(rows);
-    });
-    persistAllDebounced();
-  }
-
-  function saveVocabAndSyn(){
-    pushUndo("save-vocab-syn");
-
-    const v = byId("vocabTxt");
-    const s = byId("synTxt");
-
-    if(v){
-      const lines = uniqueVocab(toLines(v.value||""));
-      v.value = lines.join("\n");
-      localStorage.setItem(LS.VOCAB, v.value);
-      VOCAB_CACHE = null; VOCAB_SIG = null;
-    }
-
-    state.synonyms = parseSynonymsText(s ? s.value : "");
-    if(s) localStorage.setItem(LS.SYN, String(s.value||""));
-
-    refreshStoresFlags();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
-    alert("Guardado ✅");
-  }
-
-  function showTab(key){
-    const tabs = ["dic","tiendas","global","proveedores","productos"];
-    tabs.forEach(k=>{
-      const sec = byId("tab-"+k);
-      const btn = byId("btn-"+k);
-      if(sec) sec.style.display = (k===key) ? "block" : "none";
-      if(btn) btn.classList.toggle("active", k===key);
-    });
-
-    if(key==="global"){
-      idle(()=>{ buildProvBar(); unifyGlobal(); });
-    }
-    if(key==="proveedores"){
-      idle(()=>{ renderProvidersPanels(); });
-    }
-    if(key==="productos"){
-      idle(()=>{ refreshProductsProvFilter(); renderProductsTable(); });
-    }
-  }
-
-  function toggleFab(forceHide){
-    const m = byId("fabMenu");
-    if(!m) return;
-    if(forceHide){ m.classList.remove("show"); return; }
-    m.classList.toggle("show");
-  }
-
-  function hookFAB(){
-    const fab = byId("fab");
-    const menu = byId("fabMenu");
-    if(!fab || !menu) return;
-
-    fab.onclick = () => toggleFab(false);
-    document.addEventListener("click", (e)=>{
-      if(!menu.contains(e.target) && e.target!==fab) toggleFab(true);
-    }, {capture:true});
-
-    menu.querySelectorAll(".fab-item").forEach(btn=>{
-      btn.onclick = ()=>{
-        const a = btn.getAttribute("data-action");
-        if(a==="unify"){ unifyGlobal(); }
-        if(a==="undo"){ undo(); }
-        if(a==="backup"){ saveBackup(); }
-        if(a==="copyGlobal"){ copyGlobal(); }
-        toggleFab(true);
-      };
-    });
-  }
-
-  function integrityCheck(){
-    let ok = true;
-    if(!state.providers || !state.providers.length) ok = false;
-    if(!state.stores || typeof state.stores!=="object") ok = false;
-    if(!state.orders || typeof state.orders!=="object") ok = false;
-
-    const pill = byId("pillIntegrity");
-    if(pill){
-      pill.className = "pill " + (ok ? "ok" : "warn");
-      pill.textContent = ok ? "OK" : "REVISAR";
-    }
-    return ok;
-  }
-
-  function hardRefreshUI(){
-    updateBackupPill();
-    refreshProductsProvFilter();
-    buildProvBar();
-    hookGlobalSearch();
-    unifyGlobal();
-    renderProvidersPanels();
-    renderProductsTable();
-
-    const sel = byId("selStore");
-    const code = sel ? sel.value : "sp";
-    const storeInput = byId("storeInput");
-    if(storeInput) storeInput.value = storeToTextarea(code);
-    renderStoreTable(code);
-
-    integrityCheck();
-  }
-
-  /* ---------------- Load ---------------- */
-  function load(){
-    const savedTheme = localStorage.getItem(LS.THEME) ||
-      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    applyTheme(savedTheme);
-
-    const vocabSaved = localStorage.getItem(LS.VOCAB) || "";
-    const synSaved = localStorage.getItem(LS.SYN) || "";
-    if(byId("vocabTxt")) byId("vocabTxt").value = vocabSaved;
-    if(byId("synTxt")) byId("synTxt").value = synSaved;
-
-    state.vocab = uniqueVocab(toLines(vocabSaved));
-    state.synonyms = parseSynonymsText(synSaved);
-
-    try{ state.stores = JSON.parse(localStorage.getItem(LS.STORES)||"{}"); }catch{ state.stores = {sp:[],sl:[],st:[]}; }
-    if(!state.stores || typeof state.stores!=="object") state.stores = {sp:[],sl:[],st:[]};
-    ["sp","sl","st"].forEach(k=>{ if(!Array.isArray(state.stores[k])) state.stores[k]=[]; });
-
-    try{ state.providers = JSON.parse(localStorage.getItem(LS.PROVS)||"[]"); }catch{ state.providers = []; }
-    if(!Array.isArray(state.providers) || !state.providers.length) state.providers = DEFAULT_PROVS.slice();
-    state.activeProv = state.providers[0];
-
-    try{ state.assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||"{}"); }catch{ state.assignments = {}; }
-    try{ state.orders = JSON.parse(localStorage.getItem(LS.ORDERS)||"{}"); }catch{ state.orders = {}; }
-    ensureOrdersBuckets();
-
-    try{ state.catalog = JSON.parse(localStorage.getItem(LS.CATALOG)||"{}"); }catch{ state.catalog = {}; }
-    if(!state.catalog || typeof state.catalog!=="object") state.catalog = {};
-
-    try{ state.undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||"[]"); }catch{ state.undoStack = []; }
-    if(!Array.isArray(state.undoStack)) state.undoStack = [];
-
-    const pillMode = byId("pillMode");
-    if(pillMode) pillMode.textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
-
-    updateBackupPill();
-    integrityCheck();
-  }
-
-  /* ---------------- UI wiring (SAFE) ---------------- */
   function hookUI(){
     document.querySelectorAll(".tabbar button[data-tab]").forEach(btn=>{
       btn.onclick = ()=> showTab(btn.getAttribute("data-tab"));
     });
 
-    const bTheme = byId("btnTheme"); if(bTheme) bTheme.onclick = toggleTheme;
-    const bUndoTop = byId("btnUndoTop"); if(bUndoTop) bUndoTop.onclick = undo;
-    const bBackup = byId("btnBackup"); if(bBackup) bBackup.onclick = saveBackup;
-    const bReset = byId("btnSafeReset"); if(bReset) bReset.onclick = safeReset;
+    onClick("btnTheme", toggleTheme);
+    onClick("btnUndoTop", undo);
+    onClick("btnBackup", saveBackup);
+    onClick("btnSafeReset", safeReset);
 
-    const bAddWord = byId("btnAddWord"); if(bAddWord) bAddWord.onclick = addWord;
-    const bSaveVocab = byId("btnSaveVocab"); if(bSaveVocab) bSaveVocab.onclick = saveVocabAndSyn;
+    onClick("btnAddWord", addWord);
+    onClick("btnSaveVocab", saveVocabAndSyn);
 
-    const bExportJSON = byId("btnExportJSON"); if(bExportJSON) bExportJSON.onclick = exportJSON;
-    const bImportJSON = byId("btnImportJSON"); if(bImportJSON) bImportJSON.onclick = ()=> { const f=byId("fileImport"); if(f) f.click(); };
-    const fileImport = byId("fileImport");
-    if(fileImport){
-      fileImport.addEventListener("change", (e)=>{
+    onClick("btnExportJSON", exportJSON);
+    onClick("btnImportJSON", ()=> { const f = safeEl("fileImport"); if(f) f.click(); });
+    if(safeEl("fileImport")){
+      safeEl("fileImport").addEventListener("change", (e)=>{
         const f = e.target.files && e.target.files[0];
         if(f) importJSONFile(f);
         e.target.value = "";
       });
     }
 
-    const bStoreTXT = byId("btnStoreTXT"); if(bStoreTXT) bStoreTXT.onclick = ()=>{ const s=byId("selStore"); storeExportTXT(s?s.value:"sp"); };
-    const bStoreWA = byId("btnStoreWA"); if(bStoreWA) bStoreWA.onclick = ()=>{ const s=byId("selStore"); storeSendWA(s?s.value:"sp"); };
-    const bStoreSave = byId("btnStoreSave"); if(bStoreSave) bStoreSave.onclick = ()=>{ pushUndo("store-save"); const s=byId("selStore"); const code=s?s.value:"sp"; const t=byId("storeInput"); if(t) t.value = storeToTextarea(code); alert("Guardado en textarea ✅"); };
-    const bMerge = byId("btnMergeStoreDup"); if(bMerge) bMerge.onclick = mergeStoreDuplicatesCurrent;
+    onClick("btnStoreTXT", ()=> storeExportTXT(safeEl("selStore") ? safeEl("selStore").value : "sp"));
+    onClick("btnStoreWA", ()=> storeSendWA(safeEl("selStore") ? safeEl("selStore").value : "sp"));
+    onClick("btnStoreSave", ()=>{
+      pushUndo("store-save-to-textarea");
+      const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
+      if(safeEl("storeInput")) safeEl("storeInput").value = storeToTextarea(code);
+      alert("Guardado en textarea ✅");
+    });
+    onClick("btnMergeStoreDup", mergeStoreDuplicatesCurrent);
 
-    const bUnify = byId("btnUnify"); if(bUnify) bUnify.onclick = ()=>{ pushUndo("unify"); unifyGlobal(); };
-    const bCopyG = byId("btnCopyGlobal"); if(bCopyG) bCopyG.onclick = copyGlobal;
-    const bTxtG = byId("btnTXTGlobal"); if(bTxtG) bTxtG.onclick = exportGlobalTXT;
-    const bXlsxG = byId("btnXLSXGlobal"); if(bXlsxG) bXlsxG.onclick = exportGlobalXLSX;
-    const bResG = byId("btnResumenGlobal"); if(bResG) bResG.onclick = exportResumenGlobalTXT;
+    onClick("btnUnify", ()=>{ pushUndo("unify"); unifyGlobal(); });
+    onClick("btnCopyGlobal", copyGlobal);
+    onClick("btnTXTGlobal", exportGlobalTXT);
+    onClick("btnXLSXGlobal", exportGlobalXLSX);
+    onClick("btnResumenGlobal", exportResumenGlobalTXT);
 
-    const bUndoAssign = byId("btnUndoAssign"); if(bUndoAssign) bUndoAssign.onclick = undoAssign;
+    onClick("btnUndoAssign", undoAssign);
 
-    const bScan = byId("btnScanProducts"); if(bScan) bScan.onclick = scanProductsFromPurchases;
-    const bExpP = byId("btnExportPrices"); if(bExpP) bExpP.onclick = exportPricesJSON;
-    const bImpP = byId("btnImportPrices"); if(bImpP) bImpP.onclick = ()=>{ const f=byId("fileImportPrices"); if(f) f.click(); };
-    const fileImpP = byId("fileImportPrices");
-    if(fileImpP){
-      fileImpP.addEventListener("change", (e)=>{
+    onClick("btnAddProv", addProviderQuick);
+    onClick("btnManageProv", openProvModal);
+    onClick("btnCloseProv", closeProvModal);
+    onClick("btnProvCancel", closeProvModal);
+
+    onChange("selReparto", renderReparto);
+    onClick("btnRepartoTXT", exportRepartoTXT);
+    onClick("btnRepartoWA", sendRepartoWA);
+
+    onClick("btnScanProducts", scanProductsFromPurchases);
+    onClick("btnExportPrices", exportPricesJSON);
+    onClick("btnImportPrices", ()=> { const f = safeEl("fileImportPrices"); if(f) f.click(); });
+    if(safeEl("fileImportPrices")){
+      safeEl("fileImportPrices").addEventListener("change", (e)=>{
         const f = e.target.files && e.target.files[0];
         if(f) importPricesJSONFile(f);
         e.target.value = "";
       });
     }
 
-    const prodSearch = byId("prodSearch");
-    if(prodSearch) prodSearch.addEventListener("input", debounce(renderProductsTable, 180), {passive:true});
-    const prodFilter = byId("prodProvFilter");
-    if(prodFilter) prodFilter.addEventListener("change", renderProductsTable, {passive:true});
+    onInput("prodSearch", debounce(renderProductsTable, 180));
+    onChange("prodProvFilter", renderProductsTable);
 
     hookGlobalSearch();
     hookStoreAuto();
     hookFAB();
 
     window.addEventListener("resize", debounce(()=>{
-      const pillMode = byId("pillMode");
-      if(pillMode) pillMode.textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+      const mode = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+      setText("pillMode", mode);
     }, 200), {passive:true});
   }
 
-  /* ---------------- Init ---------------- */
+  /* --------------------------
+     INIT
+  -------------------------- */
   load();
   hookUI();
   showTab("dic");
