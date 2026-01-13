@@ -1,330 +1,187 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>ARSLAN LISTAS PRO v4.0 — Kiwi Orders + Catalog</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARSLAN LISTAS v4.0 — KIWI MOBILE TABS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-  <!-- Topbar -->
-  <header class="topbar">
+  <!-- Topbar fija -->
+  <div class="topbar">
     <div class="left">
-      <h1>🍈 ARSLAN LISTAS PRO v4.0</h1>
-      <span class="pill">Pedidos + Catálogo + Proveedores + Reparto</span>
+      <h1>🍈 ARSLAN LISTAS v4.0 — KIWI MOBILE TABS</h1>
+      <span class="pill">Modo móvil optimizado</span>
+      <span class="pill ok" id="pillAutosave">Auto-guardado</span>
     </div>
+    <button class="theme-toggle" id="btnTheme" title="Cambiar tema">🌗 Tema</button>
+  </div>
 
-    <div class="right">
-      <button class="theme-toggle" id="btnTheme" title="Cambiar tema">🌗 Tema</button>
-      <button class="btn muted small" id="btnUndo" title="Deshacer (Ctrl+Z)">↩️</button>
-      <button class="btn muted small" id="btnRedo" title="Rehacer (Ctrl+Y)">↪️</button>
-    </div>
-  </header>
-
-  <!-- Avisos -->
-  <div class="banner" id="banner" style="display:none"></div>
-
-  <!-- Contenedor -->
-  <main class="container">
+  <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo recomendado: <b>Catálogo</b> → <b>Pedidos</b> (destinos) → <b>Global</b> (asignar proveedor) → <b>Proveedores</b> (TXT/WhatsApp) → <b>Reparto</b>
+      Flujo: Diccionario → Pedidos (Tiendas + Hoteles) → Global (Unificar/Asignar) → Proveedores → Reparto
     </div>
 
-    <!-- TAB: CATÁLOGO -->
-    <section class="tab" id="tab-catalogo">
+    <!-- ========== TAB: Diccionario ========== -->
+    <section class="tab" id="tab-dic">
       <div class="card">
         <div class="hd">
-          <strong>🏷️ Catálogo de productos (precios + historial + unidades)</strong>
+          <strong>📚 Vocabulario estandarizado (editable)</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnCatAdd">+ Producto</button>
-            <button class="btn muted" id="btnCatImport">⬆️ Importar</button>
-            <button class="btn muted" id="btnCatExport">⬇️ Exportar</button>
-            <button class="btn muted" id="btnRepair">🧰 Reparar datos</button>
+            <button class="btn ghost" id="btnNewWord">+ Nuevo producto</button>
+            <button class="btn ghost" id="btnSaveVocab">Guardar vocabulario</button>
+            <button class="btn muted" id="btnResetAll">🧹 Limpiar todo</button>
           </div>
         </div>
-
         <div class="bd">
-          <div class="grid-2">
-            <div>
-              <label class="lbl">Buscar producto</label>
-              <input class="inp" id="catSearch" placeholder="Escribe para buscar (ej: TOMATE, LIMON)..." />
-              <div class="hint">Consejo: el catálogo alimenta autocompletado, duplicados y precios.</div>
-            </div>
-
-            <div>
-              <label class="lbl">Proveedor para ver precios</label>
-              <div class="row">
-                <select class="inp" id="catProvSel"></select>
-                <button class="btn muted small" id="btnProvManage">⚙️ Proveedores</button>
-              </div>
-              <div class="hint">Cada producto puede tener precio distinto por proveedor + historial.</div>
-            </div>
+          <div class="hint" style="margin-bottom:6px">
+            Un producto por línea. Normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
           </div>
+          <textarea id="vocabTxt"></textarea>
+        </div>
+      </div>
 
-          <div class="divider"></div>
-
-          <div id="catTableWrap" class="scroll-x"></div>
+      <!-- ✅ Mejora #7 Seguridad/calidad: Backup -->
+      <div class="card">
+        <div class="hd">
+          <strong>🧯 Backups y seguridad</strong>
+          <div class="toolbar">
+            <button class="btn muted" id="btnBackupNow">💾 Backup ahora</button>
+            <button class="btn muted" id="btnRestoreBackup">♻️ Restaurar backup</button>
+            <button class="btn muted" id="btnRepairData">🛠️ Reparar datos</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint">
+            Backups automáticos por sesión + manual. “Reparar” limpia datos corruptos y normaliza keys.
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- TAB: DICCIONARIO -->
-    <section class="tab" id="tab-dic" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>📚 Vocabulario (estandarización)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" id="btnWordAdd">+ Nuevo</button>
-            <button class="btn ghost" id="btnWordSave">Guardar</button>
-            <button class="btn muted" id="btnResetAll">🧹 Reset total</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">Un producto por línea. Se normaliza a MAYÚSCULAS sin tildes. Evita duplicados.</div>
-          <textarea id="vocabTxt" spellcheck="false"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: PEDIDOS (DESTINOS) -->
+    <!-- ========== TAB: Pedidos (Tiendas + Hoteles) ========== -->
     <section class="tab" id="tab-pedidos" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>🧾 Pedidos por destino (tiendas + hoteles/restaurantes)</strong>
+          <strong>🧾 Pedidos activos</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnDestAdd">+ Añadir destino</button>
-            <button class="btn muted" id="btnDestManage">⚙️ Gestionar</button>
-            <button class="btn muted" id="btnPasteQuick">⚡ Pegar rápido</button>
+            <button class="btn ghost" id="btnAddExtraOrder">+ Añadir pedido (hotel/cliente)</button>
+            <button class="btn muted" id="btnManageExtras">⚙️ Gestionar extras</button>
           </div>
         </div>
-
         <div class="bd">
-          <div class="grid-2">
-            <div>
-              <label class="lbl">Destino</label>
-              <div class="row">
-                <select class="inp" id="destSel"></select>
-                <button class="btn small muted" id="btnDestWhats">📲 WhatsApp</button>
-                <button class="btn small muted" id="btnDestTXT">📄 TXT</button>
-              </div>
-              <div class="hint">Si un destino no tiene pedido, no aparecerá en Reparto.</div>
-            </div>
-
-            <div>
-              <label class="lbl">Opciones</label>
-              <div class="row wrap">
-                <button class="btn ghost" id="btnEstand">Estandarizar</button>
-                <button class="btn" id="btnSaveDest">Guardar destino</button>
-                <button class="btn muted" id="btnClearDest">Vaciar</button>
-              </div>
-              <div class="hint">
-                Cantidades inteligentes: “2 cajas”, “22 kg”, “3x2”, “1/2”, “x4”. Unidades: kg/caja/ud/manojo/saco.
-              </div>
-            </div>
+          <div class="hint">
+            Aquí están las 3 fruterías y los pedidos extra (Riviera, Braseros…). Si no hay extras activos, no se muestran.
           </div>
-
-          <textarea id="destInput" placeholder="Pega aquí el pedido del destino seleccionado..."></textarea>
-          <div class="hint" style="margin-top:6px">Edita en la tabla: OK = verde, Revisar/duplicado = rojo. Autocompletado activo.</div>
-          <div id="destTableWrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
+
+      <div class="grid-3" id="ordersGrid"></div>
     </section>
 
-    <!-- TAB: GLOBAL -->
+    <!-- ========== TAB: Global ========== -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>🧮 Global (compra total) + Asignación a proveedores</strong>
+          <strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" id="btnUnify">Unificar destinos seleccionados</button>
-            <button class="btn" id="btnAssignAllOk">✅ Asignar TODO lo OK</button>
-            <button class="btn muted" id="btnGlobalTXT">📄 TXT visible</button>
-            <button class="btn muted" id="btnGlobalXLSX">📊 Excel</button>
-            <button class="btn muted" id="btnCopyGlobal">📋 Copiar</button>
-            <button class="btn muted" id="btnResumen">🧾 TXT Global</button>
+            <button class="btn ghost" id="btnUnify">Unificar (selección)</button>
+            <button class="btn muted" id="btnGlobalTXT">TXT visible</button>
+            <button class="btn muted" id="btnGlobalXLSX">Excel</button>
+            <button class="btn" id="btnGlobalResume">📄 TXT Global (asignados + pendientes)</button>
+            <button class="btn muted" id="btnCopyGlobal">Copiar</button>
+            <button class="btn ghost" id="btnAssignAllOk">✅ Asignar TODO OK</button>
+            <button class="btn muted" id="btnUndo">↩️ Deshacer</button>
+            <button class="btn muted" id="btnRedo">↪️ Rehacer</button>
           </div>
         </div>
 
         <div class="bd">
-          <div class="grid-2">
-            <div>
-              <label class="lbl">Destinos a incluir en compra</label>
-              <div id="destFilterWrap" class="chips"></div>
-              <div class="hint">Puedes incluir solo hoteles o solo tiendas, o todo.</div>
-            </div>
+          <div class="hint">
+            ✅ asigna al proveedor activo. Duplicados probables se marcan en rojo (⚠️). Undo/Redo incluido.
+          </div>
 
-            <div>
-              <label class="lbl">Proveedor activo</label>
-              <div class="row">
-                <div id="provBar" class="prov-bar"></div>
-                <button class="btn muted small" id="btnPrevProv" title="Volver a proveedor anterior">↩️ Prov</button>
-              </div>
-              <div class="hint">
-                Menos toques: Swipe → asignar / Swipe ← deshacer. Teclado: Enter asigna, Ctrl+Z undo.
+          <!-- ✅ Mejora #1 menos toques: filtros -->
+          <div class="card" style="margin-top:10px">
+            <div class="bd">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="hint">Proveedor activo:</span>
+                <div class="prov-bar" id="provBar"></div>
+
+                <span class="hint" style="margin-left:10px">Buscar:</span>
+                <input id="globalSearch" class="mini-input" placeholder="tomate, naranja, aguacate..." />
+
+                <button class="btn small muted" id="btnToggleOnlyUnassigned">👁️ Solo sin asignar</button>
+                <button class="btn small muted" id="btnToggleOnlyDup">⚠️ Solo duplicados</button>
               </div>
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="grid-2">
-            <div>
-              <label class="lbl">Buscar en global</label>
-              <input class="inp" id="globalSearch" placeholder="Filtra global... (ej: TOMATE)" />
-            </div>
-            <div>
-              <label class="lbl">Pendientes</label>
-              <div class="hint" id="pendingInfo">—</div>
-            </div>
-          </div>
-
-          <div id="globalWrap" class="scroll-x" style="margin-top:10px"></div>
+          <div id="global_wrap" class="scroll-x" style="margin-top:10px"></div>
         </div>
       </div>
     </section>
 
-    <!-- TAB: PROVEEDORES -->
+    <!-- ========== TAB: Proveedores ========== -->
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
         <div class="hd">
-          <strong>📦 Pedidos por proveedor (salida TXT/WhatsApp)</strong>
+          <strong>📦 Distribución por proveedor</strong>
           <div class="toolbar">
-            <button class="btn muted" id="btnClearOrders">🧹 Limpiar pedidos proveedor</button>
-            <button class="btn muted" id="btnProvExportAll">⬇️ Exportar todo</button>
+            <button class="btn muted" id="btnPricesCatalog">💶 Catálogo precios</button>
+            <button class="btn muted" id="btnImportProviders">➕ Añadir proveedores</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">Aquí ves lo asignado a cada proveedor desde Global. Puedes editar cantidades y nombres.</div>
-          <div id="provPanels" class="grid-3" style="margin-top:8px"></div>
+          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
         </div>
       </div>
-    </section>
 
-    <!-- TAB: REPARTO -->
-    <section class="tab" id="tab-reparto" style="display:none">
-      <div class="card">
+      <!-- ✅ Reparto (por tienda y por pedido extra) -->
+      <div class="card" style="margin-top:12px">
         <div class="hd">
-          <strong>🚚 Reparto por destino (lo que se entrega a cada uno)</strong>
+          <strong>🚚 Reparto (por destino)</strong>
           <div class="toolbar">
-            <button class="btn small" id="btnRepWhats">📲 WhatsApp</button>
-            <button class="btn small muted" id="btnRepTXT">📄 TXT</button>
-            <button class="btn small muted" id="btnRepPrices">€ Precios</button>
-          </div>
-        </div>
-
-        <div class="bd">
-          <div class="grid-2">
-            <div>
-              <label class="lbl">Selecciona destino</label>
-              <select class="inp" id="repSel"></select>
-              <div class="hint">Solo aparecen destinos con pedido.</div>
-            </div>
-
-            <div>
-              <label class="lbl">Modo</label>
-              <div class="row wrap">
-                <button class="btn muted small" id="btnRepOnlyChecked">✅ Solo seleccionados</button>
-                <button class="btn muted small" id="btnRepAll">📦 Ver todo</button>
-                <button class="btn muted small" id="btnRepAuto">🧠 Auto-selección</button>
-              </div>
-              <div class="hint">Puedes seleccionar líneas para preparar entrega. Incluye precio si lo activas.</div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div id="repWrap" class="scroll-x"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: AJUSTES -->
-    <section class="tab" id="tab-ajustes" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>🛡️ Seguridad + calidad + backups</strong>
-          <div class="toolbar">
-            <button class="btn muted" id="btnBackupNow">💾 Backup ahora</button>
-            <button class="btn muted" id="btnRestore">♻️ Restaurar</button>
-            <button class="btn muted" id="btnExportJSON">⬇️ Exportar JSON</button>
-            <button class="btn muted" id="btnImportJSON">⬆️ Importar JSON</button>
+            <button class="btn small" id="btnSendSplitWA">📲 WhatsApp</button>
+            <button class="btn small muted" id="btnExportSplitTXT">📄 TXT</button>
           </div>
         </div>
         <div class="bd">
-          <div class="grid-2">
-            <div class="card inner">
-              <div class="hd"><strong>Calidad de datos</strong></div>
-              <div class="bd">
-                <div class="row wrap">
-                  <button class="btn muted" id="btnValidate">✅ Validar</button>
-                  <button class="btn muted" id="btnFixUnits">🔁 Recalcular unidades</button>
-                  <button class="btn muted" id="btnDedup">🧠 Detectar duplicados</button>
-                </div>
-                <div class="hint" id="healthInfo" style="margin-top:8px">—</div>
-              </div>
-            </div>
-
-            <div class="card inner">
-              <div class="hd"><strong>Atajos</strong></div>
-              <div class="bd">
-                <div class="hint">
-                  <b>Global:</b> Enter asigna | Ctrl+Z deshacer | Ctrl+Y rehacer | 1-9 cambia proveedor | / enfoca búsqueda<br>
-                  <b>Móvil:</b> Swipe → asigna | Swipe ← deshacer
-                </div>
-              </div>
-            </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+            <select id="selDestino" class="mini-select"></select>
+            <span class="hint">Marca líneas para enviar. Puedes poner precios.</span>
           </div>
-
-          <div class="divider"></div>
-
-          <div class="hint">
-            Nota: se guardan backups automáticos (rotativos) y validación para evitar datos corruptos.
-          </div>
+          <div id="split_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
-  </main>
+  </div>
 
-  <!-- Tabbar -->
-  <nav class="tabbar">
-    <button id="btn-catalogo" class="active" data-tab="catalogo">🏷️<span>Catálogo</span></button>
-    <button id="btn-dic" data-tab="dic">📚<span>Dicc</span></button>
-    <button id="btn-pedidos" data-tab="pedidos">🧾<span>Pedidos</span></button>
-    <button id="btn-global" data-tab="global">🧮<span>Global</span></button>
-    <button id="btn-proveedores" data-tab="proveedores">📦<span>Proveedores</span></button>
-    <button id="btn-reparto" data-tab="reparto">🚚<span>Reparto</span></button>
-    <button id="btn-ajustes" data-tab="ajustes">🛡️<span>Ajustes</span></button>
-  </nav>
-
-  <!-- FAB -->
+  <!-- FAB Global -->
   <button class="fab" id="fab" title="Acciones rápidas" style="display:none">⚙️</button>
   <div class="fab-menu" id="fabMenu">
     <button class="fab-item" id="fabUnify">🔄 Unificar</button>
-    <button class="fab-item" id="fabAssignAll">✅ Asignar OK</button>
-    <button class="fab-item" id="fabResumen">🧾 TXT Global</button>
+    <button class="fab-item" id="fabAssignAll">✅ Asignar TODO OK</button>
+    <button class="fab-item" id="fabTXT">📄 TXT visible</button>
+    <button class="fab-item" id="fabXLSX">📊 Excel</button>
+    <button class="fab-item" id="fabCopy">📋 Copiar</button>
     <button class="fab-item" id="fabUndo">↩️ Deshacer</button>
   </div>
 
-  <!-- Modal simple -->
-  <div class="modal" id="modal" style="display:none">
-    <div class="modal-card">
-      <div class="modal-hd">
-        <strong id="modalTitle">—</strong>
-        <button class="btn muted small" id="modalClose">✖</button>
-      </div>
-      <div class="modal-bd" id="modalBody"></div>
-    </div>
-  </div>
+  <!-- Tabbar móvil -->
+  <nav class="tabbar">
+    <button id="btn-dic" class="active" data-tab="dic">📚<span>Diccionario</span></button>
+    <button id="btn-pedidos" data-tab="pedidos">🧾<span>Pedidos</span></button>
+    <button id="btn-global" data-tab="global">🧮<span>Global</span></button>
+    <button id="btn-proveedores" data-tab="proveedores">📦<span>Proveedores</span></button>
+  </nav>
 
-  <input type="file" id="fileInput" style="display:none" />
-
-  <script src="./app.js"></script>
+  <!-- JS en 3 partes -->
+  <script src="./app.part1.core.js"></script>
+  <script src="./app.part2.ui.js"></script>
+  <script src="./app.part3.features.js"></script>
 </body>
 </html>
