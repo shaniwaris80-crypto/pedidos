@@ -1770,6 +1770,14 @@
 
     byId("btnAddWord").onclick = addWord;
     byId("btnSaveVocab").onclick = saveVocabAndSyn;
+     // ✅ ACTUALIZA AUTOCOMPLETAR EN VIVO (sin esperar a guardar)
+if(byId("vocabTxt")){
+  byId("vocabTxt").addEventListener("input", debounce(()=>{
+    rebuildCachesFromText();
+    rebuildVocabDatalist();
+  }, 250), {passive:true});
+}
+
 
     byId("btnExportJSON").onclick = exportJSON;
     byId("btnImportJSON").onclick = ()=> byId("fileImport").click();
