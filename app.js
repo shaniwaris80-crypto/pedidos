@@ -372,8 +372,20 @@ UVA BLANCA PRIMERA`;
    Load/Save vocab
 ========================== */
 function loadVocab(){
-  const saved = localStorage.getItem(LS.VOCAB);
-  const base = saved && saved.trim() ? saved : OFFICIAL_VOCAB_RAW;
+  function loadVocab(){
+  const saved = localStorage.getItem(LS.VOCAB) || '';
+  // ✅ SIEMPRE unir OFFICIAL + SAVED (por si saved quedó incompleto)
+  const merged = uniqueVocab(
+    toLines(OFFICIAL_VOCAB_RAW).concat(toLines(saved))
+  );
+  byId('vocabTxt').value = merged.join('\n');
+
+  // cache
+  VOCAB_CACHE = merged;
+  VOCAB_CACHE_SIG = (byId('vocabTxt').value||'').length + '|merged';
+  return merged;
+}
+
   const list = uniqueVocab(toLines(base));
   byId('vocabTxt').value = list.join('\n');
   VOCAB_CACHE = list; VOCAB_SIG = (byId('vocabTxt').value||'').length + '|seed';
