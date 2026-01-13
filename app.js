@@ -1,46 +1,26 @@
 /* ==========================
-   ARSLAN LISTAS v3.5 — KIWI PRO (FIXED NO-ERROR)
-   - Productos/Precios con historial
+   ARSLAN LISTAS v3.5 — KIWI PRO (FIXED)
+   - Carga vocab SIEMPRE + Datalist global para autocompletar
+   - Autocorrección mejorada al editar nombre (exact + sinónimos + fuzzy)
+   - Inputs estables (no contenteditable) en tablas para evitar errores
    - Cantidades inteligentes + unidades
-   - Auto-estandarizar (menos toques)
+   - Auto-estandarizar en Tiendas (menos toques)
    - Undo general + Undo asignación proveedor
-   - Duplicados + equivalencias (sinónimos)
-   - Añadir proveedores (UI)
-   - Seguridad: backups, export/import JSON, reset BORRAR
-   - UX móvil: selector tienda + tabbar + FAB
-   - FIX: Carga vocabulario SIEMPRE (si está vacío, seed)
-   - FIX: Ningún handler rompe por null/undefined
-   - FIX: XLSX opcional (si no existe, aviso sin crash)
+   - Duplicados + equivalencias
+   - Añadir proveedores + seguridad/backups + export/import
 ========================== */
 
-window.addEventListener("DOMContentLoaded", () => {
+(() => {
   /* --------------------------
-     Helpers / DOM (SAFE)
+     Helpers / DOM
   -------------------------- */
   const $ = (q) => document.querySelector(q);
   const byId = (id) => document.getElementById(id);
-
-  function safeEl(id){ return byId(id) || null; }
-  function setText(id, txt){ const el = safeEl(id); if(el) el.textContent = String(txt); }
-  function setHTML(id, html){ const el = safeEl(id); if(el) el.innerHTML = String(html); }
-  function onClick(id, fn){
-    const el = safeEl(id);
-    if(el) el.addEventListener("click", fn);
-  }
-  function onInput(id, fn){
-    const el = safeEl(id);
-    if(el) el.addEventListener("input", fn, {passive:true});
-  }
-  function onChange(id, fn){
-    const el = safeEl(id);
-    if(el) el.addEventListener("change", fn, {passive:true});
-  }
-
   const nowISO = () => new Date().toISOString();
   const todayISO = () => new Date().toISOString().slice(0,10);
 
   const toLines = (t) => String(t||"")
-    .split(/\r?\n/g)
+    .split(/\r?\n|,/g)
     .map(x=>x.trim())
     .filter(Boolean);
 
@@ -52,7 +32,7 @@ window.addEventListener("DOMContentLoaded", () => {
     };
   };
 
-  const idle = (cb) => (window.requestIdleCallback ? requestIdleCallback(()=>cb(), {timeout:250}) : setTimeout(cb, 1));
+  const idle = (cb) => (window.requestIdleCallback ? requestIdleCallback(cb) : setTimeout(cb, 1));
 
   function removeDiacriticsUpper(s){
     return String(s||"")
@@ -84,23 +64,11 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   /* --------------------------
-     Defaults (seed)
+     Defaults / Constants
   -------------------------- */
-  const DEFAULT_PROVS = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO"];
-  const DEFAULT_VOCAB_SEED = [
-    "PLATANO CANARIO","PLATANO MACHO VERDE","PLATANO MACHO MADURO","GUINDILLA","LIMON","LIMA",
-    "TOMATE DANIELA","TOMATE PERA","TOMATE RAMA","TOMATE CHERRY","CEBOLLA","CEBOLLA MORADA",
-    "PATATA","ZANAHORIA","LECHUGA ICEBERG","LECHUGA BATAVIA","BROCOLI","PIMIENTO VERDE","PIMIENTO ROJO",
-    "MANZANA GOLDEN","MANZANA GRANNY","PERA CONFERENCIA","NARANJA ZUMO","MANGO","AGUACATE HASS","AGUACATE TROPICAL"
-  ].join("\n");
-
-  const DEFAULT_SYN_SEED = [
-    "GUNDEYA = GUINDILLA",
-    "PINA = PIÑA"
-  ].join("\n");
-
-  const IGNORE_WORDS = ["caja","cajas","kg","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
-  const MATCH_THRESHOLD = 0.78;
+  const DEFAULT_PROVS = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
+  const IGNORE_WORDS = ["caja","cajas","kg","kgs","kilo","kilos","uds","ud","u","unidad","unidades","manojo","manojos","saco","sacos"];
+  const MATCH_THRESHOLD = 0.78; // fuzzy mínimo
   const SIM_DUP_THRESHOLD = 0.86;
 
   const STORE_META = {
@@ -117,28 +85,28 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let state = {
     vocab: [],
-    synonyms: {},
-    stores: { sp:[], sl:[], st:[] },
+    synonyms: {},         // { ORIGKEY : DESTNAME }
+    stores: { sp:[], sl:[], st:[] }, // rows {o,e,q,u,a}
     providers: [],
     activeProv: "",
-    assignments: {},
-    orders: {},
-    catalog: {},
-    reparto: {},
-    undoStack: [],
-    assignUndo: []
+    assignments: {},      // { normKey(product)+"||unit" : provider }
+    orders: {},           // { provider : [{name, qty, unit}] }
+    catalog: {},          // { normKey(name)+"||unit" : { name, unit, prices:[], last:null } }
+    reparto: {},          // {store:[{name,qty,unit,price,checked}] } (no persist)
+    undoStack: [],        // snapshots
+    assignUndo: []        // actions for undo assignment
   };
 
   /* --------------------------
      Theme
   -------------------------- */
   function applyTheme(t){
-    document.documentElement.setAttribute("data-theme", t==="dark" ? "dark" : "light");
-    localStorage.setItem(LS.THEME, t==="dark" ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", t==="dark"?"dark":"light");
+    localStorage.setItem(LS.THEME, t);
   }
   function toggleTheme(){
     const cur = localStorage.getItem(LS.THEME) || "light";
-    applyTheme(cur==="light" ? "dark" : "light");
+    applyTheme(cur==="light"?"dark":"light");
   }
 
   /* --------------------------
@@ -153,8 +121,8 @@ window.addEventListener("DOMContentLoaded", () => {
       activeProv: state.activeProv,
       assignments: JSON.parse(JSON.stringify(state.assignments)),
       orders: JSON.parse(JSON.stringify(state.orders)),
-      vocabText: safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : "",
-      synText: safeEl("synTxt") ? String(safeEl("synTxt").value||"") : "",
+      vocabText: byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "",
+      synText: byId("synTxt") ? String(byId("synTxt").value||"") : "",
       catalog: JSON.parse(JSON.stringify(state.catalog))
     };
   }
@@ -167,18 +135,6 @@ window.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack));
     }catch{}
   }
-
-  function persistAll(){
-    if(safeEl("vocabTxt")) localStorage.setItem(LS.VOCAB, String(safeEl("vocabTxt").value||""));
-    if(safeEl("synTxt")) localStorage.setItem(LS.SYN, String(safeEl("synTxt").value||""));
-    localStorage.setItem(LS.STORES, JSON.stringify(state.stores));
-    localStorage.setItem(LS.PROVS, JSON.stringify(state.providers));
-    localStorage.setItem(LS.ASSIGN, JSON.stringify(state.assignments));
-    localStorage.setItem(LS.ORDERS, JSON.stringify(state.orders));
-    localStorage.setItem(LS.CATALOG, JSON.stringify(state.catalog));
-    localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack||[]));
-  }
-  const persistAllDebounced = debounce(persistAll, 250);
 
   function undo(){
     const stack = state.undoStack || [];
@@ -197,23 +153,49 @@ window.addEventListener("DOMContentLoaded", () => {
     state.orders = snap.orders || {};
     state.catalog = snap.catalog || {};
 
-    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = snap.vocabText || safeEl("vocabTxt").value;
-    if(safeEl("synTxt")) safeEl("synTxt").value = snap.synText || safeEl("synTxt").value;
-
-    // recargar synonyms
-    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
+    if(byId("vocabTxt")) byId("vocabTxt").value = snap.vocabText || byId("vocabTxt").value;
+    if(byId("synTxt")) byId("synTxt").value = snap.synText || byId("synTxt").value;
 
     persistAll();
+    rebuildCachesFromText();      // ✅ recargar vocab/syn en memoria
+    rebuildVocabDatalist();       // ✅ autocompletar actualizado
     hardRefreshUI();
   }
 
+  function saveBackup(){
+    pushUndo("backup-before");
+    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
+    const b = { at: nowISO(), data: exportAllDataObject() };
+    backups.unshift(b);
+    const trimmed = backups.slice(0,7);
+    localStorage.setItem(LS.BACKUPS, JSON.stringify(trimmed));
+    updateBackupPill();
+    alert("Backup guardado ✅");
+  }
+
+  function updateBackupPill(){
+    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
+    const pill = byId("pillBackups");
+    if(pill) pill.textContent = String(backups.length);
+  }
+
+  function safeReset(){
+    const v = prompt("Escribe BORRAR para limpiar todo (reset seguro):");
+    if(v !== "BORRAR") return;
+    localStorage.clear();
+    location.reload();
+  }
+
+  /* --------------------------
+     Export/Import JSON (sistema completo)
+  -------------------------- */
   function exportAllDataObject(){
     return {
       version: "v3.5",
       exportedAt: nowISO(),
       theme: localStorage.getItem(LS.THEME) || "light",
-      vocab: safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : "",
-      synonyms: safeEl("synTxt") ? String(safeEl("synTxt").value||"") : "",
+      vocab: byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "",
+      synonyms: byId("synTxt") ? String(byId("synTxt").value||"") : "",
       stores: state.stores,
       providers: state.providers,
       activeProv: state.activeProv,
@@ -230,28 +212,6 @@ window.addEventListener("DOMContentLoaded", () => {
     a.href = URL.createObjectURL(blob);
     a.download = filename;
     a.click();
-  }
-
-  function saveBackup(){
-    pushUndo("backup-before");
-    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
-    const b = { at: nowISO(), data: exportAllDataObject() };
-    backups.unshift(b);
-    localStorage.setItem(LS.BACKUPS, JSON.stringify(backups.slice(0,7)));
-    updateBackupPill();
-    alert("Backup guardado ✅");
-  }
-
-  function updateBackupPill(){
-    const backups = JSON.parse(localStorage.getItem(LS.BACKUPS)||"[]");
-    setText("pillBackups", String(backups.length));
-  }
-
-  function safeReset(){
-    const v = prompt("Escribe BORRAR para limpiar todo (reset seguro):");
-    if(v !== "BORRAR") return;
-    localStorage.clear();
-    location.reload();
   }
 
   function exportJSON(){
@@ -276,14 +236,14 @@ window.addEventListener("DOMContentLoaded", () => {
   function applyImportedObject(obj){
     pushUndo("import-json");
 
-    if(obj && obj.theme) applyTheme(obj.theme);
+    if(obj.theme) applyTheme(obj.theme);
 
-    if(safeEl("vocabTxt") && typeof obj.vocab==="string"){
-      safeEl("vocabTxt").value = obj.vocab;
+    if(byId("vocabTxt") && typeof obj.vocab==="string"){
+      byId("vocabTxt").value = obj.vocab;
       localStorage.setItem(LS.VOCAB, obj.vocab);
     }
-    if(safeEl("synTxt") && typeof obj.synonyms==="string"){
-      safeEl("synTxt").value = obj.synonyms;
+    if(byId("synTxt") && typeof obj.synonyms==="string"){
+      byId("synTxt").value = obj.synonyms;
       localStorage.setItem(LS.SYN, obj.synonyms);
     }
 
@@ -293,18 +253,32 @@ window.addEventListener("DOMContentLoaded", () => {
     state.assignments = obj.assignments || {};
     state.orders = obj.orders || {};
     state.catalog = obj.catalog || {};
+
     if(Array.isArray(obj.backups)){
       localStorage.setItem(LS.BACKUPS, JSON.stringify(obj.backups.slice(0,7)));
     }
 
-    // reload synonyms + vocab cache reset
-    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
-    VOCAB_CACHE = null; VOCAB_SIG = null;
-
-    ensureOrdersBuckets();
     persistAll();
+    rebuildCachesFromText();      // ✅ recarga vocab/syn
+    rebuildVocabDatalist();       // ✅ autocompletar
+    refreshStoresFlags();         // ✅ revalida OK/REVISAR
     hardRefreshUI();
   }
+
+  /* --------------------------
+     Persist
+  -------------------------- */
+  function persistAll(){
+    localStorage.setItem(LS.VOCAB, byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "");
+    localStorage.setItem(LS.SYN, byId("synTxt") ? String(byId("synTxt").value||"") : "");
+    localStorage.setItem(LS.STORES, JSON.stringify(state.stores));
+    localStorage.setItem(LS.PROVS, JSON.stringify(state.providers));
+    localStorage.setItem(LS.ASSIGN, JSON.stringify(state.assignments));
+    localStorage.setItem(LS.ORDERS, JSON.stringify(state.orders));
+    localStorage.setItem(LS.CATALOG, JSON.stringify(state.catalog));
+    localStorage.setItem(LS.UNDO, JSON.stringify(state.undoStack||[]));
+  }
+  const persistAllDebounced = debounce(persistAll, 250);
 
   /* --------------------------
      Vocab + Synonyms (CARGA SIEMPRE)
@@ -320,42 +294,26 @@ window.addEventListener("DOMContentLoaded", () => {
     return out;
   }
 
-  function ensureVocabSeed(){
-    const stored = localStorage.getItem(LS.VOCAB);
-    const hasStored = stored && String(stored).trim().length > 0;
+  function rebuildCachesFromText(){
+    // ✅ Siempre reconstruye desde los textareas actuales
+    const vocabTxt = byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "";
+    const synTxt = byId("synTxt") ? String(byId("synTxt").value||"") : "";
 
-    // Si no existe vocab en localStorage, lo sembramos
-    if(!hasStored){
-      localStorage.setItem(LS.VOCAB, DEFAULT_VOCAB_SEED);
-    }
+    const list = uniqueVocab(toLines(vocabTxt));
+    state.vocab = list;
 
-    // Si el textarea existe, lo llenamos
-    if(safeEl("vocabTxt")){
-      const v = localStorage.getItem(LS.VOCAB) || DEFAULT_VOCAB_SEED;
-      if(!String(safeEl("vocabTxt").value||"").trim()){
-        safeEl("vocabTxt").value = v;
-      }
-    }
-  }
+    VOCAB_CACHE = list;
+    VOCAB_SIG = vocabTxt.length + "|" + vocabTxt.slice(0,60) + "|" + vocabTxt.slice(-60);
 
-  function ensureSynSeed(){
-    const stored = localStorage.getItem(LS.SYN);
-    const hasStored = stored && String(stored).trim().length > 0;
-    if(!hasStored){
-      localStorage.setItem(LS.SYN, DEFAULT_SYN_SEED);
-    }
-    if(safeEl("synTxt")){
-      const v = localStorage.getItem(LS.SYN) || DEFAULT_SYN_SEED;
-      if(!String(safeEl("synTxt").value||"").trim()){
-        safeEl("synTxt").value = v;
-      }
-    }
+    state.synonyms = parseSynonymsText(synTxt);
   }
 
   function getVocabCached(){
-    const txt = safeEl("vocabTxt") ? String(safeEl("vocabTxt").value||"") : (localStorage.getItem(LS.VOCAB)||"");
+    const txt = byId("vocabTxt") ? String(byId("vocabTxt").value||"") : "";
     const sig = txt.length + "|" + txt.slice(0,60) + "|" + txt.slice(-60);
+
     if(VOCAB_CACHE && VOCAB_SIG===sig) return VOCAB_CACHE;
+
     const list = uniqueVocab(toLines(txt));
     VOCAB_CACHE = list;
     VOCAB_SIG = sig;
@@ -384,12 +342,31 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* --------------------------
+     ✅ DATALIST (AUTOCOMPLETAR)
+  -------------------------- */
+  function rebuildVocabDatalist(){
+    const dl = byId("vocabList");
+    if(!dl) return;
+    const vocab = getVocabCached();
+    dl.innerHTML = vocab.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
+  /* --------------------------
      Similarity (Dice + TokenSet)
   -------------------------- */
   function stripGenericWords(s){
     const tokens = normKey(s).split(" ").filter(t=>!IGNORE_WORDS.includes(String(t||"").toLowerCase()));
     return tokens.join(" ").trim();
   }
+
   function bigrams(str){
     const s = stripGenericWords(str);
     const arr=[];
@@ -425,6 +402,34 @@ window.addEventListener("DOMContentLoaded", () => {
       if(sc>best.score) best = {name:v, score:sc};
     });
     return best;
+  }
+
+  /* --------------------------
+     ✅ AUTOCORRECCIÓN AL EDITAR
+     - Si coincide exacto → ok
+     - Si sinónimo → aplica destino
+     - Si fuzzy >= threshold → autocorrige
+     - Si no → lo deja (REVISAR)
+  -------------------------- */
+  function autocorrectNameToVocab(rawName){
+    let nm = removeDiacriticsUpper(String(rawName||"").trim());
+    if(!nm) return {name:"", ok:false, changed:false};
+
+    nm = applySynonyms(nm);
+
+    const vocab = getVocabCached();
+    const exact = vocab.find(v => normKey(v)===normKey(nm));
+    if(exact){
+      const changed = exact !== nm;
+      return {name: exact, ok:true, changed};
+    }
+
+    const m = bestMatch(nm, vocab);
+    if(m.name && m.score >= MATCH_THRESHOLD){
+      return {name: m.name, ok:true, changed:true, score:m.score};
+    }
+
+    return {name: nm, ok:false, changed:false};
   }
 
   /* --------------------------
@@ -511,7 +516,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if(qty===null) qty = 1;
 
-    let name = cleanNameKeepLetters(s);
+    let name = s;
+    name = cleanNameKeepLetters(name);
+
     const tokens = name.split(" ").filter(t=>{
       const low = t.toLowerCase();
       return !IGNORE_WORDS.includes(low);
@@ -521,12 +528,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     name = applySynonyms(name);
 
-    return {
-      original: removeDiacriticsUpper(String(raw)),
-      name,
-      qty,
-      unit
-    };
+    return { original: removeDiacriticsUpper(String(raw)), name, qty, unit };
   }
 
   /* --------------------------
@@ -553,21 +555,13 @@ window.addEventListener("DOMContentLoaded", () => {
       const p = parseLineSmart(line);
       if(!p) return;
 
-      const exact = vocab.find(v => normKey(v)===normKey(p.name));
-      if(exact){
-        rows.push({o:p.original, e: exact, q: p.qty, u: p.unit || "", a:false});
-        return;
-      }
-
-      const m = bestMatch(p.name, vocab);
-      if(m.name && m.score >= MATCH_THRESHOLD){
-        rows.push({o:p.original, e:m.name, q:p.qty, u: p.unit || "", a:true});
-      }else{
-        rows.push({o:p.original, e: removeDiacriticsUpper(p.name), q:p.qty, u: p.unit || "", a:true});
-      }
+      // ✅ autocorrige con el sistema nuevo
+      const ac = autocorrectNameToVocab(p.name);
+      rows.push({o:p.original, e: ac.name, q: p.qty, u: p.unit || "", a: !ac.ok});
     });
 
-    state.stores[code] = sumDuplicatesRows(rows);
+    const merged = sumDuplicatesRows(rows);
+    state.stores[code] = merged;
     persistAllDebounced();
   }
 
@@ -575,7 +569,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const rows = state.stores[code]||[];
     return rows.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${r.e} ${fmtQty(r.q)}${u}`;
+      return `${r.e} ${r.q}${u}`;
     }).join("\n");
   }
 
@@ -586,9 +580,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if(!ok.length){ alert("Aún hay productos por revisar (en rojo)."); return; }
     const txt = ok.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${fmtQty(r.q)} ${r.e}${u}`;
+      return `${r.q} ${r.e}${u}`;
     }).join("\n");
-    downloadText(txt, `${code}_estandarizado_${todayISO()}.txt`);
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${code}_estandarizado_${todayISO()}.txt`;
+    a.click();
   }
 
   function storeSendWA(code){
@@ -598,7 +596,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if(!ok.length){ alert("Aún hay productos por revisar (en rojo)."); return; }
     const lines = ok.map(r=>{
       const u = r.u ? ` ${r.u}` : "";
-      return `${fmtQty(r.q)} ${r.e}${u}`;
+      return `${r.q} ${r.e}${u}`;
     }).join("\n");
     const meta = STORE_META[code];
     const msg = encodeURIComponent(`🛒 *Pedido ${meta.name}*\n\n${lines}\n\nGracias`);
@@ -627,8 +625,7 @@ window.addEventListener("DOMContentLoaded", () => {
       .sort((a,b)=> (a.name + a.unit).localeCompare(b.name + b.unit, "es"));
 
     const visible = globalAll.filter(it => !state.assignments[normKey(it.name) + "||" + (it.unit||"")]);
-
-    const q = normKey(safeEl("globalSearch") ? safeEl("globalSearch").value : "");
+    const q = normKey(byId("globalSearch") ? byId("globalSearch").value : "");
     globalRows = q ? visible.filter(x => normKey(x.name).includes(q)) : visible;
 
     renderGlobalTable();
@@ -650,11 +647,21 @@ window.addEventListener("DOMContentLoaded", () => {
     return similarSet;
   }
 
-  function renderGlobalTable(){
-    const wrap = safeEl("globalWrap");
-    if(safeEl("pillGlobalCount")) setText("pillGlobalCount", String(globalRows.length));
-    if(!wrap) return;
+  function fmtQty(n){
+    const x = Number(n)||0;
+    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+    return x.toFixed(2);
+  }
 
+  /* --------------------------
+     ✅ Render Global con INPUT + DATALIST (AUTOCOMPLETE)
+  -------------------------- */
+  function renderGlobalTable(){
+    const wrap = byId("globalWrap");
+    const pill = byId("pillGlobalCount");
+    if(pill) pill.textContent = String(globalRows.length);
+
+    if(!wrap) return;
     if(!globalRows.length){
       wrap.innerHTML = `<div class="hint">Sin productos (todo asignado o vacío).</div>`;
       return;
@@ -679,9 +686,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
       html += `<tr data-i="${idx}" class="${isSimilar?'dupRow':''}">
         <td><button class="ok-assign" data-assign="${idx}">✅</button></td>
-        <td contenteditable="true" data-f="name">${escapeHTML(r.name)}${isSimilar?`<span class="flag">⚠️</span>`:""}</td>
-        <td contenteditable="true" data-f="total">${escapeHTML(fmtQty(r.total))}</td>
-        <td contenteditable="true" data-f="unit">${escapeHTML(r.unit||"")}</td>
+        <td>
+          <input class="cellInput ${isSimilar?'warn':'ok'}" list="vocabList" data-gname="${idx}" value="${escapeHtml(r.name)}" />
+          ${isSimilar?`<span class="flag">⚠️</span>`:""}
+        </td>
+        <td><input class="cellInput small" data-gtotal="${idx}" value="${escapeHtml(fmtQty(r.total))}" /></td>
+        <td><input class="cellInput small" data-gunit="${idx}" value="${escapeHtml(r.unit||"")}" /></td>
         <td>${isSimilar?`<span class="pill warn">Posible duplicado</span>`:`<span class="pill ok">OK</span>`}</td>
         <td>${priceInfo}</td>
       </tr>`;
@@ -697,57 +707,54 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    wrap.querySelectorAll("td[contenteditable]").forEach(cell=>{
-      cell.addEventListener("blur", ()=>{
-        const tr = cell.closest("tr");
-        if(!tr) return;
-        const idx = Number(tr.getAttribute("data-i"));
-        const f = cell.getAttribute("data-f");
-        const val = String(cell.innerText||"").trim();
+    // ✅ Autocorrección al salir del input
+    wrap.querySelectorAll("input[data-gname]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        const idx = Number(inp.getAttribute("data-gname"));
         if(!globalRows[idx]) return;
 
-        if(f==="total"){
-          globalRows[idx].total = Number(String(val).replace(",", ".")) || 0;
-        }else if(f==="unit"){
-          globalRows[idx].unit = removeDiacriticsUpper(val);
-        }else{
-          globalRows[idx].name = applySynonyms(removeDiacriticsUpper(val));
-        }
+        pushUndo("edit-global-name");
+
+        const ac = autocorrectNameToVocab(inp.value);
+        globalRows[idx].name = ac.name;
+        inp.value = ac.name;
+        inp.classList.toggle("ok", ac.ok);
+        inp.classList.toggle("warn", !ac.ok);
 
         persistAllDebounced();
-        idle(()=>unifyGlobal());
+        idle(()=>{ unifyGlobal(); });
       }, {passive:true});
     });
-  }
 
-  function fmtQty(n){
-    const x = Number(n)||0;
-    if(Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
-    return x.toFixed(2);
-  }
+    wrap.querySelectorAll("input[data-gtotal]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        const idx = Number(inp.getAttribute("data-gtotal"));
+        if(!globalRows[idx]) return;
+        pushUndo("edit-global-total");
+        globalRows[idx].total = Number(String(inp.value).replace(",", ".")) || 0;
+        inp.value = fmtQty(globalRows[idx].total);
+        persistAllDebounced();
+        idle(()=>{ unifyGlobal(); });
+      }, {passive:true});
+    });
 
-  function escapeHTML(s){
-    return String(s||"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  function downloadText(txt, filename){
-    const blob = new Blob([txt], {type:"text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
+    wrap.querySelectorAll("input[data-gunit]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        const idx = Number(inp.getAttribute("data-gunit"));
+        if(!globalRows[idx]) return;
+        pushUndo("edit-global-unit");
+        globalRows[idx].unit = removeDiacriticsUpper(inp.value||"");
+        inp.value = globalRows[idx].unit;
+        persistAllDebounced();
+        idle(()=>{ unifyGlobal(); });
+      }, {passive:true});
+    });
   }
 
   /* --------------------------
      Providers / Assign / Undo assign
   -------------------------- */
   function ensureOrdersBuckets(){
-    if(!state.orders || typeof state.orders!=="object") state.orders = {};
     state.providers.forEach(p=>{
       if(!Array.isArray(state.orders[p])) state.orders[p] = [];
     });
@@ -760,7 +767,7 @@ window.addEventListener("DOMContentLoaded", () => {
     pushUndo("assign-from-global");
 
     const k = normKey(item.name) + "||" + (item.unit||"");
-    const prov = state.activeProv || (state.providers[0]||"");
+    const prov = state.activeProv;
 
     state.assignUndo.unshift({
       at: Date.now(),
@@ -814,13 +821,9 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildProvBar(){
-    const bar = safeEl("provBar");
+    const bar = byId("provBar");
     if(!bar) return;
     bar.innerHTML = "";
-
-    const ap = state.activeProv || (state.providers[0]||"");
-    state.activeProv = ap;
-    setText("activeProvName", state.activeProv);
 
     state.providers.forEach(p=>{
       const b = document.createElement("button");
@@ -828,15 +831,20 @@ window.addEventListener("DOMContentLoaded", () => {
       b.textContent = p;
       b.onclick = () => {
         state.activeProv = p;
-        setText("activeProvName", p);
+        byId("activeProvName").textContent = p;
         buildProvBar();
         persistAllDebounced();
         idle(()=>{ unifyGlobal(); renderProductsTable(); });
       };
       bar.appendChild(b);
     });
+
+    byId("activeProvName").textContent = state.activeProv || "";
   }
 
+  /* --------------------------
+     Providers panels (INPUT + AUTOCOMPLETE)
+  -------------------------- */
   function exportProvTXT(prov){
     const list = state.orders[prov] || [];
     if(!list.length){ alert("No hay líneas para " + prov); return; }
@@ -845,7 +853,12 @@ window.addEventListener("DOMContentLoaded", () => {
       .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
       .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
       .join("\n");
-    downloadText(txt, `pedido_${prov}_${todayISO()}.txt`);
+
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `pedido_${prov}_${todayISO()}.txt`;
+    a.click();
   }
 
   function sendProvWA(prov){
@@ -856,12 +869,13 @@ window.addEventListener("DOMContentLoaded", () => {
       .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"))
       .map(x => `${fmtQty(x.qty)} ${x.name}${x.unit?(" "+x.unit):""}`)
       .join("\n");
+
     const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}\n\nGracias`);
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
   function renderProvidersPanels(){
-    const cont = safeEl("provPanels");
+    const cont = byId("provPanels");
     if(!cont) return;
     cont.innerHTML = "";
 
@@ -875,10 +889,10 @@ window.addEventListener("DOMContentLoaded", () => {
       const hd = document.createElement("div");
       hd.className = "hd";
       hd.innerHTML = `
-        <strong>${escapeHTML(prov)}</strong>
+        <strong>${escapeHtml(prov)}</strong>
         <div class="toolbar">
-          <button class="btn small muted" data-ptxt="${escapeHTML(prov)}">📄 TXT</button>
-          <button class="btn small" data-pwa="${escapeHTML(prov)}">📲 WhatsApp</button>
+          <button class="btn small muted" data-ptxt="${escapeHtml(prov)}">📄 TXT</button>
+          <button class="btn small" data-pwa="${escapeHtml(prov)}">📲 WhatsApp</button>
         </div>
       `;
 
@@ -894,9 +908,11 @@ window.addEventListener("DOMContentLoaded", () => {
         list.forEach((it,ix)=>{
           const priceInfo = getLastPriceInfoFor(it.name, prov);
           html += `<tr>
-            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="name" class="green">${escapeHTML(it.name)}</td>
-            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="qty" class="green">${escapeHTML(fmtQty(it.qty))}</td>
-            <td contenteditable="true" data-prov="${escapeHTML(prov)}" data-idx="${ix}" data-f="unit" class="green">${escapeHTML(it.unit||"")}</td>
+            <td>
+              <input class="cellInput ok" list="vocabList" data-pname="${escapeHtml(prov)}" data-idx="${ix}" value="${escapeHtml(it.name)}" />
+            </td>
+            <td><input class="cellInput small" data-pqty="${escapeHtml(prov)}" data-idx="${ix}" value="${escapeHtml(fmtQty(it.qty))}" /></td>
+            <td><input class="cellInput small" data-punit="${escapeHtml(prov)}" data-idx="${ix}" value="${escapeHtml(it.unit||"")}" /></td>
             <td>${priceInfo}</td>
           </tr>`;
         });
@@ -904,30 +920,55 @@ window.addEventListener("DOMContentLoaded", () => {
         html += `</tbody></table></div>`;
         bd.innerHTML = html;
 
-        bd.querySelectorAll("td[contenteditable]").forEach(cell=>{
-          cell.addEventListener("blur", ()=>{
-            pushUndo("edit-provider-line");
-
-            const prov2 = cell.getAttribute("data-prov");
-            const idx = Number(cell.getAttribute("data-idx"));
-            const f = cell.getAttribute("data-f");
-            const val = String(cell.innerText||"").trim();
-
+        // ✅ autocorrección + persistencia
+        bd.querySelectorAll("input[data-pname]").forEach(inp=>{
+          inp.addEventListener("blur", ()=>{
+            pushUndo("edit-provider-name");
+            const prov2 = inp.getAttribute("data-pname");
+            const idx = Number(inp.getAttribute("data-idx"));
             if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
 
-            if(f==="qty"){
-              state.orders[prov2][idx].qty = Number(String(val).replace(",",".")) || 0;
-              if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
-            }else if(f==="unit"){
-              state.orders[prov2][idx].unit = removeDiacriticsUpper(val);
-            }else{
-              const nm = applySynonyms(removeDiacriticsUpper(val));
-              state.orders[prov2][idx].name = nm;
-              ensureCatalogEntry(nm, state.orders[prov2][idx].unit||"");
-            }
+            const ac = autocorrectNameToVocab(inp.value);
+            state.orders[prov2][idx].name = ac.name;
+            inp.value = ac.name;
+            inp.classList.toggle("ok", ac.ok);
+            inp.classList.toggle("warn", !ac.ok);
+
+            ensureCatalogEntry(ac.name, state.orders[prov2][idx].unit||"");
+            persistAllDebounced();
+            idle(()=>{ renderProvidersPanels(); renderProductsTable(); });
+          }, {passive:true});
+        });
+
+        bd.querySelectorAll("input[data-pqty]").forEach(inp=>{
+          inp.addEventListener("blur", ()=>{
+            pushUndo("edit-provider-qty");
+            const prov2 = inp.getAttribute("data-pqty");
+            const idx = Number(inp.getAttribute("data-idx"));
+            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
+
+            const n = Number(String(inp.value||"").replace(",","."));
+            state.orders[prov2][idx].qty = isNaN(n) ? 0 : n;
+            if(state.orders[prov2][idx].qty<=0) state.orders[prov2].splice(idx,1);
 
             persistAllDebounced();
             idle(()=>{ renderProvidersPanels(); });
+          }, {passive:true});
+        });
+
+        bd.querySelectorAll("input[data-punit]").forEach(inp=>{
+          inp.addEventListener("blur", ()=>{
+            pushUndo("edit-provider-unit");
+            const prov2 = inp.getAttribute("data-punit");
+            const idx = Number(inp.getAttribute("data-idx"));
+            if(!state.orders[prov2] || !state.orders[prov2][idx]) return;
+
+            state.orders[prov2][idx].unit = removeDiacriticsUpper(inp.value||"");
+            inp.value = state.orders[prov2][idx].unit;
+
+            ensureCatalogEntry(state.orders[prov2][idx].name, state.orders[prov2][idx].unit||"");
+            persistAllDebounced();
+            idle(()=>{ renderProvidersPanels(); renderProductsTable(); });
           }, {passive:true});
         });
       }
@@ -945,13 +986,12 @@ window.addEventListener("DOMContentLoaded", () => {
      Providers manage modal
   -------------------------- */
   function openProvModal(){
-    const modal = safeEl("modalProv");
-    const list = safeEl("provManageList");
-    if(!modal || !list) return;
-
     pushUndo("open-prov-modal");
 
+    const modal = byId("modalProv");
+    const list = byId("provManageList");
     modal.style.display = "flex";
+
     const draft = state.providers.slice();
 
     function renderDraft(){
@@ -960,7 +1000,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const row = document.createElement("div");
         row.className = "miniRow";
         row.innerHTML = `
-          <input value="${escapeHTML(p)}" data-i="${idx}" />
+          <input value="${escapeHtml(p)}" data-i="${idx}" />
           <button class="btn muted small" data-del="${idx}">Eliminar</button>
         `;
         list.appendChild(row);
@@ -979,7 +1019,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     renderDraft();
 
-    onClick("btnProvSave", () => {
+    byId("btnProvSave").onclick = () => {
       const arr = [];
       list.querySelectorAll("input[data-i]").forEach(inp=>{
         const v = String(inp.value||"").trim();
@@ -1021,14 +1061,13 @@ window.addEventListener("DOMContentLoaded", () => {
       persistAllDebounced();
       closeProvModal();
       hardRefreshUI();
-    });
+    };
 
-    onClick("btnProvCancel", closeProvModal);
+    byId("btnProvCancel").onclick = () => closeProvModal();
   }
 
   function closeProvModal(){
-    const modal = safeEl("modalProv");
-    if(modal) modal.style.display = "none";
+    byId("modalProv").style.display = "none";
   }
 
   function addProviderQuick(){
@@ -1045,8 +1084,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     state.providers.push(name);
     state.orders[name] = [];
-    if(!state.activeProv) state.activeProv = name;
-
     persistAllDebounced();
     hardRefreshUI();
   }
@@ -1064,18 +1101,15 @@ window.addEventListener("DOMContentLoaded", () => {
   function exportGlobalTXT(){
     if(!globalRows.length){ alert("No hay datos."); return; }
     const txt = globalRows.map(r => `${fmtQty(r.total)}\t${r.name}\t${r.unit||""}`).join("\n");
-    downloadText(txt, `lista_global_${todayISO()}.txt`);
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `lista_global_${todayISO()}.txt`;
+    a.click();
   }
 
   function exportGlobalXLSX(){
     if(!globalRows.length){ alert("No hay datos."); return; }
-
-    // XLSX puede no existir si CDN falla -> NO crash
-    if(typeof window.XLSX === "undefined"){
-      alert("No se pudo cargar XLSX (internet/CDN). Usa TXT por ahora.");
-      return;
-    }
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([["Producto","Total","Unidad"], ...globalRows.map(r=>[r.name, r.total, r.unit||""])]);
     XLSX.utils.book_append_sheet(wb, ws, "Global");
@@ -1119,27 +1153,32 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }else out += `- (sin líneas)\n`;
 
-    downloadText(out, `resumen_pedidos_${todayISO()}.txt`);
+    const blob = new Blob([out], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `resumen_pedidos_${todayISO()}.txt`;
+    a.click();
   }
 
   /* --------------------------
      Reparto
   -------------------------- */
   function renderReparto(){
-    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
-    const wrap = safeEl("repartoWrap");
+    const code = byId("selReparto").value;
+    const wrap = byId("repartoWrap");
+    const pill = byId("pillRepartoCount");
     if(!wrap) return;
 
     if(!code){
       wrap.innerHTML = `<div class="hint">Selecciona una tienda para ver su lista.</div>`;
-      setText("pillRepartoCount", "0");
+      if(pill) pill.textContent = "0";
       return;
     }
 
     const lista = state.stores[code] || [];
     if(!lista.length){
       wrap.innerHTML = `<div class="hint">Sin datos en esta tienda.</div>`;
-      setText("pillRepartoCount", "0");
+      if(pill) pill.textContent = "0";
       return;
     }
 
@@ -1147,7 +1186,7 @@ window.addEventListener("DOMContentLoaded", () => {
       state.reparto[code] = lista.map(x => ({ name:x.e, qty:x.q, unit:x.u||"", price:"", checked:false }));
     }
 
-    setText("pillRepartoCount", String(state.reparto[code].length));
+    if(pill) pill.textContent = String(state.reparto[code].length);
 
     let html = `<table><thead><tr>
       <th></th><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio (€)</th>
@@ -1156,10 +1195,10 @@ window.addEventListener("DOMContentLoaded", () => {
     state.reparto[code].forEach((r,i)=>{
       html += `<tr>
         <td><input type="checkbox" ${r.checked?"checked":""} data-rchk="${code}" data-i="${i}"></td>
-        <td>${escapeHTML(r.name)}</td>
-        <td>${escapeHTML(fmtQty(r.qty))}</td>
-        <td>${escapeHTML(r.unit||"")}</td>
-        <td contenteditable="true" data-rprice="${code}" data-i="${i}">${escapeHTML(r.price||"")}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td>${escapeHtml(fmtQty(r.qty))}</td>
+        <td>${escapeHtml(r.unit||"")}</td>
+        <td><input class="cellInput small" data-rprice="${code}" data-i="${i}" value="${escapeHtml(r.price||"")}" /></td>
       </tr>`;
     });
 
@@ -1174,19 +1213,20 @@ window.addEventListener("DOMContentLoaded", () => {
       };
     });
 
-    wrap.querySelectorAll("td[data-rprice]").forEach(td=>{
-      td.addEventListener("blur", ()=>{
-        const c = td.getAttribute("data-rprice");
-        const i = Number(td.getAttribute("data-i"));
-        const v = String(td.innerText||"").trim().replace(",",".");
+    wrap.querySelectorAll("input[data-rprice]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        const c = inp.getAttribute("data-rprice");
+        const i = Number(inp.getAttribute("data-i"));
+        const v = String(inp.value||"").trim().replace(",",".");
         const n = Number(v);
         state.reparto[c][i].price = isNaN(n) ? "" : n.toFixed(2);
+        inp.value = state.reparto[c][i].price;
       }, {passive:true});
     });
   }
 
   function exportRepartoTXT(){
-    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
+    const code = byId("selReparto").value;
     if(!code){ alert("Selecciona tienda."); return; }
     const sel = (state.reparto[code]||[]).filter(x=>x.checked);
     if(!sel.length){ alert("No hay seleccionados."); return; }
@@ -1197,11 +1237,15 @@ window.addEventListener("DOMContentLoaded", () => {
       return `${fmtQty(x.qty)} ${x.name}${u}${pr}`;
     }).join("\n");
 
-    downloadText(txt, `reparto_${code}_${todayISO()}.txt`);
+    const blob = new Blob([txt], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `reparto_${code}_${todayISO()}.txt`;
+    a.click();
   }
 
   function sendRepartoWA(){
-    const code = safeEl("selReparto") ? safeEl("selReparto").value : "";
+    const code = byId("selReparto").value;
     if(!code){ alert("Selecciona tienda."); return; }
     const sel = (state.reparto[code]||[]).filter(x=>x.checked);
     if(!sel.length){ alert("No hay seleccionados."); return; }
@@ -1236,7 +1280,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function getLastPriceInfoFor(name, prov){
     const k1 = normKey(name);
-    const keys = Object.keys(state.catalog||{});
+    const keys = Object.keys(state.catalog);
     let bestKey = null;
     for(const k of keys){
       if(k.startsWith(k1+"||")){ bestKey = k; break; }
@@ -1246,11 +1290,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const entry = state.catalog[bestKey];
     if(!entry || !entry.last) return `<span class="pill">sin precio</span>`;
 
-    const lastSame = (entry.prices||[]).slice().reverse().find(x=>x.prov===prov);
+    const lastSame = entry.prices.slice().reverse().find(x=>x.prov===prov);
     const last = lastSame || entry.last;
     if(!last) return `<span class="pill">sin precio</span>`;
 
-    return `<span class="pill ok">${Number(last.price).toFixed(2)}€</span><span class="pill"> ${escapeHTML(last.prov)}</span>`;
+    return `<span class="pill ok">${last.price.toFixed(2)}€</span><span class="pill"> ${escapeHtml(last.prov)}</span>`;
   }
 
   function scanProductsFromPurchases(){
@@ -1266,25 +1310,18 @@ window.addEventListener("DOMContentLoaded", () => {
     alert("Catálogo actualizado ✅");
   }
 
-  function refreshProductsProvFilter(){
-    const sel = safeEl("prodProvFilter");
-    if(!sel) return;
-    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join("");
-  }
-
   function renderProductsTable(){
-    const wrap = safeEl("prodWrap");
+    const wrap = byId("prodWrap");
+    const pill = byId("pillProdCount");
+    const q = normKey(byId("prodSearch") ? byId("prodSearch").value : "");
+    const provFilter = byId("prodProvFilter") ? byId("prodProvFilter").value : "";
     if(!wrap) return;
 
-    const pill = safeEl("pillProdCount");
-    const q = normKey(safeEl("prodSearch") ? safeEl("prodSearch").value : "");
-    const provFilter = safeEl("prodProvFilter") ? safeEl("prodProvFilter").value : "";
-
-    const entries = Object.entries(state.catalog||{}).map(([k,v])=>({key:k, ...v}));
+    const entries = Object.entries(state.catalog).map(([k,v])=>({key:k, ...v}));
     let filtered = entries;
 
     if(q) filtered = filtered.filter(x => normKey(x.name).includes(q));
-    if(provFilter) filtered = filtered.filter(x => (x.prices||[]).some(p=>p.prov===provFilter));
+    if(provFilter) filtered = filtered.filter(x => x.prices && x.prices.some(p=>p.prov===provFilter));
 
     filtered.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,"es"));
     if(pill) pill.textContent = String(filtered.length);
@@ -1305,18 +1342,18 @@ window.addEventListener("DOMContentLoaded", () => {
       </tr></thead><tbody>`;
 
     filtered.forEach((it)=>{
-      const hist = (it.prices||[]).slice(-3).reverse().map(p=>`${p.date} · ${p.prov} · ${Number(p.price).toFixed(2)}€`).join("<br>");
+      const hist = (it.prices||[]).slice(-3).reverse().map(p=>`${p.date} · ${p.prov} · ${p.price.toFixed(2)}€`).join("<br>");
       html += `<tr>
-        <td>${escapeHTML(it.name)}</td>
-        <td>${escapeHTML(it.unit||"")}</td>
+        <td>${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.unit||"")}</td>
         <td>
-          <select data-p-prov="${escapeHTML(it.key)}">
+          <select data-p-prov="${escapeHtml(it.key)}">
             <option value="">(elige)</option>
-            ${state.providers.map(p=>`<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join("")}
+            ${state.providers.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}
           </select>
         </td>
-        <td contenteditable="true" data-p-price="${escapeHTML(it.key)}" class="green"></td>
-        <td><button class="btn small" data-p-save="${escapeHTML(it.key)}">Guardar</button></td>
+        <td><input class="cellInput small" data-p-price="${escapeHtml(it.key)}" value="" placeholder="Ej: 1.25" /></td>
+        <td><button class="btn small" data-p-save="${escapeHtml(it.key)}">Guardar</button></td>
         <td>${hist || `<span class="pill">sin historial</span>`}</td>
       </tr>`;
     });
@@ -1328,10 +1365,9 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.onclick = () => {
         const key = btn.getAttribute("data-p-save");
         const sel = wrap.querySelector(`select[data-p-prov="${CSS.escape(key)}"]`);
-        const td = wrap.querySelector(`td[data-p-price="${CSS.escape(key)}"]`);
-
+        const inp = wrap.querySelector(`input[data-p-price="${CSS.escape(key)}"]`);
         const prov = sel ? sel.value : "";
-        const priceTxt = td ? String(td.innerText||"").trim().replace(",",".") : "";
+        const priceTxt = inp ? String(inp.value||"").trim().replace(",",".") : "";
         const price = Number(priceTxt);
 
         if(!prov){ alert("Elige proveedor."); return; }
@@ -1392,13 +1428,13 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* --------------------------
-     Store Table render
+     Store Table render (INPUT + AUTOCOMPLETE)
   -------------------------- */
   function renderStoreTable(code){
-    const wrap = safeEl("storeTableWrap");
+    const wrap = byId("storeTableWrap");
+    const rows = state.stores[code] || [];
     if(!wrap) return;
 
-    const rows = state.stores[code] || [];
     if(!rows.length){
       wrap.innerHTML = `<div class="hint">Pega una lista arriba.</div>`;
       return;
@@ -1415,10 +1451,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     rows.forEach((r,i)=>{
       html += `<tr data-i="${i}">
-        <td>${escapeHTML(r.o)}</td>
-        <td contenteditable="true" data-f="e" class="${r.a?'red':''}">${escapeHTML(r.e)}</td>
-        <td contenteditable="true" data-f="q">${escapeHTML(fmtQty(r.q))}</td>
-        <td contenteditable="true" data-f="u">${escapeHTML(r.u||"")}</td>
+        <td>${escapeHtml(r.o)}</td>
+        <td>
+          <input class="cellInput ${r.a?'warn':'ok'}" list="vocabList" data-se="${i}" value="${escapeHtml(r.e)}" />
+        </td>
+        <td><input class="cellInput small" data-sq="${i}" value="${escapeHtml(fmtQty(r.q))}" /></td>
+        <td><input class="cellInput small" data-su="${i}" value="${escapeHtml(r.u||"")}" /></td>
         <td>${r.a?`<span class="pill warn">Revisar</span>`:`<span class="pill ok">OK</span>`}</td>
       </tr>`;
     });
@@ -1426,30 +1464,52 @@ window.addEventListener("DOMContentLoaded", () => {
     html += `</tbody></table></div>`;
     wrap.innerHTML = html;
 
-    wrap.querySelectorAll("td[contenteditable]").forEach(td=>{
-      td.addEventListener("blur", ()=>{
-        pushUndo("edit-store-cell");
+    wrap.querySelectorAll("input[data-se]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        pushUndo("edit-store-name");
 
-        const tr = td.closest("tr");
-        if(!tr) return;
-        const idx = Number(tr.getAttribute("data-i"));
-        const f = td.getAttribute("data-f");
-        const val = String(td.innerText||"").trim();
-
+        const idx = Number(inp.getAttribute("data-se"));
         if(!state.stores[code] || !state.stores[code][idx]) return;
 
-        if(f==="q"){
-          state.stores[code][idx].q = Number(String(val).replace(",",".")) || 0;
-        }else if(f==="u"){
-          state.stores[code][idx].u = removeDiacriticsUpper(val);
-        }else{
-          const cleaned = applySynonyms(removeDiacriticsUpper(val));
-          state.stores[code][idx].e = cleaned;
+        const ac = autocorrectNameToVocab(inp.value);
+        state.stores[code][idx].e = ac.name;
+        state.stores[code][idx].a = !ac.ok;
 
-          const vocab = getVocabCached();
-          const exact = vocab.find(v => normKey(v)===normKey(cleaned));
-          state.stores[code][idx].a = exact ? false : true;
-        }
+        inp.value = ac.name;
+        inp.classList.toggle("ok", ac.ok);
+        inp.classList.toggle("warn", !ac.ok);
+
+        state.stores[code] = sumDuplicatesRows(state.stores[code]);
+        persistAllDebounced();
+        renderStoreTable(code);
+        idle(()=>unifyGlobal());
+      }, {passive:true});
+    });
+
+    wrap.querySelectorAll("input[data-sq]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        pushUndo("edit-store-qty");
+        const idx = Number(inp.getAttribute("data-sq"));
+        if(!state.stores[code] || !state.stores[code][idx]) return;
+
+        state.stores[code][idx].q = Number(String(inp.value).replace(",",".")) || 0;
+        inp.value = fmtQty(state.stores[code][idx].q);
+
+        state.stores[code] = sumDuplicatesRows(state.stores[code]);
+        persistAllDebounced();
+        renderStoreTable(code);
+        idle(()=>unifyGlobal());
+      }, {passive:true});
+    });
+
+    wrap.querySelectorAll("input[data-su]").forEach(inp=>{
+      inp.addEventListener("blur", ()=>{
+        pushUndo("edit-store-unit");
+        const idx = Number(inp.getAttribute("data-su"));
+        if(!state.stores[code] || !state.stores[code][idx]) return;
+
+        state.stores[code][idx].u = removeDiacriticsUpper(inp.value||"");
+        inp.value = state.stores[code][idx].u;
 
         state.stores[code] = sumDuplicatesRows(state.stores[code]);
         persistAllDebounced();
@@ -1460,7 +1520,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function mergeStoreDuplicatesCurrent(){
-    const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
+    const code = byId("selStore").value;
     pushUndo("merge-store-dups");
     state.stores[code] = sumDuplicatesRows(state.stores[code]||[]);
     persistAllDebounced();
@@ -1469,188 +1529,20 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* --------------------------
-     Diccionario actions
+     Global search hook
   -------------------------- */
-  function saveVocabAndSyn(){
-    pushUndo("save-vocab-syn");
-
-    const lines = uniqueVocab(toLines(safeEl("vocabTxt") ? safeEl("vocabTxt").value : ""));
-    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = lines.join("\n");
-    VOCAB_CACHE = null; VOCAB_SIG = null;
-
-    state.synonyms = parseSynonymsText(safeEl("synTxt") ? safeEl("synTxt").value : "");
-    persistAllDebounced();
-
-    refreshStoresFlags();
-    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
-
-    alert("Guardado ✅");
-  }
-
-  function addWord(){
-    const entry = prompt("Nuevo producto (puedes pegar varias líneas):");
-    if(!entry) return;
-    pushUndo("add-word");
-    const cur = toLines(safeEl("vocabTxt") ? safeEl("vocabTxt").value : "");
-    const add = toLines(entry);
-    const merged = uniqueVocab(cur.concat(add));
-    if(safeEl("vocabTxt")) safeEl("vocabTxt").value = merged.join("\n");
-    persistAllDebounced();
-  }
-
-  function refreshStoresFlags(){
-    const vocab = getVocabCached();
-    ["sp","sl","st"].forEach(code=>{
-      const rows = state.stores[code]||[];
-      rows.forEach(r=>{
-        const nm = applySynonyms(r.e);
-        r.e = nm;
-        const exact = vocab.find(v => normKey(v)===normKey(nm));
-        r.a = exact ? false : true;
-      });
-      state.stores[code] = sumDuplicatesRows(rows);
-    });
-    persistAllDebounced();
+  function hookGlobalSearch(){
+    const inp = byId("globalSearch");
+    if(!inp) return;
+    inp.addEventListener("input", debounce(()=>unifyGlobal(), 180), {passive:true});
   }
 
   /* --------------------------
-     UI Tabs + FAB
-  -------------------------- */
-  function showTab(key){
-    const tabs = ["dic","tiendas","global","proveedores","productos"];
-    tabs.forEach(k=>{
-      const sec = safeEl("tab-"+k);
-      const btn = safeEl("btn-"+k);
-      if(sec) sec.style.display = (k===key) ? "block" : "none";
-      if(btn) btn.classList.toggle("active", k===key);
-    });
-
-    if(key==="global") idle(()=>{ unifyGlobal(); buildProvBar(); });
-    if(key==="proveedores") idle(()=>{ renderProvidersPanels(); renderReparto(); });
-    if(key==="productos") idle(()=>{ refreshProductsProvFilter(); renderProductsTable(); });
-  }
-
-  function toggleFab(forceHide){
-    const m = safeEl("fabMenu");
-    if(!m) return;
-    if(forceHide){ m.classList.remove("show"); return; }
-    m.classList.toggle("show");
-  }
-
-  function hookFAB(){
-    const fab = safeEl("fab");
-    const menu = safeEl("fabMenu");
-    if(!fab || !menu) return;
-
-    fab.onclick = () => toggleFab(false);
-    document.addEventListener("click", (e)=>{
-      if(!menu.contains(e.target) && e.target!==fab) toggleFab(true);
-    }, {capture:true});
-
-    menu.querySelectorAll(".fab-item").forEach(btn=>{
-      btn.onclick = ()=>{
-        const a = btn.getAttribute("data-action");
-        if(a==="unify"){ pushUndo("unify"); unifyGlobal(); }
-        if(a==="undo"){ undo(); }
-        if(a==="backup"){ saveBackup(); }
-        if(a==="copyGlobal"){ copyGlobal(); }
-        toggleFab(true);
-      };
-    });
-  }
-
-  /* --------------------------
-     Integrity check
-  -------------------------- */
-  function integrityCheck(){
-    let ok = true;
-    if(!state.providers || !state.providers.length) ok = false;
-    if(!state.stores || typeof state.stores!=="object") ok = false;
-    if(!state.orders || typeof state.orders!=="object") ok = false;
-
-    const pill = safeEl("pillIntegrity");
-    if(pill){
-      pill.className = "pill " + (ok ? "ok" : "warn");
-      pill.textContent = ok ? "OK" : "REVISAR";
-    }
-    return ok;
-  }
-
-  /* --------------------------
-     Hard refresh UI
-  -------------------------- */
-  function hardRefreshUI(){
-    updateBackupPill();
-    refreshProductsProvFilter();
-    buildProvBar();
-    unifyGlobal();
-    renderProvidersPanels();
-    renderProductsTable();
-
-    const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
-    if(safeEl("storeInput")) safeEl("storeInput").value = storeToTextarea(code);
-    renderStoreTable(code);
-
-    const mode = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
-    setText("pillMode", mode);
-
-    integrityCheck();
-  }
-
-  /* --------------------------
-     Load / Init
-  -------------------------- */
-  function load(){
-    const savedTheme = localStorage.getItem(LS.THEME) ||
-      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    applyTheme(savedTheme);
-
-    // SEED vocab/syn para asegurar que siempre cargue
-    ensureVocabSeed();
-    ensureSynSeed();
-
-    // cargar en textarea desde LS (ya garantizado)
-    const vocabSaved = localStorage.getItem(LS.VOCAB) || DEFAULT_VOCAB_SEED;
-    const synSaved = localStorage.getItem(LS.SYN) || DEFAULT_SYN_SEED;
-
-// ✅ FORZAR VOCAB SIEMPRE (aunque algo lo haya vaciado)
-if (safeEl("vocabTxt") && !String(safeEl("vocabTxt").value || "").trim()) {
-  safeEl("vocabTxt").value = DEFAULT_VOCAB_SEED;
-  localStorage.setItem(LS.VOCAB, DEFAULT_VOCAB_SEED);
-}
-    if(safeEl("synTxt")) safeEl("synTxt").value = synSaved;
-
-    state.vocab = uniqueVocab(toLines(vocabSaved));
-    state.synonyms = parseSynonymsText(synSaved);
-
-    try{ state.stores = JSON.parse(localStorage.getItem(LS.STORES)||"{}"); }catch{ state.stores = {sp:[],sl:[],st:[]}; }
-    if(!state.stores || typeof state.stores!=="object") state.stores = {sp:[],sl:[],st:[]};
-    ["sp","sl","st"].forEach(k=>{ if(!Array.isArray(state.stores[k])) state.stores[k]=[]; });
-
-    try{ state.providers = JSON.parse(localStorage.getItem(LS.PROVS)||"[]"); }catch{ state.providers = []; }
-    if(!Array.isArray(state.providers) || !state.providers.length) state.providers = DEFAULT_PROVS.slice();
-    state.activeProv = state.providers[0];
-
-    try{ state.assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||"{}"); }catch{ state.assignments = {}; }
-    try{ state.orders = JSON.parse(localStorage.getItem(LS.ORDERS)||"{}"); }catch{ state.orders = {}; }
-    ensureOrdersBuckets();
-
-    try{ state.catalog = JSON.parse(localStorage.getItem(LS.CATALOG)||"{}"); }catch{ state.catalog = {}; }
-    if(!state.catalog || typeof state.catalog!=="object") state.catalog = {};
-
-    try{ state.undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||"[]"); }catch{ state.undoStack = []; }
-    if(!Array.isArray(state.undoStack)) state.undoStack = [];
-
-    updateBackupPill();
-    integrityCheck();
-  }
-
-  /* --------------------------
-     Hooks
+     Tiendas auto-estandarizar
   -------------------------- */
   function hookStoreAuto(){
-    const input = safeEl("storeInput");
-    const sel = safeEl("selStore");
+    const input = byId("storeInput");
+    const sel = byId("selStore");
     if(!input || !sel) return;
 
     const run = debounce(()=>{
@@ -1675,92 +1567,271 @@ if (safeEl("vocabTxt") && !String(safeEl("vocabTxt").value || "").trim()) {
     renderStoreTable(sel.value);
   }
 
-  function hookGlobalSearch(){
-    const inp = safeEl("globalSearch");
-    if(!inp) return;
-    inp.addEventListener("input", debounce(()=>unifyGlobal(), 180), {passive:true});
+  /* --------------------------
+     Diccionario actions
+  -------------------------- */
+  function saveVocabAndSyn(){
+    pushUndo("save-vocab-syn");
+
+    const lines = uniqueVocab(toLines(byId("vocabTxt").value||""));
+    byId("vocabTxt").value = lines.join("\n");
+
+    state.synonyms = parseSynonymsText(byId("synTxt").value||"");
+
+    VOCAB_CACHE = null;
+    VOCAB_SIG = null;
+
+    persistAllDebounced();
+
+    rebuildCachesFromText();      // ✅ recarga
+    rebuildVocabDatalist();       // ✅ autocompletar actualizado
+    refreshStoresFlags();         // ✅ recalcula OK/REVISAR
+    idle(()=>{ unifyGlobal(); renderProvidersPanels(); renderProductsTable(); });
+
+    alert("Guardado ✅");
   }
 
+  function addWord(){
+    const entry = prompt("Nuevo producto (puedes pegar varias líneas):");
+    if(!entry) return;
+    pushUndo("add-word");
+    const cur = toLines(byId("vocabTxt").value||"");
+    const add = toLines(entry);
+    const merged = uniqueVocab(cur.concat(add));
+    byId("vocabTxt").value = merged.join("\n");
+    persistAllDebounced();
+    rebuildVocabDatalist();
+  }
+
+  function refreshStoresFlags(){
+    const vocab = getVocabCached();
+    ["sp","sl","st"].forEach(code=>{
+      const rows = state.stores[code]||[];
+      rows.forEach(r=>{
+        const ac = autocorrectNameToVocab(r.e);
+        r.e = ac.name;
+        r.a = !ac.ok;
+      });
+      state.stores[code] = sumDuplicatesRows(rows);
+    });
+    persistAllDebounced();
+  }
+
+  /* --------------------------
+     Productos filter
+  -------------------------- */
+  function refreshProductsProvFilter(){
+    const sel = byId("prodProvFilter");
+    if(!sel) return;
+    sel.innerHTML = `<option value="">Proveedor (todos)</option>` + state.providers.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+  }
+
+  /* --------------------------
+     UI Tabs + FAB
+  -------------------------- */
+  function showTab(key){
+    const tabs = ["dic","tiendas","global","proveedores","productos"];
+    tabs.forEach(k=>{
+      const sec = byId("tab-"+k);
+      const btn = byId("btn-"+k);
+      if(sec) sec.style.display = (k===key) ? "block" : "none";
+      if(btn) btn.classList.toggle("active", k===key);
+    });
+
+    if(key==="global"){
+      idle(()=>{ unifyGlobal(); buildProvBar(); });
+    }
+    if(key==="proveedores"){
+      idle(()=>{ renderProvidersPanels(); });
+    }
+    if(key==="productos"){
+      idle(()=>{ refreshProductsProvFilter(); renderProductsTable(); });
+    }
+  }
+
+  function toggleFab(forceHide){
+    const m = byId("fabMenu");
+    if(forceHide){ m.classList.remove("show"); return; }
+    m.classList.toggle("show");
+  }
+
+  function hookFAB(){
+    const fab = byId("fab");
+    const menu = byId("fabMenu");
+    if(!fab || !menu) return;
+
+    fab.onclick = () => toggleFab(false);
+    document.addEventListener("click", (e)=>{
+      if(!menu.contains(e.target) && e.target!==fab) toggleFab(true);
+    }, {capture:true});
+
+    menu.querySelectorAll(".fab-item").forEach(btn=>{
+      btn.onclick = ()=>{
+        const a = btn.getAttribute("data-action");
+        if(a==="unify"){ unifyGlobal(); }
+        if(a==="undo"){ undo(); }
+        if(a==="backup"){ saveBackup(); }
+        if(a==="copyGlobal"){ copyGlobal(); }
+        toggleFab(true);
+      };
+    });
+  }
+
+  /* --------------------------
+     Integrity check
+  -------------------------- */
+  function integrityCheck(){
+    let ok = true;
+    if(!state.providers || !state.providers.length) ok = false;
+    if(!state.stores || typeof state.stores!=="object") ok = false;
+    if(!state.orders || typeof state.orders!=="object") ok = false;
+
+    const pill = byId("pillIntegrity");
+    if(pill){
+      pill.className = "pill " + (ok ? "ok" : "warn");
+      pill.textContent = ok ? "OK" : "REVISAR";
+    }
+    return ok;
+  }
+
+  /* --------------------------
+     Hard refresh UI
+  -------------------------- */
+  function hardRefreshUI(){
+    updateBackupPill();
+    refreshProductsProvFilter();
+    rebuildVocabDatalist();
+    buildProvBar();
+    hookGlobalSearch();
+    unifyGlobal();
+    renderProvidersPanels();
+    renderProductsTable();
+
+    const code = byId("selStore") ? byId("selStore").value : "sp";
+    if(byId("storeInput")) byId("storeInput").value = storeToTextarea(code);
+    renderStoreTable(code);
+
+    integrityCheck();
+  }
+
+  /* --------------------------
+     Load / Init
+  -------------------------- */
+  function load(){
+    const savedTheme = localStorage.getItem(LS.THEME) ||
+      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(savedTheme);
+
+    const vocabSaved = localStorage.getItem(LS.VOCAB) || "";
+    const synSaved = localStorage.getItem(LS.SYN) || "";
+
+    if(byId("vocabTxt")) byId("vocabTxt").value = vocabSaved;
+    if(byId("synTxt")) byId("synTxt").value = synSaved;
+
+    try{ state.stores = JSON.parse(localStorage.getItem(LS.STORES)||"{}"); }catch{ state.stores = {sp:[],sl:[],st:[]}; }
+    if(!state.stores || typeof state.stores!=="object") state.stores = {sp:[],sl:[],st:[]};
+    ["sp","sl","st"].forEach(k=>{ if(!Array.isArray(state.stores[k])) state.stores[k]=[]; });
+
+    try{ state.providers = JSON.parse(localStorage.getItem(LS.PROVS)||"[]"); }catch{ state.providers = []; }
+    if(!Array.isArray(state.providers) || !state.providers.length) state.providers = DEFAULT_PROVS.slice();
+    state.activeProv = state.providers[0];
+
+    try{ state.assignments = JSON.parse(localStorage.getItem(LS.ASSIGN)||"{}"); }catch{ state.assignments = {}; }
+    try{ state.orders = JSON.parse(localStorage.getItem(LS.ORDERS)||"{}"); }catch{ state.orders = {}; }
+    ensureOrdersBuckets();
+
+    try{ state.catalog = JSON.parse(localStorage.getItem(LS.CATALOG)||"{}"); }catch{ state.catalog = {}; }
+    if(!state.catalog || typeof state.catalog!=="object") state.catalog = {};
+
+    try{ state.undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||"[]"); }catch{ state.undoStack = []; }
+    if(!Array.isArray(state.undoStack)) state.undoStack = [];
+
+    // ✅ Carga SIEMPRE vocab/syn a memoria + datalist
+    rebuildCachesFromText();
+    rebuildVocabDatalist();
+
+    byId("pillMode").textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
+    updateBackupPill();
+    integrityCheck();
+  }
+
+  /* --------------------------
+     Hooks
+  -------------------------- */
   function hookUI(){
     document.querySelectorAll(".tabbar button[data-tab]").forEach(btn=>{
       btn.onclick = ()=> showTab(btn.getAttribute("data-tab"));
     });
 
-    onClick("btnTheme", toggleTheme);
-    onClick("btnUndoTop", undo);
-    onClick("btnBackup", saveBackup);
-    onClick("btnSafeReset", safeReset);
+    byId("btnTheme").onclick = toggleTheme;
+    byId("btnUndoTop").onclick = undo;
+    byId("btnBackup").onclick = saveBackup;
+    byId("btnSafeReset").onclick = safeReset;
 
-    onClick("btnAddWord", addWord);
-    onClick("btnSaveVocab", saveVocabAndSyn);
+    byId("btnAddWord").onclick = addWord;
+    byId("btnSaveVocab").onclick = saveVocabAndSyn;
 
-    onClick("btnExportJSON", exportJSON);
-    onClick("btnImportJSON", ()=> { const f = safeEl("fileImport"); if(f) f.click(); });
-    if(safeEl("fileImport")){
-      safeEl("fileImport").addEventListener("change", (e)=>{
-        const f = e.target.files && e.target.files[0];
-        if(f) importJSONFile(f);
-        e.target.value = "";
-      });
-    }
-
-    onClick("btnStoreTXT", ()=> storeExportTXT(safeEl("selStore") ? safeEl("selStore").value : "sp"));
-    onClick("btnStoreWA", ()=> storeSendWA(safeEl("selStore") ? safeEl("selStore").value : "sp"));
-    onClick("btnStoreSave", ()=>{
-      pushUndo("store-save-to-textarea");
-      const code = safeEl("selStore") ? safeEl("selStore").value : "sp";
-      if(safeEl("storeInput")) safeEl("storeInput").value = storeToTextarea(code);
-      alert("Guardado en textarea ✅");
+    byId("btnExportJSON").onclick = exportJSON;
+    byId("btnImportJSON").onclick = ()=> byId("fileImport").click();
+    byId("fileImport").addEventListener("change", (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(f) importJSONFile(f);
+      e.target.value = "";
     });
-    onClick("btnMergeStoreDup", mergeStoreDuplicatesCurrent);
 
-    onClick("btnUnify", ()=>{ pushUndo("unify"); unifyGlobal(); });
-    onClick("btnCopyGlobal", copyGlobal);
-    onClick("btnTXTGlobal", exportGlobalTXT);
-    onClick("btnXLSXGlobal", exportGlobalXLSX);
-    onClick("btnResumenGlobal", exportResumenGlobalTXT);
+    byId("btnStoreTXT").onclick = ()=> storeExportTXT(byId("selStore").value);
+    byId("btnStoreWA").onclick = ()=> storeSendWA(byId("selStore").value);
+    byId("btnStoreSave").onclick = ()=>{
+      pushUndo("store-save-to-textarea");
+      const code = byId("selStore").value;
+      byId("storeInput").value = storeToTextarea(code);
+      alert("Guardado en textarea ✅");
+    };
+    byId("btnMergeStoreDup").onclick = mergeStoreDuplicatesCurrent;
 
-    onClick("btnUndoAssign", undoAssign);
+    byId("btnUnify").onclick = ()=>{ pushUndo("unify"); unifyGlobal(); };
+    byId("btnCopyGlobal").onclick = copyGlobal;
+    byId("btnTXTGlobal").onclick = exportGlobalTXT;
+    byId("btnXLSXGlobal").onclick = exportGlobalXLSX;
+    byId("btnResumenGlobal").onclick = exportResumenGlobalTXT;
 
-    onClick("btnAddProv", addProviderQuick);
-    onClick("btnManageProv", openProvModal);
-    onClick("btnCloseProv", closeProvModal);
-    onClick("btnProvCancel", closeProvModal);
+    byId("btnUndoAssign").onclick = undoAssign;
 
-    onChange("selReparto", renderReparto);
-    onClick("btnRepartoTXT", exportRepartoTXT);
-    onClick("btnRepartoWA", sendRepartoWA);
+    byId("btnAddProv").onclick = addProviderQuick;
+    byId("btnManageProv").onclick = openProvModal;
+    byId("btnCloseProv").onclick = closeProvModal;
 
-    onClick("btnScanProducts", scanProductsFromPurchases);
-    onClick("btnExportPrices", exportPricesJSON);
-    onClick("btnImportPrices", ()=> { const f = safeEl("fileImportPrices"); if(f) f.click(); });
-    if(safeEl("fileImportPrices")){
-      safeEl("fileImportPrices").addEventListener("change", (e)=>{
-        const f = e.target.files && e.target.files[0];
-        if(f) importPricesJSONFile(f);
-        e.target.value = "";
-      });
-    }
+    byId("selReparto").addEventListener("change", renderReparto, {passive:true});
+    byId("btnRepartoTXT").onclick = exportRepartoTXT;
+    byId("btnRepartoWA").onclick = sendRepartoWA;
 
-    onInput("prodSearch", debounce(renderProductsTable, 180));
-    onChange("prodProvFilter", renderProductsTable);
+    byId("btnScanProducts").onclick = scanProductsFromPurchases;
+    byId("btnExportPrices").onclick = exportPricesJSON;
+    byId("btnImportPrices").onclick = ()=> byId("fileImportPrices").click();
+    byId("fileImportPrices").addEventListener("change", (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(f) importPricesJSONFile(f);
+      e.target.value = "";
+    });
+
+    byId("prodSearch").addEventListener("input", debounce(renderProductsTable, 180), {passive:true});
+    byId("prodProvFilter").addEventListener("change", renderProductsTable, {passive:true});
 
     hookGlobalSearch();
     hookStoreAuto();
     hookFAB();
 
     window.addEventListener("resize", debounce(()=>{
-      const mode = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
-      setText("pillMode", mode);
+      byId("pillMode").textContent = (window.innerWidth < 980) ? "Modo móvil" : "Modo escritorio";
     }, 200), {passive:true});
   }
 
   /* --------------------------
-     INIT
+     Init
   -------------------------- */
   load();
   hookUI();
   showTab("dic");
   idle(()=>hardRefreshUI());
 
-});
+})();
