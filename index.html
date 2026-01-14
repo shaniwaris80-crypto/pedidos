@@ -11,6 +11,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <style>
+  /* ✅ Turbo focus */
+tr.active-row { outline: 2px solid rgba(22,163,74,.35); outline-offset: -2px; }
+td.active-cell { box-shadow: inset 0 0 0 2px rgba(22,163,74,.35); border-radius: 8px; }
+
   :root{
     --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
     --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
@@ -1145,6 +1149,8 @@ function renderClientsUI(){
             <button class="btn small muted" onclick="exportarClienteTXT('${c.id}')">TXT</button>
             <button class="btn small muted" onclick="enviarClienteWhatsApp('${c.id}')">WhatsApp</button>
             <button class="btn small muted" onclick="deleteClient('${c.id}')">🗑️</button>
+            <input id="quickFind" class="quick-find" placeholder="Buscar producto… (Ctrl+F / /)" />
+
           </div>
         </div>
         <div class="bd">
@@ -2295,5 +2301,393 @@ function generarLinkRepartidor(){
   idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderClientsUI(); buildRepartoSelector(); rebuildPricesToday(); });
 })();
 </script>
+  /* ==========================
+   ✅ TURBO KEYBOARD / REDO / QUICK FIND
+   (añadir sin tocar funciones existentes)
+========================== */
+
+let redoStack = [];
+
+function pushUndoWithRedo(meta){
+  // usa tu pushUndo actual, pero además limpia redo
+  try{ pushUndo(meta); }catch{}
+  redoStack = [];
+}
+
+function redoLast(){
+  if(!redoStack.length){ alert('No hay nada para rehacer.'); return; }
+  const snap = redoStack.pop();
+  // el snap tiene la misma estructura que undo
+  tiendaState.sp = snap.tiendaState.sp||[];
+  tiendaState.sl = snap.tiendaState.sl||[];
+  tiendaState.st = snap.tiendaState.st||[];
+  clients = snap.clients||[];
+  assignments = snap.assignments||{};
+  orders = snap.orders||{};
+  pricesDB = snap.pricesDB || {};
+  persistState();
+  renderTable('sp'); renderTable('sl'); renderTable('st');
+  renderClientsUI();
+  unificarGlobal();
+  renderProvidersPanels();
+  rebuildPricesToday();
+  buildRepartoSelector();
+  renderRepartoTienda();
+  updateUndoPill?.();
+}
+
+// Hook: cuando haces undo, metemos el estado actual en redo
+const _undoLast = window.undoLast;
+window.undoLast = function(){
+  try{
+    // snapshot actual (antes del undo) para redo
+    const snap = {
+      ts: Date.now(),
+      tiendaState: JSON.parse(JSON.stringify(tiendaState)),
+      clients: JSON.parse(JSON.stringify(clients)),
+      assignments: JSON.parse(JSON.stringify(assignments)),
+      orders: JSON.parse(JSON.stringify(orders)),
+      pricesDB: JSON.parse(JSON.stringify(pricesDB))
+    };
+    redoStack.push(snap);
+    if(redoStack.length>25) redoStack.shift();
+  }catch{}
+  return _undoLast.apply(this, arguments);
+};
+
+function getActiveTableContext(){
+  // detecta si estás en global/providers/reparto mirando el tab visible
+  const isVisible = (id)=> {
+    const el = document.getElementById(id);
+    return el && el.style.display !== 'none';
+  };
+  if(isVisible('tab-global')) return 'global';
+  if(isVisible('tab-proveedores')) return 'proveedores';
+  if(isVisible('tab-tiendas')) return 'tiendas';
+  return 'dic';
+}
+
+function getAllEditableCellsIn(el){
+  return Array.from(el.querySelectorAll('td[contenteditable="true"], input[type="checkbox"]'));
+}
+
+function setActiveCell(cell){
+  // limpia marcas
+  document.querySelectorAll('tr.active-row').forEach(x=>x.classList.remove('active-row'));
+  document.querySelectorAll('td.active-cell').forEach(x=>x.classList.remove('active-cell'));
+  if(!cell) return;
+  const tr = cell.closest('tr');
+  if(tr) tr.classList.add('active-row');
+  if(cell.tagName==='TD') cell.classList.add('active-cell');
+}
+
+function moveRowFocus(delta){
+  const ctx = getActiveTableContext();
+  let root = null;
+  if(ctx==='global') root = document.getElementById('global_wrap');
+  else if(ctx==='proveedores') root = document.getElementById('provPanels') || document.getElementById('prices_wrap') || document.getElementById('reparto_wrap');
+  else if(ctx==='tiendas') root = document.getElementById('tab-tiendas');
+  else root = document.body;
+  if(!root) return;
+
+  // prioriza celda actual
+  const active = document.activeElement;
+  let cell = active && (active.closest('td') || active.closest('input[type="checkbox"]')) ? active : null;
+  if(!cell){
+    const first = root.querySelector('td[contenteditable="true"], input[type="checkbox"]');
+    if(first){ first.focus(); setActiveCell(first.closest('td')||first); }
+    return;
+  }
+  const tr = cell.closest('tr');
+  if(!tr) return;
+  const rows = Array.from(tr.parentElement.querySelectorAll('tr'));
+  const idx = rows.indexOf(tr);
+  const nextRow = rows[idx+delta];
+  if(!nextRow) return;
+
+  // buscar celda equivalente (misma columna)
+  const tds = Array.from(tr.querySelectorAll('td,th'));
+  const nextTds = Array.from(nextRow.querySelectorAll('td,th'));
+  const curTd = cell.closest('td') || cell;
+  let col = tds.indexOf(curTd);
+  if(col<0) col = 0;
+
+  const target = nextTds[col] && (nextTds[col].querySelector('input[type="checkbox"]') || (nextTds[col].isContentEditable ? nextTds[col] : null))
+    ? (nextTds[col].querySelector('input[type="checkbox"]') || nextTds[col]) 
+    : (nextRow.querySelector('td[contenteditable="true"], input[type="checkbox"]'));
+
+  if(target){
+    target.focus();
+    setActiveCell(target.closest('td')||target);
+  }
+}
+
+function moveCellFocus(delta){
+  const td = document.activeElement?.closest('td');
+  if(!td) return;
+  const tr = td.closest('tr');
+  if(!tr) return;
+  const cells = Array.from(tr.querySelectorAll('td'));
+  const idx = cells.indexOf(td);
+  const next = cells[idx+delta];
+  if(!next) return;
+
+  const ed = next.querySelector('input[type="checkbox"]') || (next.isContentEditable ? next : next.querySelector('[contenteditable="true"]'));
+  if(ed){
+    ed.focus();
+    setActiveCell(ed.closest('td')||ed);
+  }
+}
+
+/* ✅ Quick Find: filtra filas por texto */
+function quickFindApply(q){
+  q = normKey(q||'');
+  const ctx = getActiveTableContext();
+  let wrap = null;
+  if(ctx==='global') wrap = document.getElementById('global_wrap');
+  else if(ctx==='proveedores') wrap = document.getElementById('tab-proveedores');
+  else if(ctx==='tiendas') wrap = document.getElementById('tab-tiendas');
+  if(!wrap) return;
+
+  const rows = wrap.querySelectorAll('tbody tr');
+  rows.forEach(tr=>{
+    const txt = normKey(tr.innerText||'');
+    tr.style.display = (!q || txt.includes(q)) ? '' : 'none';
+  });
+}
+
+const qf = document.getElementById('quickFind');
+if(qf){
+  qf.addEventListener('input', ()=>quickFindApply(qf.value));
+}
+
+/* ✅ Asignar fila actual (Global) con teclado */
+function assignActiveGlobalRow(){
+  const wrap = document.getElementById('global_wrap');
+  if(!wrap) return false;
+  const active = document.activeElement;
+  const tr = active?.closest('tr');
+  if(!tr) return false;
+  const idx = Number(tr.dataset.i);
+  if(!isFinite(idx)) return false;
+  // usa tu función existente
+  pushUndoWithRedo({type:'kbd_assign'});
+  assignFromGlobal(idx);
+  return true;
+}
+
+function unassignActiveGlobalRow(){
+  // Devuelve el producto asignado al pool “pendiente”
+  // (borra assignment + resta de orders del prov)
+  const wrap = document.getElementById('global_wrap');
+  if(!wrap) return false;
+
+  // para desasignar necesitas seleccionar un producto que YA esté asignado.
+  // Aquí usaremos el texto del producto (columna producto), aunque esté editable.
+  const tr = document.activeElement?.closest('tr');
+  if(!tr) return false;
+  const nameCell = tr.querySelector('td[data-f="name"]') || tr.querySelector('td:nth-child(2)');
+  const name = (nameCell?.innerText||'').trim();
+  const k = normKey(name);
+  if(!k) return false;
+
+  const prov = assignments[k];
+  if(!prov) return false;
+
+  pushUndoWithRedo({type:'kbd_unassign'});
+
+  // eliminar asignación
+  delete assignments[k];
+
+  // restar de pedido proveedor
+  const list = orders[prov]||[];
+  const ix = list.findIndex(x=>normKey(x.name)===k);
+  if(ix>-1){
+    // no sabemos qty exacto aquí (porque en global ya no está)
+    // solución: simplemente quitar línea o dejarla si qty>0 según tu flujo:
+    list.splice(ix,1);
+  }
+  orders[prov] = list;
+
+  persistState();
+  unificarGlobal();
+  renderProvidersPanels();
+  rebuildPricesToday();
+  return true;
+}
+
+/* ✅ Reparto: Space marca checkbox de fila activa */
+function toggleActiveRepartoCheckbox(){
+  const wrap = document.getElementById('reparto_wrap');
+  if(!wrap) return false;
+  const tr = document.activeElement?.closest('tr');
+  if(!tr) return false;
+  const cb = tr.querySelector('input[type="checkbox"]');
+  if(!cb) return false;
+  cb.checked = !cb.checked;
+  cb.dispatchEvent(new Event('change'));
+  return true;
+}
+
+/* ✅ Tabs rápido */
+function goTab(n){
+  if(n===1) showTab('dic');
+  if(n===2) showTab('tiendas');
+  if(n===3) showTab('global');
+  if(n===4) showTab('proveedores');
+}
+
+/* ✅ Ctrl+Enter: estandarizar según contexto */
+function ctrlEnterSmart(){
+  const ctx = getActiveTableContext();
+  if(ctx==='tiendas'){
+    // detectar textarea foco: sp/sl/st o cliente
+    const ae = document.activeElement;
+    const id = ae?.id || '';
+    if(id==='in_sp') return estandarizar('sp');
+    if(id==='in_sl') return estandarizar('sl');
+    if(id==='in_st') return estandarizar('st');
+    // cliente: textarea empieza con in_cli...
+    if(id.startsWith('in_cli_') || id.startsWith('in_cli')){
+      const cid = id.replace('in_','');
+      return estandarizarCliente(cid);
+    }
+  }
+  return null;
+}
+
+/* ✅ Guardado inteligente Ctrl+S */
+function ctrlSSmart(){
+  const ctx = getActiveTableContext();
+  if(ctx==='dic'){ saveVocab(); return true; }
+  if(ctx==='tiendas'){
+    const ae = document.activeElement;
+    const id = ae?.id || '';
+    if(id==='in_sp') { guardarTienda('sp'); return true; }
+    if(id==='in_sl') { guardarTienda('sl'); return true; }
+    if(id==='in_st') { guardarTienda('st'); return true; }
+    return true;
+  }
+  if(ctx==='proveedores'){ persistState(); alert('Guardado.'); return true; }
+  return false;
+}
+
+/* ✅ Atajos globales */
+document.addEventListener('keydown', (e)=>{
+  // evita interferir al escribir texto normal en contenteditable/textarea
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  const isTyping = (tag==='textarea' || tag==='input' || (e.target && e.target.isContentEditable));
+
+  // Quick find
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='f'){
+    e.preventDefault();
+    document.getElementById('quickFind')?.focus();
+    return;
+  }
+  if(e.key==='/'){
+    if(!isTyping){
+      e.preventDefault();
+      const q = document.getElementById('quickFind');
+      if(q){ q.focus(); q.select?.(); }
+      return;
+    }
+  }
+  if(e.key==='Escape'){
+    closeAC?.();
+    toggleFabMenu?.(true);
+    document.activeElement?.blur?.();
+    return;
+  }
+
+  // Tabs 1-4
+  if(!isTyping && ['1','2','3','4'].includes(e.key)){
+    goTab(Number(e.key));
+    return;
+  }
+
+  // Ctrl+S save
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='s'){
+    e.preventDefault();
+    ctrlSSmart();
+    return;
+  }
+
+  // Undo / Redo
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='z' && !e.shiftKey){
+    e.preventDefault();
+    undoLast();
+    return;
+  }
+  if((e.ctrlKey || e.metaKey) && ( (e.key.toLowerCase()==='z' && e.shiftKey) || e.key.toLowerCase()==='y' )){
+    e.preventDefault();
+    redoLast();
+    return;
+  }
+
+  // Ctrl+Enter => estandarizar smart
+  if((e.ctrlKey || e.metaKey) && e.key==='Enter'){
+    e.preventDefault();
+    ctrlEnterSmart();
+    return;
+  }
+
+  // Navegación tipo vim (solo si NO estás escribiendo)
+  if(!isTyping){
+    if(e.key.toLowerCase()==='j'){ e.preventDefault(); moveRowFocus(+1); return; }
+    if(e.key.toLowerCase()==='k'){ e.preventDefault(); moveRowFocus(-1); return; }
+    if(e.key.toLowerCase()==='h'){ e.preventDefault(); moveCellFocus(-1); return; }
+    if(e.key.toLowerCase()==='l'){ e.preventDefault(); moveCellFocus(+1); return; }
+
+    // Global: A asigna
+    if(e.key.toLowerCase()==='a'){
+      const ctx = getActiveTableContext();
+      if(ctx==='global'){
+        e.preventDefault();
+        assignActiveGlobalRow();
+        if(e.shiftKey) moveRowFocus(+1);
+        return;
+      }
+    }
+
+    // Global: D desasigna
+    if(e.key.toLowerCase()==='d'){
+      const ctx = getActiveTableContext();
+      if(ctx==='global'){
+        e.preventDefault();
+        unassignActiveGlobalRow();
+        return;
+      }
+    }
+
+    // Reparto: Space toggle
+    if(e.key===' '){
+      const ctx = getActiveTableContext();
+      if(ctx==='proveedores'){
+        // si estás dentro del reparto
+        const inReparto = document.getElementById('reparto_wrap')?.contains(document.activeElement);
+        if(inReparto){
+          e.preventDefault();
+          toggleActiveRepartoCheckbox();
+          return;
+        }
+      }
+    }
+  }
+}, true);
+
+/* ✅ Marca fila activa al enfocar celdas */
+document.addEventListener('focusin', (e)=>{
+  const el = e.target;
+  if(!el) return;
+  const td = el.closest?.('td') || null;
+  if(td && (td.isContentEditable || td.querySelector('input[type="checkbox"]'))){
+    setActiveCell(td);
+  }
+  const cb = el.closest?.('input[type="checkbox"]');
+  if(cb){
+    setActiveCell(cb);
+  }
+}, true);
+
 </body>
 </html>
