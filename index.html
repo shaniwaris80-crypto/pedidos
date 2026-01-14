@@ -1900,6 +1900,25 @@ document.addEventListener('click', (e)=>{
   idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
 })();
 </script>
+  function generarLinkRepartidor(){
+  const payload = buildRepartoPayloadForLink();
+  if(!payload.destinations.length){
+    alert('No hay pedidos hoy (sin destinos).');
+    return;
+  }
+
+  const json = JSON.stringify(payload);
+  const packed = LZString.compressToEncodedURIComponent(json);
+
+  const baseURL = "https://shaniwaris80-crypto.github.io/reparto/"; // ✅ tu link fijo
+  const url = `${baseURL}?data=${packed}`;
+
+  // Copiar + abrir
+  navigator.clipboard?.writeText(url);
+  window.open(url, '_blank');
+  alert('Link generado y copiado. Envíalo al repartidor por WhatsApp.');
+}
+
 
 </body>
 </html>
