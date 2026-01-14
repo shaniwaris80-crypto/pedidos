@@ -2,11 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>ARSLAN LISTAS v3.5 — KIWI MOBILE TABS (PRO)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS (PRO+)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <style>
   :root{
     --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
@@ -15,7 +14,7 @@
   }
   [data-theme="dark"]{
     --bg:#0b0f14; --ink:#e5e7eb; --muted:#9aa0a6; --border:#1f2937; --panel:#111827; --shadow:0 2px 10px rgba(0,0,0,.35);
-    --soft:#0f172a;
+    --soft:#0f1622;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -23,46 +22,30 @@
     font-family:'Poppins',sans-serif;color:var(--ink);background:var(--bg);margin:0;
     transition: background .2s ease, color .2s ease;
   }
-  h1{font-size:18px;margin:0;color:var(--ink)}
-  a{color:inherit}
-
+  h1{font-size:16px;margin:0;color:var(--ink)}
   .topbar{
     position:sticky; top:0; z-index:1000; background:var(--bg); border-bottom:1px solid var(--border);
     display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
     backdrop-filter: saturate(1.2) blur(6px);
+    gap:10px;
   }
-  .topbar .left{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .topbar .left{display:flex; align-items:center; gap:8px; min-width:0}
+  .topbar .left h1{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60vw}
   .theme-toggle{border:1px solid var(--border); background:var(--panel); color:var(--ink); border-radius:10px; padding:6px 10px; cursor:pointer; font-size:13px}
-  .container{padding:12px 12px 84px}
-  .hint{font-size:12px;color:var(--muted);line-height:1.35}
+  .container{padding:12px 12px 86px}
+  .hint{font-size:12px;color:var(--muted)}
   .card{border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow);margin-bottom:12px; transition: transform .12s ease}
   .card:active{transform:scale(.998)}
   .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:10px}
   .card .bd{padding:10px 12px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{
-    padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);
-    background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);
-    color:#fff;cursor:pointer;font-size:14px; transition: opacity .2s ease, transform .1s ease;
-    user-select:none;
-  }
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap; justify-content:flex-end}
+  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px; transition: opacity .2s ease, transform .1s ease}
   .btn:active{transform: translateY(1px)}
   .btn.ghost{background:var(--bg);color:var(--kiwi);border:1px solid var(--kiwi)}
   .btn.muted{background:var(--bg);border:1px solid var(--border);color:var(--ink)}
   .btn.small{padding:6px 10px;font-size:13px}
-  .btn.bad{border-color:var(--bad); background:var(--bad)}
-  .btn.warn{border-color:var(--warn); background:var(--warn); color:#111}
-  .btn:disabled{opacity:.5; cursor:not-allowed}
-
-  textarea{
-    width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;
-    resize:vertical;font-size:14px;background:var(--bg);color:var(--ink)
-  }
-  input, select{
-    border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:var(--bg); color:var(--ink);
-    font-family:'Poppins',sans-serif; font-size:14px;
-  }
-  select{cursor:pointer}
+  .btn.danger{background:var(--bg);border:1px solid var(--bad);color:var(--bad)}
+  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px;background:var(--bg);color:var(--ink)}
   table{width:100%;border-collapse:collapse}
   th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
   th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em; position:sticky; top:0; background:var(--bg); z-index:1}
@@ -74,115 +57,92 @@
   [data-theme="dark"] .pill.warn{border-color:#7f1d1d;background:#2b0d0d;color:#fecaca}
   .red{color:var(--bad);font-weight:700}
   .green{color:var(--ok);font-weight:700}
-  .soft{background:var(--soft)}
-  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-
-  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
-  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
-  .ac-item:hover{background:#f3f4f6}
-  [data-theme="dark"] .ac-item:hover{background:#111827}
-
+  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:240px;overflow-y:auto}
+  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px; display:flex; justify-content:space-between; gap:10px}
+  .ac-item small{color:var(--muted)}
+  .ac-item:hover{background:var(--soft)}
+  [data-theme="dark"] .ac-item:hover{background:#0f1622}
   .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
   .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:var(--bg);color:var(--kiwi);cursor:pointer;font-size:13px}
   .prov-btn.active{background:var(--kiwi);color:#fff}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer; user-select:none}
+  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
   [data-theme="dark"] .ok-assign{background:#052e1a;color:#86efac}
-
   .dup{background:#fff5f5}
   [data-theme="dark"] .dup{background:#2b0d0d}
   .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-
+  .row-selected{outline:2px solid rgba(22,163,74,.35)}
   .tabbar{
     position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);
-    display:flex;justify-content:space-around;align-items:center;height:60px;z-index:999;
-    padding-bottom: env(safe-area-inset-bottom);
+    display:flex;justify-content:space-around;align-items:center;height:64px;z-index:999;
+    padding:4px 6px;
   }
   .tabbar button{
     background:var(--bg);border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
-    padding:6px 8px; border-radius:10px; transition: background .15s ease, color .15s ease;
-    min-width:70px;
+    padding:8px 8px; border-radius:12px; transition: background .15s ease, color .15s ease;
+    min-width:64px;
   }
   .tabbar button.active{color:var(--kiwi); background:rgba(22,163,74,.10)}
   .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
-
+  select,input[type="text"]{
+    border:1px solid var(--border); background:var(--bg); color:var(--ink);
+    border-radius:10px; padding:8px 10px; font-size:14px;
+  }
   .fab{
-    position:fixed; right:14px; bottom:78px; z-index:1001;
+    position:fixed; right:14px; bottom:88px; z-index:1001;
     width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
-    background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%); color:#fff; font-size:22px; box-shadow:var(--shadow);
-    user-select:none;
+    background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%); color:#fff; font-size:22px; box-shadow:var(--shadow)
   }
   .fab-menu{
-    position:fixed; right:14px; bottom:142px; z-index:1000; display:none; flex-direction:column; gap:8px
+    position:fixed; right:14px; bottom:150px; z-index:1000; display:none; flex-direction:column; gap:8px
   }
   .fab-menu .fab-item{
     border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
     text-align:left;
   }
   .fab-menu.show{display:flex}
-
-  /* ======= NUEVO: Panel rápido (frecuentes) ======= */
-  .chips{display:flex; flex-wrap:wrap; gap:8px}
-  .chip{
+  .mini{font-size:12px;color:var(--muted)}
+  .qctrl{display:inline-flex; gap:6px; align-items:center}
+  .qbtn{
     border:1px solid var(--border); background:var(--panel); color:var(--ink);
-    padding:6px 10px; border-radius:999px; font-size:13px; cursor:pointer;
-    user-select:none;
+    border-radius:10px; padding:4px 8px; cursor:pointer; font-size:13px;
   }
-  .chip:active{transform: translateY(1px)}
-  .chip b{color:var(--kiwi)}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .row > *{flex: 0 0 auto}
-
-  /* ======= NUEVO: Modal simple ======= */
-  .modal-back{
-    position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:2000;
-    padding:14px;
+  .qbtn:active{transform: translateY(1px)}
+  .sticky-tools{position:sticky; top:54px; z-index:10; background:var(--bg); padding:8px 0; border-bottom:1px dashed var(--border); margin-bottom:8px}
+  .kpi{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  .kpi .pill{background:var(--panel)}
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:2000; align-items:center; justify-content:center; padding:16px;
   }
   .modal{
-    width:min(920px, 100%); background:var(--bg); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow);
-    overflow:hidden;
+    width:min(720px, 100%); background:var(--bg); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
   }
-  .modal .mhd{padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px}
-  .modal .mbd{padding:10px 12px; max-height:70vh; overflow:auto}
-  .modal .mft{padding:10px 12px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap}
-
-  /* ======= NUEVO: Toast ======= */
-  .toast{
-    position:fixed; left:50%; transform:translateX(-50%);
-    bottom:74px; z-index:2500;
-    background:var(--bg); border:1px solid var(--border); box-shadow:var(--shadow);
-    padding:10px 12px; border-radius:12px; display:none; gap:10px; align-items:center;
-    max-width:min(760px, calc(100% - 24px));
-  }
-  .toast.show{display:flex}
-  .toast .msg{font-size:13px; color:var(--ink)}
-  .toast .actions{display:flex; gap:8px; flex-wrap:wrap}
-  .kbd{border:1px solid var(--border); background:var(--panel); padding:1px 6px; border-radius:6px; font-size:12px}
-
+  .modal .hd{padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .modal .bd{padding:10px 12px}
+  .modal textarea{min-height:220px}
 </style>
 </head>
-
 <body>
   <div class="topbar">
     <div class="left">
-      <h1>🍈 ARSLAN LISTAS v3.5 — KIWI MOBILE TABS (PRO)</h1>
-      <span class="pill">Más rápido + Undo + Precios + Proveedores dinámicos</span>
-      <span class="pill" id="pillCloudLocal">LOCAL</span>
+      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS (PRO+)</h1>
+      <span class="pill">Móvil rápido</span>
+      <span class="pill" id="pillUndo">⟲ Undo: 0</span>
     </div>
-    <div class="toolbar">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="theme-toggle" onclick="undo()" title="Deshacer último cambio">↩️ Undo</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
-      <button class="theme-toggle" onclick="openQuickHelp()" title="Atajos / ayuda">⌨️ Ayuda</button>
     </div>
   </div>
 
   <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores (TXT/WhatsApp) → Reparto por tiendas.
-      <br>
-      Atajos: <span class="kbd">1..9</span> asigna proveedor (en Global) · <span class="kbd">Enter</span> asigna ✅ · <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Undo · <span class="kbd">Ctrl</span>+<span class="kbd">F</span> Buscar.
+      Flujo: Diccionario → Tiendas (Estandarizar/Editar) → Global (Unificar / Duplicados / Asignar) → Proveedores (TXT) → Precios (historial)
     </div>
 
-    <!-- ========== TAB: Diccionario ========== -->
+    <!-- TAB: Diccionario -->
     <section class="tab" id="tab-dic">
       <div class="card">
         <div class="hd">
@@ -190,80 +150,50 @@
           <div class="toolbar">
             <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
             <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="exportAllJSON()">⬇️ Backup JSON</button>
-            <button class="btn muted" onclick="importAllJSON()">⬆️ Import JSON</button>
-            <button class="btn bad" onclick="resetAll()">🧹 Limpiar todo</button>
+            <button class="btn muted" onclick="openBackupModal()">🧰 Backup / Import</button>
+            <button class="btn danger" onclick="resetAll()">🧹 Limpiar todo</button>
           </div>
         </div>
         <div class="bd">
           <div class="hint" style="margin-bottom:6px">
             Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
-            <br>Nuevo: sinónimos → oficial, historial de precios y reglas de unidad (en Ajustes).
+            <span class="mini">Tip: al corregir manualmente, al salir del campo se auto-ajusta al vocabulario si hay match fuerte.</span>
           </div>
           <textarea id="vocabTxt"></textarea>
         </div>
       </div>
 
-      <!-- NUEVO: Sinónimos -->
       <div class="card">
         <div class="hd">
-          <strong>🔁 Sinónimos → Nombre oficial</strong>
+          <strong>🏷️ Proveedores (editable en app)</strong>
           <div class="toolbar">
-            <button class="btn ghost" onclick="saveSynonyms()">Guardar sinónimos</button>
-            <button class="btn muted" onclick="resetSynonymsToDefault()">Restaurar ejemplo</button>
+            <button class="btn muted" onclick="openProvidersModal()">⚙️ Gestionar proveedores</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:6px">
-            Formato: <span class="mono">SINONIMO = NOMBRE OFICIAL</span> (1 por línea).  
-            Ej: <span class="mono">GUNDEYA = GUINDILLA</span>
-          </div>
-          <textarea id="synTxt" placeholder="Ej:\nAVOCADO = AGUACATE\nGUNDEYA = GUINDILLA\nPLATANO MACHO = MACHO VERDE"></textarea>
-        </div>
-      </div>
-
-      <!-- NUEVO: Ajustes rápidos -->
-      <div class="card">
-        <div class="hd">
-          <strong>⚙️ Ajustes PRO</strong>
-          <div class="toolbar">
-            <button class="btn muted" onclick="openSettings()">Abrir ajustes</button>
-            <button class="btn muted" onclick="openPrices()">💶 Precios</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">
-            - Proveedores editables (crear/renombrar/borrar)  
-            <br>- Reglas de unidades (kg/caja/manojo/unidad)  
-            <br>- Validaciones y avisos de cantidades  
-            <br>- Historial interno de precios por producto (rápido)
-          </div>
+          <div class="hint">Los proveedores se guardan en tu navegador (local). Se usan en Global y Proveedores.</div>
+          <div class="kpi" id="provKpi" style="margin-top:8px"></div>
         </div>
       </div>
     </section>
 
-    <!-- ========== TAB: Tiendas ========== -->
+    <!-- TAB: Tiendas -->
     <section class="tab" id="tab-tiendas" style="display:none">
       <div class="grid-3">
-
         <!-- San Pablo -->
         <div class="card">
           <div class="hd">
             <strong>🏪 San Pablo</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
+              <button class="btn" onclick="guardarTienda('sp')">Guardar</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('sp')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
-            <!-- NUEVO: Frecuentes -->
-            <div class="hint" style="margin-bottom:6px">Frecuentes (tap suma +1):</div>
-            <div class="chips" id="chips_sp" style="margin-bottom:10px"></div>
-
-            <textarea id="in_sp" placeholder="Pega lista San Pablo...\nEj.: 3 cajas tomate daniela\nzanahoria 2\naguacate granel 4"></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades inteligentes con +/−.</div>
+            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2kg&#10;aguacate granel 4"></textarea>
+            <div class="hint">Edita en la tabla. Cantidad: puedes escribir <b>+1</b>, <b>-0.5</b>, <b>x2</b> (multiplica), o número normal.</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
@@ -274,17 +204,14 @@
             <strong>🏪 San Lesmes</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
+              <button class="btn" onclick="guardarTienda('sl')">Guardar</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('sl')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
-            <div class="hint" style="margin-bottom:6px">Frecuentes (tap suma +1):</div>
-            <div class="chips" id="chips_sl" style="margin-bottom:10px"></div>
-
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades inteligentes con +/−.</div>
+            <div class="hint">Autocompletar mejorado (fuzzy). Al corregir manualmente, se auto-ajusta si score alto.</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
@@ -295,25 +222,21 @@
             <strong>🏪 Santiago</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
+              <button class="btn" onclick="guardarTienda('st')">Guardar</button>
               <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('st')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
-            <div class="hint" style="margin-bottom:6px">Frecuentes (tap suma +1):</div>
-            <div class="chips" id="chips_st" style="margin-bottom:10px"></div>
-
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades inteligentes con +/−.</div>
+            <div class="hint">Validaciones: cantidad>0, nombre no vacío. Si hay algo raro, lo marca para revisar.</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- ========== TAB: Global ========== -->
+    <!-- TAB: Global -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
         <div class="hd">
@@ -324,45 +247,41 @@
             <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
             <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
             <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
-            <button class="btn muted" onclick="openPrices()">💶 Precios</button>
           </div>
         </div>
         <div class="bd">
-          <div class="row" style="margin-bottom:8px">
-            <input id="searchGlobal" placeholder="Buscar producto (Ctrl+F)..." oninput="debouncedSearchGlobal()" style="flex:1; min-width:220px">
-            <button class="btn muted" onclick="openDupMerge()">🧩 Duplicados</button>
-            <button class="btn muted" onclick="openReview()">🧪 Revisión</button>
-            <button class="btn muted" onclick="undo()">↩️ Undo</button>
-          </div>
-
-          <div class="hint" style="margin-bottom:6px">
-            ✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan</span>.
-            <br>
-            Atajos global: <span class="kbd">Enter</span> asigna ✅ (fila activa) · <span class="kbd">1..9</span> cambia proveedor y asigna · <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Undo.
-          </div>
-
-          <div class="card" style="margin-top:8px">
-            <div class="bd">
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <span class="hint">Proveedor activo:</span>
-                <div class="prov-bar" id="provBar"></div>
+          <div class="sticky-tools">
+            <div class="kpi">
+              <span class="pill">Proveedor activo: <b id="activeProvTxt"></b></span>
+              <span class="pill">Seleccionados: <b id="selCount">0</b></span>
+              <button class="btn small muted" onclick="mergeSelected()">🧬 Fusionar seleccionados</button>
+              <button class="btn small muted" onclick="clearSelections()">🧽 Limpiar selección</button>
+            </div>
+            <div class="card" style="margin-top:8px">
+              <div class="bd">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <span class="hint">Proveedor activo:</span>
+                  <div class="prov-bar" id="provBar"></div>
+                </div>
               </div>
             </div>
           </div>
 
+          <div class="hint" style="margin-bottom:6px">
+            ✅ asigna al proveedor activo. Duplicados probables se marcan en rojo (⚠️). Puedes seleccionar filas (tap/click) y fusionarlas.
+          </div>
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
     </section>
 
-    <!-- ========== TAB: Proveedores ========== -->
+    <!-- TAB: Proveedores -->
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
         <div class="hd">
           <strong>📦 Distribución por proveedor</strong>
           <div class="toolbar">
-            <button class="btn muted" onclick="openSettings()">⚙️ Proveedores</button>
-            <button class="btn muted" onclick="undo()">↩️ Undo</button>
+            <button class="btn muted" onclick="openProvidersModal()">⚙️ Proveedores</button>
           </div>
         </div>
         <div class="bd">
@@ -370,25 +289,52 @@
         </div>
       </div>
 
-      <!-- REPARTO POR TIENDAS (tu módulo) -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>🚚 Reparto por tiendas</strong>
           <div class="toolbar">
             <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
             <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
+            <button class="btn small muted" onclick="pasarSeleccionadosAPrecios()">💶 Pasar a Precios</button>
           </div>
         </div>
         <div class="bd">
-          <div style="margin-bottom:8px;">
+          <div style="margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <select id="selRepartoTienda" onchange="renderRepartoTienda()">
               <option value="">Selecciona tienda...</option>
               <option value="sp">🏪 San Pablo</option>
               <option value="sl">🏪 San Lesmes</option>
               <option value="st">🏪 Santiago</option>
             </select>
+            <span class="hint">Marca líneas, añade precio, exporta/WhatsApp o pásalo al historial.</span>
           </div>
           <div id="reparto_wrap" class="scroll-x"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Precios -->
+    <section class="tab" id="tab-precios" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>💶 Precios por producto (con historial)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="syncPriceCatalogFromVocab()">↻ Sincronizar catálogo</button>
+            <button class="btn muted" onclick="exportPricesJSON()">⬇️ Export precios</button>
+            <button class="btn muted" onclick="importPricesJSON()">⬆️ Import precios</button>
+            <button class="btn muted" onclick="exportPricesXLSX()">📊 Excel</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <input type="text" id="priceSearch" placeholder="Buscar producto..." oninput="renderPrices()" style="flex:1; min-width:220px;">
+            <span class="pill">Productos: <b id="priceCount">0</b></span>
+          </div>
+          <div class="hint" style="margin:8px 0">
+            - Al cambiar un precio, se guarda <b>historial</b> (fecha + precio).<br>
+            - Puedes pasar líneas seleccionadas del reparto a este módulo para poner precios rápido.
+          </div>
+          <div id="prices_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
@@ -402,53 +348,57 @@
     <button class="fab-item" onclick="exportarGlobalXLSX(); toggleFabMenu(true)">📊 Excel</button>
     <button class="fab-item" onclick="copiarGlobal(); toggleFabMenu(true)">📋 Copiar</button>
     <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
-    <button class="fab-item" onclick="openPrices(); toggleFabMenu(true)">💶 Precios</button>
     <button class="fab-item" onclick="undo(); toggleFabMenu(true)">↩️ Undo</button>
   </div>
 
   <!-- Tabbar móvil -->
   <nav class="tabbar">
-    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
+    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Dic</span></button>
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
     <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
+    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Prov</span></button>
+    <button id="btn-precios" onclick="showTab('precios')">💶<span>Precios</span></button>
   </nav>
 
-  <!-- ======= MODALES NUEVOS ======= -->
-  <div class="modal-back" id="modalBack" onclick="modalBackdropClick(event)">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="mhd">
-        <strong id="modalTitle">Modal</strong>
-        <div class="toolbar">
-          <button class="btn muted small" onclick="closeModal()">Cerrar</button>
-        </div>
+  <!-- Modal: Backup -->
+  <div class="modal-backdrop" id="backupModal">
+    <div class="modal">
+      <div class="hd">
+        <strong>🧰 Backup / Importación (seguro)</strong>
+        <button class="btn muted small" onclick="closeBackupModal()">Cerrar</button>
       </div>
-      <div class="mbd" id="modalBody"></div>
-      <div class="mft" id="modalFoot"></div>
+      <div class="bd">
+        <div class="hint" style="margin-bottom:8px">
+          Exporta todo (tiendas + asignaciones + pedidos + proveedores + precios + vocab). Para importar, pega JSON y pulsa “Importar”.
+        </div>
+        <div class="toolbar" style="margin-bottom:8px">
+          <button class="btn muted" onclick="copyFullBackup()">📋 Copiar backup</button>
+          <button class="btn muted" onclick="downloadFullBackup()">⬇️ Descargar backup</button>
+          <button class="btn" onclick="importFullBackup()">⬆️ Importar (pegar JSON)</button>
+        </div>
+        <textarea id="backupTxt" placeholder="Aquí saldrá el JSON del backup..."></textarea>
+      </div>
     </div>
   </div>
 
-  <!-- ======= TOAST (UNDO rápido) ======= -->
-  <div class="toast" id="toast">
-    <div class="msg" id="toastMsg">Listo</div>
-    <div class="actions" id="toastActions"></div>
+  <!-- Modal: Providers -->
+  <div class="modal-backdrop" id="provModal">
+    <div class="modal">
+      <div class="hd">
+        <strong>⚙️ Gestionar proveedores</strong>
+        <button class="btn muted small" onclick="closeProvidersModal()">Cerrar</button>
+      </div>
+      <div class="bd">
+        <div class="hint" style="margin-bottom:8px">Un proveedor por línea. Se guardan y aparecen en Global/Proveedores.</div>
+        <div class="toolbar" style="margin-bottom:8px">
+          <button class="btn ghost" onclick="saveProvidersFromModal()">Guardar proveedores</button>
+          <button class="btn muted" onclick="resetProviders()">Restaurar por defecto</button>
+        </div>
+        <textarea id="provTxt" placeholder="ESMO&#10;MONTENEGRO&#10;ÁNGEL VACA"></textarea>
+      </div>
+    </div>
   </div>
 
-<script>
-/* =========================================================
-   ARSLAN LISTAS v3.5 — PRO
-   ✅ Mantiene todo lo anterior + añade:
-   - Precios + historial
-   - Undo global (incluye asignación ✅)
-   - Duplicados + fusionar
-   - Proveedores CRUD
-   - Sinónimos -> oficial
-   - Cantidades inteligentes (+/- teclado)
-   - Validaciones + revisión
-   - Backup/Import JSON + merge
-   - Frecuentes por tienda
-   - Atajos teclado asignaciones (1..9, Enter, Ctrl+Z, Ctrl+F)
-========================================================= */
 <script>
 /* ==========================
    Tema (claro/oscuro) con persistencia
@@ -475,17 +425,10 @@ function debounce(fn, wait=300){
 const idle = (cb)=> (window.requestIdleCallback? requestIdleCallback(cb): setTimeout(cb, 1));
 
 /* ==========================
-   DOM helpers
-========================== */
-const $ = s => document.querySelector(s);
-const byId = id => document.getElementById(id);
-const toLines = t => String(t||'').split(/[\n\r]/).map(x=>x.trim()).filter(Boolean);
-
-/* ==========================
-   Tabs + lazy render
+   Tabs
 ========================== */
 function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores'];
+  const ids = ['dic','tiendas','global','proveedores','precios'];
   ids.forEach(k=>{
     const tab = document.getElementById('tab-'+k);
     const btn = document.getElementById('btn-'+k);
@@ -493,82 +436,47 @@ function showTab(key){
     if(btn) btn.classList.toggle('active', k===key);
   });
 
-  // FAB solo global
   const fab = document.getElementById('fab');
-  if(fab){
-    if(key==='global'){ fab.style.display='block'; }
-    else{ fab.style.display='none'; toggleFabMenu(true); }
-  }
+  if(key==='global'){ fab.style.display='block'; } else { fab.style.display='none'; toggleFabMenu(true); }
 
   closeAC();
 
-  if(key==='global'){
-    idle(()=>{ unificarGlobal(); buildProvBar(); });
-  }
-  if(key==='proveedores'){
-    idle(()=>{ renderProvidersPanels(); });
-  }
-  if(key==='tiendas'){
-    idle(()=>{ renderFrecuentesAll(); });
-  }
+  if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); }); }
+  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); }); }
+  if(key==='precios'){ idle(()=>{ renderPrices(); }); }
 }
 
 /* ==========================
-   LocalStorage keys
+   Config / Storage keys
 ========================== */
 const LS = {
-  VOCAB:'arslan_v35_vocab',
-  STORES:'arslan_v35_stores',
-  ASSIGN:'arslan_v35_assign',
-  ORDERS:'arslan_v35_orders',
-  PROVS:'arslan_v35_proveedores',
-  SYN:'arslan_v35_synonyms',
-  PRICES:'arslan_v35_prices',
-  RULES:'arslan_v35_rules',
-  META:'arslan_v35_meta',
-  UNDO:'arslan_v35_undo_shadow'
+  VOCAB:'arslan_v34_vocab',
+  STORES:'arslan_v34_stores',
+  ASSIGN:'arslan_v34_assign',
+  ORDERS:'arslan_v34_orders',
+  PROVS:'arslan_v34_providers',
+  PRICES:'arslan_v34_prices',
+  BACKUP:'arslan_v34_backup_last'
 };
 
-/* ==========================
-   Proveedores (dinámico)
-========================== */
-let PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-let ACTIVE_PROV = PROVEEDORES[0];
+const DEFAULT_PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
 
-/* ==========================
-   Reglas / validaciones
-========================== */
-const DEFAULT_RULES = {
-  // unit por defecto por producto (normKey)
-  unitsByProduct: {},
-  // umbrales para avisos
-  warnHighQty: 150, // si qty muy alta
-  warnZeroQty: true,
-  allowDecimals: true
-};
-let rules = JSON.parse(localStorage.getItem(LS.RULES) || 'null') || structuredClone(DEFAULT_RULES);
+const UNIT_ALIASES = [
+  {u:'KG', words:['kg','kgs','kilo','kilos']},
+  {u:'CAJA', words:['caja','cajas']},
+  {u:'UD', words:['ud','uds','u','unidad','unidades','pieza','piezas']},
+  {u:'MANOJO', words:['manojo','manojos']},
+  {u:'SACO', words:['saco','sacos']},
+  {u:'BOLSA', words:['bolsa','bolsas']},
+  {u:'BANDEJA', words:['bdja','bandeja','bandejas']},
+];
 
-/* ==========================
-   Synonyms
-========================== */
-const DEFAULT_SYNONYMS = `AVOCADO = AGUACATE
-GUNDEYA = GUINDILLA
-PLATANO MACHO = MACHO VERDE`;
-let synonymsMap = {}; // key(norm) => official (UPPER)
-function parseSynonyms(txt){
-  const map = {};
-  toLines(txt).forEach(line=>{
-    const s = line.split('=');
-    if(s.length<2) return;
-    const left = removeDiacriticsUpper(s[0]).trim();
-    const right = removeDiacriticsUpper(s.slice(1).join('='))).trim();
-  });
-}
+const IGNORE_WORDS = ['caja','cajas','kg','kgs','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos','bolsa','bolsas','bandeja','bandejas','bdja','pieza','piezas'];
 
-/* ==========================
-   Normalización
-========================== */
-const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
+const $ = s => document.querySelector(s);
+const byId = id => document.getElementById(id);
+const toLines = t => String(t||'').split(/[\n\r,]/).map(x=>x.trim()).filter(Boolean);
+
 function removeDiacriticsUpper(s){
   return String(s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -587,7 +495,78 @@ function stripGenericWords(s){
 }
 
 /* ==========================
-   Vocabulario oficial (tu base)
+   Undo (deshacer)
+========================== */
+const UNDO_MAX = 60;
+let undoStack = []; // [{label, snap}]
+function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
+
+function snapshot(){
+  return {
+    tiendaState: deepClone(tiendaState),
+    assignments: deepClone(assignments),
+    orders: deepClone(orders),
+    PROVEEDORES: deepClone(PROVEEDORES),
+    prices: deepClone(prices)
+  };
+}
+function restoreSnap(s){
+  if(!s) return;
+  tiendaState.sp = Array.isArray(s.tiendaState?.sp)? s.tiendaState.sp : [];
+  tiendaState.sl = Array.isArray(s.tiendaState?.sl)? s.tiendaState.sl : [];
+  tiendaState.st = Array.isArray(s.tiendaState?.st)? s.tiendaState.st : [];
+  assignments = s.assignments || {};
+  orders = s.orders || {};
+  PROVEEDORES = Array.isArray(s.PROVEEDORES) && s.PROVEEDORES.length ? s.PROVEEDORES : DEFAULT_PROVEEDORES.slice();
+  prices = s.prices || {};
+  ensureProvidersInit();
+  persistAllNow();
+  renderAll();
+}
+function pushUndo(label){
+  undoStack.push({label: label||'cambio', snap: snapshot()});
+  if(undoStack.length>UNDO_MAX) undoStack.shift();
+  updateUndoPill();
+}
+function updateUndoPill(){
+  const el = byId('pillUndo');
+  if(el) el.textContent = `⟲ Undo: ${undoStack.length}`;
+}
+function undo(){
+  if(!undoStack.length){ alert('No hay nada que deshacer.'); return; }
+  const last = undoStack.pop();
+  restoreSnap(last.snap);
+  updateUndoPill();
+}
+function renderAll(){
+  ['sp','sl','st'].forEach(renderTable);
+  buildProvBar();
+  renderProvidersPanels();
+  unificarGlobal();
+  renderProvKpi();
+  renderPrices();
+}
+
+/* ==========================
+   Persistencia
+========================== */
+const persistState = debounce(function(){
+  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
+  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
+  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.PROVS, JSON.stringify(PROVEEDORES));
+  localStorage.setItem(LS.PRICES, JSON.stringify(prices));
+}, 350);
+function persistAllNow(){
+  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
+  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
+  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.PROVS, JSON.stringify(PROVEEDORES));
+  localStorage.setItem(LS.PRICES, JSON.stringify(prices));
+}
+
+/* ==========================
+   Vocabulario (editable + persistente)
 ========================== */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
@@ -794,9 +773,6 @@ MANDARINA DE HOJA
 UVA ROJA PRIMERA
 UVA BLANCA PRIMERA`;
 
-/* ==========================
-   Unique vocab
-========================== */
 function uniqueVocab(lines){
   const seen = new Set(); const out=[];
   for(const l of lines){
@@ -811,50 +787,87 @@ function loadVocab(){
   const saved = localStorage.getItem(LS.VOCAB);
   const base = saved && saved.trim()? saved : OFFICIAL_VOCAB_RAW;
   const list = uniqueVocab(toLines(base));
-  const ta = byId('vocabTxt');
-  if(ta) ta.value = list.join('\n');
+  byId('vocabTxt').value = list.join('\n');
   return list;
 }
+function saveVocab(){
+  pushUndo('guardar vocab');
+  localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
+  alert('Vocabulario guardado.');
+  syncPriceCatalogFromVocab();
+  renderProvidersPanels();
+  unificarGlobal();
+}
+function addNewWord(){
+  const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
+  if(!entry) return;
+  pushUndo('nuevo producto vocab');
+  const current = toLines(byId('vocabTxt').value);
+  const added = toLines(entry);
+  const merged = uniqueVocab(current.concat(added));
+  byId('vocabTxt').value = merged.join('\n');
+  saveVocab();
+}
 
 /* ==========================
-   Synonyms load/save
+   Proveedores (editable)
 ========================== */
-function buildSynonymsMapFromText(txt){
-  const map = {};
-  toLines(txt).forEach(line=>{
-    const idx = line.indexOf('=');
-    if(idx<0) return;
-    const left = removeDiacriticsUpper(line.slice(0,idx)).trim();
-    const right = removeDiacriticsUpper(line.slice(idx+1)).trim();
-    if(!left || !right) return;
-    map[normKey(left)] = right;
+let PROVEEDORES = DEFAULT_PROVEEDORES.slice();
+function ensureProvidersInit(){
+  if(!Array.isArray(PROVEEDORES) || !PROVEEDORES.length) PROVEEDORES = DEFAULT_PROVEEDORES.slice();
+  // orders buckets
+  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
+  // limpiar orders de proveedores borrados (no destruye: los deja en hidden bucket)
+  Object.keys(orders).forEach(p=>{
+    if(!PROVEEDORES.includes(p)){
+      // mantener en memoria (por seguridad), pero no renderizar
+    }
   });
-  return map;
 }
-function loadSynonyms(){
-  const saved = localStorage.getItem(LS.SYN);
-  const base = (saved && saved.trim()) ? saved : DEFAULT_SYNONYMS;
-  const ta = byId('synTxt');
-  if(ta) ta.value = base;
-  synonymsMap = buildSynonymsMapFromText(base);
-  return synonymsMap;
+function renderProvKpi(){
+  const kpi = byId('provKpi');
+  if(!kpi) return;
+  kpi.innerHTML = '';
+  PROVEEDORES.forEach(p=>{
+    const s = document.createElement('span');
+    s.className = 'pill';
+    s.textContent = p;
+    kpi.appendChild(s);
+  });
 }
-function saveSynonyms(){
-  const ta = byId('synTxt');
-  const v = ta ? (ta.value||'') : '';
-  localStorage.setItem(LS.SYN, v);
-  synonymsMap = buildSynonymsMapFromText(v);
-  toast('Sinónimos guardados ✅');
+function openProvidersModal(){
+  byId('provTxt').value = PROVEEDORES.join('\n');
+  byId('provModal').style.display='flex';
 }
-function resetSynonymsToDefault(){
-  if(!confirm('¿Restaurar sinónimos de ejemplo?')) return;
-  localStorage.setItem(LS.SYN, DEFAULT_SYNONYMS);
-  loadSynonyms();
-  toast('Sinónimos restaurados.');
+function closeProvidersModal(){
+  byId('provModal').style.display='none';
+}
+function resetProviders(){
+  if(!confirm('¿Restaurar proveedores por defecto?')) return;
+  pushUndo('reset proveedores');
+  PROVEEDORES = DEFAULT_PROVEEDORES.slice();
+  ensureProvidersInit();
+  persistState();
+  renderProvKpi();
+  buildProvBar();
+  renderProvidersPanels();
+  closeProvidersModal();
+}
+function saveProvidersFromModal(){
+  const lines = uniqueVocab(toLines(byId('provTxt').value).map(x=>x.trim()).filter(Boolean));
+  if(!lines.length){ alert('Debe haber al menos 1 proveedor.'); return; }
+  pushUndo('guardar proveedores');
+  PROVEEDORES = lines;
+  ensureProvidersInit();
+  persistState();
+  renderProvKpi();
+  buildProvBar();
+  renderProvidersPanels();
+  closeProvidersModal();
 }
 
 /* ==========================
-   Coincidencia aproximada (Dice + TokenSet)
+   Coincidencia aproximada (Dice + TokenSet) + ranking
 ========================== */
 function bigrams(str){
   const s = stripGenericWords(str);
@@ -885,202 +898,93 @@ function bestMatch(query, vocabArr){
   });
   return best;
 }
+function topMatches(query, vocabArr, limit=8){
+  const q = stripGenericWords(query);
+  const ranked = vocabArr.map(v=>({v, s: similarityScore(q,v)}))
+    .filter(x=>x.s>0.40)
+    .sort((a,b)=>b.s-a.s)
+    .slice(0,limit);
+  return ranked;
+}
 
 /* ==========================
-   Parser líneas (cantidad + nombre) + Modo pegar inteligente
+   Parser líneas (cantidad + nombre + unidad)
 ========================== */
+function detectUnit(raw){
+  const low = String(raw||'').toLowerCase();
+  for(const u of UNIT_ALIASES){
+    for(const w of u.words){
+      const re = new RegExp(`\\b${w}\\b`,'i');
+      if(re.test(low)) return u.u;
+    }
+  }
+  return 'UD';
+}
 function parseLine(raw){
   if(!raw) return null;
-  let s = String(raw).replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
+  let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
   s = s.replace(/^[-•*]\s*/,'');
-  s = s.replace(/\s+—\s+/g,' - ');
-  s = s.replace(/\s*:\s*/g,': ');
-
-  // soporta "producto x4"
   let qty=null, name=s;
+  const unit = detectUnit(s);
 
   const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
   if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
   if(qty===null){
-    // soporta "producto 2kg" o "producto 2 kg"
-    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas|manojo|manojos|saco|sacos)?\s*$/i);
+    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas|manojo|manojos|saco|sacos|bolsa|bolsas|bandeja|bandejas|bdja|pieza|piezas)?\s*$/i);
     if(mEnd){ qty=Number(mEnd[1].replace(',','.')); name=s.slice(0,mEnd.index).trim(); }
   }
   if(qty===null){
-    // soporta "2 producto"
     const mStart = s.match(/^\s*(\d+[\.,]?\d*)\s+(.*)$/);
     if(mStart){ qty=Number(mStart[1].replace(',','.')); name=mStart[2].trim(); }
   }
   if(qty===null){ qty=1; }
 
   name = stripGenericWords(name);
-
-  return { original: removeDiacriticsUpper(s), name, qty };
+  return { original: removeDiacriticsUpper(s), name, qty, unit };
 }
 
 /* ==========================
-   Estado principal (mantiene lo anterior)
+   Estado
 ========================== */
-const tiendaState = { sp:[], sl:[], st:[] }; // [{o,e,q,a}]
-let globalRows = [];                          // [{name,total}]
-let assignments = {};                         // { normKey(name) : proveedor }
-let orders = {};                              // { proveedor : [{name, qty}] }
-const repartoState = {};                      // tu módulo
+const tiendaState = { sp:[], sl:[], st:[] }; // [{o,e,q,a,u}]
+let globalRows = [];                          // [{name,total,unit}]
+let assignments = {};                         // { normKey(name+'|'+unit) : proveedor }
+let orders = {};                              // { proveedor : [{name, qty, unit}] }
+let ACTIVE_PROV = null;
+let prices = {};                              // { normKey(product): {unit:'KG', current:1.23, history:[{ts, price}] } }
 
-/* ==========================
-   Precios + historial
-   pricesDB: { normKey(product): {name, history:[{ts, price, note}] } }
-========================== */
-let pricesDB = {}; // persistente
-
-/* ==========================
-   Undo stack (no rompe nada)
-========================== */
-let UNDO_STACK = [];
-const UNDO_MAX = 80;
-
-function snapshotState(){
-  return {
-    tiendaState: structuredClone(tiendaState),
-    globalRows: structuredClone(globalRows),
-    assignments: structuredClone(assignments),
-    orders: structuredClone(orders),
-    PROVEEDORES: structuredClone(PROVEEDORES),
-    ACTIVE_PROV,
-    rules: structuredClone(rules),
-    synonymsText: (byId('synTxt') ? byId('synTxt').value : localStorage.getItem(LS.SYN)||''),
-    pricesDB: structuredClone(pricesDB)
-  };
-}
-function pushUndo(label){
-  try{
-    UNDO_STACK.push({ ts:Date.now(), label, snap: snapshotState() });
-    if(UNDO_STACK.length>UNDO_MAX) UNDO_STACK.shift();
-    localStorage.setItem(LS.UNDO, JSON.stringify(UNDO_STACK.slice(-20))); // sombra (últimos 20)
-  }catch{}
-}
-function undo(){
-  if(!UNDO_STACK.length){
-    toast('Nada que deshacer');
-    return;
-  }
-  const last = UNDO_STACK.pop();
-  if(!last || !last.snap){
-    toast('Undo inválido');
-    return;
-  }
-  const s = last.snap;
-  // restaurar
-  Object.assign(tiendaState, s.tiendaState||{sp:[],sl:[],st:[]});
-  globalRows = s.globalRows || [];
-  assignments = s.assignments || {};
-  orders = s.orders || {};
-  PROVEEDORES = s.PROVEEDORES || PROVEEDORES;
-  ACTIVE_PROV = s.ACTIVE_PROV || PROVEEDORES[0];
-  rules = s.rules || rules;
-  pricesDB = s.pricesDB || {};
-  // synonyms
-  if(byId('synTxt')) byId('synTxt').value = s.synonymsText || '';
-  localStorage.setItem(LS.SYN, s.synonymsText || '');
-  synonymsMap = buildSynonymsMapFromText(s.synonymsText || '');
-
-  persistStateNow();
-  // re-render
-  renderTable('sp'); renderTable('sl'); renderTable('st');
-  buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderFrecuentesAll();
-  toast(`Undo: ${last.label || 'cambio'}`);
-}
-
-/* ==========================
-   Persistencia (debounced)
-========================== */
-const persistState = debounce(function(){
-  persistStateNow();
-}, 350);
-
-function persistStateNow(){
-  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
-  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
-  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
-  localStorage.setItem(LS.PROVS, JSON.stringify(PROVEEDORES));
-  localStorage.setItem(LS.RULES, JSON.stringify(rules));
-  localStorage.setItem(LS.PRICES, JSON.stringify(pricesDB));
-}
-
-/* ==========================
-   Load state
-========================== */
 function loadState(){
-  // proveedores
-  try{
-    const p = JSON.parse(localStorage.getItem(LS.PROVS)||'null');
-    if(Array.isArray(p) && p.length){ PROVEEDORES = p.map(x=>removeDiacriticsUpper(x)); }
-  }catch{}
-  ACTIVE_PROV = PROVEEDORES[0] || 'ESMO';
-
-  // tiendas
   try{
     const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
     ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
   }catch{}
-
-  // assign
   try{
     const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
     assignments = a||{};
   }catch{}
-
-  // orders
   try{
     const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
     orders = o||{};
   }catch{}
-  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
-
-  // prices
+  try{
+    const p = JSON.parse(localStorage.getItem(LS.PROVS)||'[]');
+    if(Array.isArray(p) && p.length) PROVEEDORES = p;
+  }catch{}
   try{
     const pr = JSON.parse(localStorage.getItem(LS.PRICES)||'{}');
-    pricesDB = pr||{};
-  }catch{ pricesDB = {}; }
-}
+    prices = pr||{};
+  }catch{}
 
-/* ==========================
-   Reset
-========================== */
+  ensureProvidersInit();
+  if(!ACTIVE_PROV) ACTIVE_PROV = PROVEEDORES[0];
+}
 function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar todo? (borra localStorage)')){
-    localStorage.clear();
-    location.reload();
-  }
+  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocab, proveedores, precios, pedidos)?')){ localStorage.clear(); location.reload(); }
 }
 
 /* ==========================
-   Guardar vocab
-========================== */
-function saveVocab(){
-  localStorage.setItem(LS.VOCAB, (byId('vocabTxt')?.value||''));
-  toast('Vocabulario guardado ✅');
-  renderProvidersPanels();
-  unificarGlobal();
-}
-
-/* ==========================
-   Añadir palabra
-========================== */
-function addNewWord(){
-  const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
-  if(!entry) return;
-  const current = toLines(byId('vocabTxt').value);
-  const added = toLines(entry);
-  const merged = uniqueVocab(current.concat(added));
-  byId('vocabTxt').value = merged.join('\n');
-  pushUndo('Añadir vocab');
-  saveVocab();
-}
-
-/* ==========================
-   Autocomplete (mejorado) + cierre
+   Autocomplete mejorado
 ========================== */
 let AC_ACTIVE = null;
 function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
@@ -1091,29 +995,17 @@ function attachAutocomplete(cell, onPick){
     closeAC();
     if(!val) return;
     const vocab = loadVocab();
-    const qk = normKey(val);
-    // 1) startsWith y includes
-    const hits = [];
-    for(const v of vocab){
-      const vk = normKey(v);
-      if(vk.startsWith(qk)) hits.push(v);
-    }
-    if(hits.length<8){
-      for(const v of vocab){
-        const vk = normKey(v);
-        if(hits.length>=8) break;
-        if(!hits.includes(v) && vk.includes(qk)) hits.push(v);
-      }
-    }
-    // 2) fuzzy top si aún no hay
-    if(hits.length<6){
-      const scored = vocab.map(v=>({v, sc: similarityScore(val,v)})).sort((a,b)=>b.sc-a.sc);
-      for(const it of scored){
-        if(hits.length>=8) break;
-        if(it.sc>=0.72 && !hits.includes(it.v)) hits.push(it.v);
-      }
-    }
-    const suggestions = hits.slice(0,8);
+
+    // mezcla: includes + fuzzy top
+    const inc = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,4).map(v=>({v,s:0.99}));
+    const top = topMatches(val, vocab, 8);
+    const merged = [];
+    const seen = new Set();
+    inc.concat(top).forEach(x=>{
+      const k = normKey(x.v);
+      if(!seen.has(k)){ seen.add(k); merged.push(x); }
+    });
+    const suggestions = merged.slice(0,8);
     if(!suggestions.length) return;
 
     const rect = cell.getBoundingClientRect();
@@ -1126,186 +1018,202 @@ function attachAutocomplete(cell, onPick){
     suggestions.forEach(s=>{
       const item = document.createElement('div');
       item.className='ac-item';
-      item.textContent = s;
-      item.onclick = ()=>{ onPick(s); closeAC(); };
+      item.innerHTML = `<span>${s.v}</span><small>${Math.round((s.s||0)*100)}%</small>`;
+      item.onclick = ()=>{ onPick(s.v); closeAC(); };
       box.appendChild(item);
     });
+
     document.body.appendChild(box);
     AC_ACTIVE = box;
   }, {passive:true});
 
-  cell.addEventListener('keydown', (e)=>{
-    if(e.key==='Escape'){ closeAC(); }
-  });
-
-  document.addEventListener('click', (e)=>{
-    if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){
-      closeAC();
-    }
-  }, {capture:true});
+  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
+}
+function autoFixToVocab(name){
+  const vocab = loadVocab();
+  const cleaned = removeDiacriticsUpper(name);
+  const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+  if(exact) return {fixed: exact, ok:true, score:1};
+  const m = bestMatch(cleaned, vocab);
+  // umbral “fuerte” para auto-aplicar
+  if(m.name && m.score>=0.90) return {fixed: m.name, ok:true, score:m.score};
+  return {fixed: cleaned, ok:false, score:(m.score||0)};
 }
 
 /* ==========================
-   Aplicar sinónimos (antes de fuzzy)
+   Cantidades inteligentes
 ========================== */
-function applySynonyms(name){
-  const k = normKey(name);
-  if(synonymsMap && synonymsMap[k]) return synonymsMap[k];
-  return name;
+function parseSmartQty(input, current){
+  const s = String(input||'').trim();
+  const cur = Number(current)||0;
+  if(!s) return cur;
+
+  // +n / -n
+  if(/^[+-]\s*\d+([.,]\d+)?$/.test(s)){
+    const n = Number(s.replace(',','.'));
+    return cur + n;
+  }
+  // xN
+  if(/^(x|\*)\s*\d+([.,]\d+)?$/i.test(s)){
+    const n = Number(s.replace(/^(x|\*)\s*/i,'').replace(',','.'));
+    return cur * n;
+  }
+  // número normal
+  const n = Number(s.replace(',','.'));
+  if(!isNaN(n)) return n;
+  return cur;
+}
+function clampQty(q){
+  q = Number(q)||0;
+  if(q<0) q=0;
+  return q;
 }
 
 /* ==========================
-   Cantidades inteligentes (+/-)
-========================== */
-function sanitizeQty(val){
-  let n = Number(String(val).replace(',','.'));
-  if(isNaN(n)) n = 0;
-  if(!rules.allowDecimals) n = Math.round(n);
-  return n;
-}
-function adjustQtyInCell(cell, delta){
-  const cur = sanitizeQty(cell.innerText||'0');
-  const next = cur + delta;
-  cell.innerText = (rules.allowDecimals ? next : Math.round(next));
-}
-
-/* ==========================
-   Render tabla por tienda (mantiene tu estructura + añade +/- y validaciones)
+   Render tabla tienda (con unidad + botones rápidos)
 ========================== */
 function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
-  if(!wrap) return;
   const rows = tiendaState[code]||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
 
-  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Unidad</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
-    const badQty = (rules.warnZeroQty && (!r.q || Number(r.q)<=0));
-    html += `<tr class="${badQty?'dup':''}">
-      <td>${r.o}</td>
-      <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
-      <td contenteditable="true" data-i="${i}" data-f="q" class="${badQty?'red':''}">${r.q}</td>
-      <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}${badQty? ' <span class="pill warn">Qty</span>':''}</td>
+    const bad = r.a || !r.e || (Number(r.q)||0)<=0;
+    html += `<tr>
+      <td>${r.o||''}</td>
+      <td contenteditable="true" data-i="${i}" data-f="e" ${bad? 'class="red"':''}>${r.e||''}</td>
+      <td>
+        <select data-i="${i}" data-f="u" onchange="onStoreUnitChange('${code}', ${i}, this.value)">
+          ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix,arr)=>arr.indexOf(v)===ix).map(u=>`<option value="${u}" ${u===(r.u||'UD')?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <div class="qctrl">
+          <button class="qbtn" onclick="quickQty('${code}',${i},-1)">-1</button>
+          <span contenteditable="true" data-i="${i}" data-f="q">${r.q}</span>
+          <button class="qbtn" onclick="quickQty('${code}',${i},+1)">+1</button>
+        </div>
+      </td>
+      <td>${bad? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // handlers
-  wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
+  // editable handlers + autocomplete + smart qty
+  wrap.querySelectorAll('td [contenteditable], td[contenteditable]').forEach(cell=>{
+    if(cell.getAttribute('contenteditable')!=='true') return;
+
     const i = Number(cell.dataset.i);
     const f = cell.dataset.f;
 
     if(f==='e'){
       attachAutocomplete(cell, (picked)=>{
-        pushUndo(`Editar nombre ${code.toUpperCase()}`);
+        pushUndo(`autopick ${code}`);
         cell.innerText = picked;
         tiendaState[code][i].e = picked;
         tiendaState[code][i].a = false;
         cell.classList.remove('red');
-        cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        cell.closest('tr').querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
         persistState();
         idle(()=>unificarGlobal());
       });
     }
 
-    // NUEVO: + / - con teclado en qty
-    cell.addEventListener('keydown', (e)=>{
-      if(f!=='q') return;
-      if(e.key==='+' || e.key==='=' ){ e.preventDefault(); pushUndo(`Qty + ${code.toUpperCase()}`); adjustQtyInCell(cell, 1); }
-      if(e.key==='-' ){ e.preventDefault(); pushUndo(`Qty - ${code.toUpperCase()}`); adjustQtyInCell(cell, -1); }
-    });
-
     cell.addEventListener('blur', ()=>{
-      const val = cell.innerText.trim();
+      const val = (cell.innerText||'').trim();
+
       if(f==='q'){
-        pushUndo(`Editar qty ${code.toUpperCase()}`);
-        tiendaState[code][i].q = sanitizeQty(val);
+        pushUndo(`qty ${code}`);
+        const newQ = clampQty(parseSmartQty(val, tiendaState[code][i].q));
+        tiendaState[code][i].q = newQ;
       }else{
-        pushUndo(`Editar nombre ${code.toUpperCase()}`);
-        let cleaned = removeDiacriticsUpper(val);
-        cleaned = applySynonyms(cleaned); // sinónimo -> oficial
-        tiendaState[code][i].e = cleaned;
-
-        const vocab = loadVocab();
-        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
-
-        const tdState = cell.parentElement.querySelector('td:last-child');
-        if(exact){
-          tiendaState[code][i].a=false;
-          cell.classList.remove('red');
-          tdState.innerHTML='<span class="pill ok">OK</span>';
-        }else{
-          // intento: mejorMatch y si score alto, auto-aplica
-          const m = bestMatch(cleaned, vocab);
-          if(m && m.name && m.score>=0.86){
-            tiendaState[code][i].e = m.name;
-            tiendaState[code][i].a=false;
-            cell.innerText = m.name;
-            cell.classList.remove('red');
-            tdState.innerHTML='<span class="pill ok">OK</span>';
-          }else{
-            tiendaState[code][i].a=true;
-            cell.classList.add('red');
-            tdState.innerHTML='<span class="pill warn">Revisar</span>';
-          }
-        }
+        pushUndo(`name ${code}`);
+        const fix = autoFixToVocab(val);
+        tiendaState[code][i].e = fix.fixed;
+        tiendaState[code][i].a = !fix.ok;
       }
+
+      // estado / validación
+      const r = tiendaState[code][i];
+      const bad = r.a || !r.e || (Number(r.q)||0)<=0;
+      const tdState = cell.closest('tr').querySelector('td:last-child');
+      const nameCell = cell.closest('tr').querySelector('td[data-f="e"]');
+      if(bad){ nameCell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
+      else { nameCell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
+
       persistState();
       idle(()=>unificarGlobal());
-      idle(()=>renderFrecuentesAll());
     }, {passive:true});
   });
 }
+function onStoreUnitChange(code, idx, unit){
+  pushUndo(`unit ${code}`);
+  if(!tiendaState[code] || !tiendaState[code][idx]) return;
+  tiendaState[code][idx].u = unit;
+  persistState();
+  idle(()=>unificarGlobal());
+}
+function quickQty(code, idx, delta){
+  pushUndo(`quick qty ${code}`);
+  const r = tiendaState[code]?.[idx];
+  if(!r) return;
+  r.q = clampQty((Number(r.q)||0) + Number(delta||0));
+  persistState();
+  renderTable(code);
+  idle(()=>unificarGlobal());
+}
 
 /* ==========================
-   Estandarizar por tienda (mejorado con sinónimos + auto-aplica si score alto)
+   Estandarizar por tienda
 ========================== */
 function estandarizar(code){
-  pushUndo(`Estandarizar ${code.toUpperCase()}`);
+  pushUndo(`estandarizar ${code}`);
   const vocab = loadVocab();
-  const txt = byId('in_'+code)?.value || '';
+  const txt = byId('in_'+code).value;
   const rows = [];
+
   toLines(txt).forEach(line=>{
     const p = parseLine(line);
     if(!p) return;
-    let rawName = applySynonyms(p.name);
 
-    const exact = vocab.find(v=> normKey(v)===normKey(rawName));
-    if(exact){ rows.push({o:p.original, e:exact, q:p.qty, a:false}); return; }
+    // validaciones mínimas
+    const q = clampQty(p.qty);
+    const u = p.unit || 'UD';
+    if(!p.name) return;
 
-    const m = bestMatch(rawName, vocab);
-    if(m && m.name && m.score>=0.86){
-      rows.push({o:p.original, e:m.name, q:p.qty, a:false});
-    }else{
-      const chosen = (m && m.name) ? m.name : rawName;
-      rows.push({o:p.original, e:chosen, q:p.qty, a:true});
+    const exact = vocab.find(v=> normKey(v)===normKey(p.name));
+    if(exact){
+      rows.push({o:p.original, e:exact, q:q, a:(q<=0), u:u});
+      return;
     }
+    const m = bestMatch(p.name, vocab);
+    // auto-aplicar si score fuerte
+    const chosen = (m.name && m.score>=0.90) ? m.name : (m.name || p.name);
+    const ok = (m.name && m.score>=0.90);
+    rows.push({o:p.original, e:removeDiacriticsUpper(chosen), q:q, a:(!ok) || (q<=0), u:u});
   });
+
   tiendaState[code] = rows;
   renderTable(code);
   persistState();
   idle(()=>unificarGlobal());
-  idle(()=>renderFrecuentesAll());
 }
 
 function guardarTienda(code){
-  pushUndo(`Guardar tienda ${code.toUpperCase()}`);
-  const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
+  const out = (tiendaState[code]||[]).map(r=> `${r.q} ${r.u} ${r.e}`).join('\n');
   byId('in_'+code).value = out;
-  toast(`Tienda ${code.toUpperCase()} guardada.`);
+  alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
 }
 
-/* ==========================
-   Export / WhatsApp tienda (igual que tu base)
-========================== */
 function exportarTiendaTXT(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const okRows = tienda.filter(r => !r.a && (Number(r.q)||0)>0 && r.e);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo) o cantidades inválidas.'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const txt = okRows.map(x => `${x.q} ${x.u} ${x.e}`).join('\n');
   const blob = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1315,88 +1223,114 @@ function exportarTiendaTXT(code){
 function enviarTiendaWhatsApp(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
-  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const okRows = tienda.filter(r => !r.a && (Number(r.q)||0)>0 && r.e);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo) o cantidades inválidas.'); return; }
+  const txt = okRows.map(x => `${x.q} ${x.u} ${x.e}`).join('\n');
   const msg = encodeURIComponent(`🛒 *Pedido ${code.toUpperCase()}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
-   Unificar global + similares (mantiene tu lógica + añade search + fila activa)
+   Global: unificar + duplicados + selección + merge
 ========================== */
-let similarSetGlobal = new Set();
-let GLOBAL_ACTIVE_INDEX = 0;
+let globalSelected = new Set(); // indices in visible table
+function clearSelections(){
+  globalSelected.clear();
+  updateSelUI();
+  // re-render just highlights
+  const wrap = byId('global_wrap');
+  wrap.querySelectorAll('tr[data-i]').forEach(tr=>tr.classList.remove('row-selected'));
+}
+function updateSelUI(){
+  const c = byId('selCount');
+  if(c) c.textContent = String(globalSelected.size);
+}
+
+function globalKey(name, unit){
+  return normKey(name) + '|' + String(unit||'UD');
+}
 
 function unificarGlobal(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
   const map = new Map();
+
   all.forEach(r=>{
-    const key = normKey(r.e);
-    if(!map.has(key)) map.set(key,{name:r.e,total:0});
+    const name = r.e || '';
+    const unit = r.u || 'UD';
+    const key = globalKey(name, unit);
+    if(!map.has(key)) map.set(key,{name: removeDiacriticsUpper(name), unit: unit, total:0});
     map.get(key).total += (Number(r.q)||0);
   });
-  const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
-  // detectar similares
+  const arr = Array.from(map.values())
+    .filter(x=>x.name && (Number(x.total)||0)>0)
+    .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
+
+  // detectar similares (solo dentro misma unidad)
   const names = arr.map(x=>x.name);
-  const sim = new Set();
-  for(let i=0;i<names.length;i++){
-    for(let j=i+1;j<names.length;j++){
-      const s1=names[i], s2=names[j];
-      const sc = similarityScore(s1,s2);
-      if(sc>=0.86 && normKey(s1)!==normKey(s2)){ sim.add(s1); sim.add(s2); }
+  const similarSet = new Set();
+  for(let i=0;i<arr.length;i++){
+    for(let j=i+1;j<arr.length;j++){
+      if(arr[i].unit!==arr[j].unit) continue;
+      const s1 = arr[i].name, s2 = arr[j].name;
+      const sc = similarityScore(s1, s2);
+      if(sc>=0.86 && normKey(s1)!==normKey(s2)){
+        similarSet.add(globalKey(s1,arr[i].unit));
+        similarSet.add(globalKey(s2,arr[j].unit));
+      }
     }
   }
-  similarSetGlobal = sim;
-  renderGlobalTable(arr, sim);
+
+  renderGlobalTable(arr, similarSet);
+  byId('activeProvTxt').textContent = ACTIVE_PROV || '';
 }
 
-/* ==========================
-   GLOBAL render + asignación + Undo instantáneo
-========================== */
 function renderGlobalTable(rows, similarSet){
-  const q = (byId('searchGlobal')?.value || '').trim();
-  const qk = normKey(q);
-
-  const visibleBase = rows.filter(r => !assignments[normKey(r.name)]);
-  const visible = qk ? visibleBase.filter(r => normKey(r.name).includes(qk)) : visibleBase;
-
+  const visible = rows.filter(r => !assignments[globalKey(r.name, r.unit)]);
   globalRows = visible;
 
   const wrap = byId('global_wrap');
-  if(!wrap) return;
-
-  if(!visible.length){
-    wrap.innerHTML = '<div class="hint">Sin productos (todo asignado o no unificado).</div>';
-    return;
-  }
-
-  if(GLOBAL_ACTIVE_INDEX >= visible.length) GLOBAL_ACTIVE_INDEX = 0;
+  if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>'; return; }
 
   let html = `
     <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>.
-      <br>Fila activa: <b>#${GLOBAL_ACTIVE_INDEX+1}</b> (usa ↑/↓ para mover, Enter para asignar)
+      Proveedor activo: <b>${ACTIVE_PROV}</b>. ✅ asigna. Click en fila = seleccionar.
     </div>
     <div class="scroll-x"><table>
-      <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
+      <thead><tr><th></th><th>Producto</th><th>Unidad</th><th>Total</th><th>Estado</th></tr></thead>
       <tbody>`;
 
   visible.forEach((r,i)=>{
-    const isSimilar = similarSet.has(r.name);
-    const active = (i===GLOBAL_ACTIVE_INDEX);
-    html += `<tr data-i="${i}" class="${isSimilar?'dup':''} ${active?'soft':''}">
-      <td><button class="ok-assign" onclick="assignFromGlobal(${i})" title="Asignar ✅ (Enter)">✅</button></td>
+    const key = globalKey(r.name, r.unit);
+    const isSimilar = similarSet.has(key);
+    const selected = globalSelected.has(i);
+    html += `<tr data-i="${i}" class="${(isSimilar?'dup ':'') + (selected?'row-selected':'')}">
+      <td><button class="ok-assign" onclick="assignFromGlobal(${i}); event.stopPropagation();">✅</button></td>
       <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
+      <td>
+        <select data-f="unit">
+          ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix,arr)=>arr.indexOf(v)===ix).map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </td>
       <td contenteditable="true" data-f="total">${r.total}</td>
       <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
+
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // Edición inline + autocomplete
+  // selección por click en fila
+  wrap.querySelectorAll('tr[data-i]').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const idx = Number(tr.dataset.i);
+      if(globalSelected.has(idx)){ globalSelected.delete(idx); tr.classList.remove('row-selected'); }
+      else { globalSelected.add(idx); tr.classList.add('row-selected'); }
+      updateSelUI();
+    }, {passive:true});
+  });
+
+  // Edición inline + autocomplete + smart qty + auto-fix
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const tr = cell.parentElement;
     const idx = Number(tr.dataset.i);
@@ -1404,7 +1338,7 @@ function renderGlobalTable(rows, similarSet){
 
     if(f==='name'){
       attachAutocomplete(cell, (picked)=>{
-        pushUndo('Editar nombre Global');
+        pushUndo('global pick');
         cell.innerText = picked;
         globalRows[idx].name = picked;
         tr.classList.remove('dup');
@@ -1413,105 +1347,102 @@ function renderGlobalTable(rows, similarSet){
       });
     }
 
-    cell.addEventListener('keydown', (e)=>{
-      // qty +/-
-      if(f==='total'){
-        if(e.key==='+' || e.key==='='){ e.preventDefault(); pushUndo('Qty + Global'); adjustQtyInCell(cell, 1); }
-        if(e.key==='-'){ e.preventDefault(); pushUndo('Qty - Global'); adjustQtyInCell(cell, -1); }
-      }
-    });
-
-    cell.addEventListener('focus', ()=>{
-      // set active row
-      const i = Number(tr.dataset.i);
-      GLOBAL_ACTIVE_INDEX = isNaN(i)? 0 : i;
-    }, {passive:true});
-
     cell.addEventListener('blur', ()=>{
-      const val = cell.innerText.trim();
-      if(f==='total'){
-        pushUndo('Editar total Global');
-        globalRows[idx].total = sanitizeQty(val);
-      }else{
-        pushUndo('Editar nombre Global');
-        let cleaned = removeDiacriticsUpper(val);
-        cleaned = applySynonyms(cleaned);
-        globalRows[idx].name = cleaned;
+      pushUndo('global edit');
+      const val = (cell.innerText||'').trim();
 
-        const vocab = loadVocab();
-        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
-        if(exact){
-          tr.classList.remove('dup');
-          tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
-          cell.innerText = exact;
-          globalRows[idx].name = exact;
-        }else{
-          // intenta auto-match si score alto
-          const m = bestMatch(cleaned, vocab);
-          if(m && m.name && m.score>=0.86){
-            cell.innerText = m.name;
-            globalRows[idx].name = m.name;
-            tr.classList.remove('dup');
-            tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
-          }else{
-            // recalcular duplicado posible
-            let dup=false;
-            for(let k=0;k<globalRows.length;k++){
-              if(k===idx) continue;
-              const sc = similarityScore(globalRows[idx].name, globalRows[k].name);
-              if(sc>=0.86 && normKey(globalRows[idx].name)!==normKey(globalRows[k].name)){ dup=true; break; }
-            }
-            if(dup){
-              tr.classList.add('dup');
-              tr.querySelector('td:last-child').innerHTML = '<span class="pill warn">Posible duplicado</span>';
-            }else{
-              tr.classList.remove('dup');
-              tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
-            }
-          }
-        }
+      if(f==='total'){
+        globalRows[idx].total = clampQty(parseSmartQty(val, globalRows[idx].total));
+      }else{
+        const fix = autoFixToVocab(val);
+        globalRows[idx].name = fix.fixed;
+        cell.innerText = fix.fixed;
       }
+
       persistState();
     }, {passive:true});
   });
+
+  // cambios unidad
+  wrap.querySelectorAll('select[data-f="unit"]').forEach(sel=>{
+    const tr = sel.closest('tr');
+    const idx = Number(tr.dataset.i);
+    sel.addEventListener('change', ()=>{
+      pushUndo('global unit');
+      globalRows[idx].unit = sel.value;
+      // re-evaluar duplicados al cambiar unidad
+      idle(()=>unificarGlobal());
+      persistState();
+    }, {passive:true});
+  });
+}
+
+function mergeSelected(){
+  if(globalSelected.size<2){ alert('Selecciona al menos 2 filas para fusionar.'); return; }
+  pushUndo('fusionar global');
+
+  const idxs = Array.from(globalSelected).sort((a,b)=>a-b);
+  const baseIdx = idxs[0];
+  const base = globalRows[baseIdx];
+  if(!base){ alert('Selección inválida.'); return; }
+
+  let sum = Number(base.total)||0;
+  const unit = base.unit;
+
+  // sumar y eliminar
+  for(let k=idxs.length-1;k>=1;k--){
+    const i = idxs[k];
+    const it = globalRows[i];
+    if(!it) continue;
+    if(it.unit!==unit){
+      // si unidad distinta, no fusiona (seguridad)
+      continue;
+    }
+    sum += Number(it.total)||0;
+    globalRows.splice(i,1);
+  }
+  base.total = sum;
+  globalSelected.clear();
+  updateSelUI();
+
+  // re-render visible (solo tabla global)
+  renderGlobalTable(globalRows, new Set());
+  persistState();
 }
 
 function assignFromGlobal(idx){
   const item = globalRows[idx];
   if(!item) return;
 
-  pushUndo(`Asignar ${item.name} → ${ACTIVE_PROV}`);
+  pushUndo('asignar proveedor');
 
-  const k = normKey(item.name);
+  const k = globalKey(item.name, item.unit);
   assignments[k] = ACTIVE_PROV;
 
   const list = orders[ACTIVE_PROV]||[];
-  const exIdx = list.findIndex(x=> normKey(x.name)===k);
+  const exIdx = list.findIndex(x=> globalKey(x.name,x.unit)===k);
   if(exIdx>-1){ list[exIdx].qty += Number(item.total)||0; }
-  else{ list.push({name:item.name, qty:Number(item.total)||0}); }
+  else{ list.push({name:item.name, unit:item.unit, qty:Number(item.total)||0}); }
   orders[ACTIVE_PROV] = list;
 
   persistState();
   idle(()=>unificarGlobal());
   renderProvidersPanels();
-
-  // Undo rápido en toast
-  toast(`Asignado a ${ACTIVE_PROV}: ${item.name}`, [
-    {label:'Deshacer', onClick:()=>undo()}
-  ]);
 }
 
 /* ==========================
-   Barra de proveedores (dinámicos)
+   Barra de proveedores + paneles
 ========================== */
 function buildProvBar(){
-  const bar = byId('provBar');
-  if(!bar) return;
+  const bar = byId('provBar'); if(!bar) return;
   bar.innerHTML='';
-  PROVEEDORES.forEach((p,idx)=>{
+  if(!ACTIVE_PROV || !PROVEEDORES.includes(ACTIVE_PROV)) ACTIVE_PROV = PROVEEDORES[0];
+  byId('activeProvTxt').textContent = ACTIVE_PROV || '';
+
+  PROVEEDORES.forEach(p=>{
     const b = document.createElement('button');
     b.className = 'prov-btn' + (p===ACTIVE_PROV?' active':'');
-    b.textContent = `${idx<9? (idx+1)+'. ':''}${p}`;
+    b.textContent = p;
     b.onclick = ()=>{
       ACTIVE_PROV = p;
       buildProvBar();
@@ -1521,14 +1452,9 @@ function buildProvBar(){
   });
 }
 
-/* ==========================
-   Paneles proveedores (mantiene tu base + edición + checklist opcional)
-========================== */
 function renderProvidersPanels(){
-  const cont = byId('provPanels');
-  if(!cont) return;
+  const cont = byId('provPanels'); if(!cont) return;
   cont.innerHTML='';
-
   PROVEEDORES.forEach(p=>{
     const list = orders[p]||[];
     const card = document.createElement('div');
@@ -1538,9 +1464,8 @@ function renderProvidersPanels(){
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT</button>
+        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
         <button class="btn small muted" onclick="enviarProvWhatsApp('${p}')">📲 WhatsApp</button>
-        <button class="btn small muted" onclick="openPrices('${p}')">💶</button>
       </div>`;
 
     const bd = document.createElement('div');
@@ -1549,17 +1474,22 @@ function renderProvidersPanels(){
     if(!list.length){
       bd.innerHTML = '<div class="hint">Sin productos asignados.</div>';
     }else{
-      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>✓</th></tr></thead><tbody>';
+      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th></tr></thead><tbody>';
       list.forEach((it,ix)=>{
         html += `<tr>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
+          <td>
+            <select data-prov="${p}" data-idx="${ix}" data-f="unit">
+              ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix2,arr)=>arr.indexOf(v)===ix2).map(u=>`<option value="${u}" ${u===(it.unit||'UD')?'selected':''}>${u}</option>`).join('')}
+            </select>
+          </td>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
-          <td><input type="checkbox" onchange="markPrepared('${p}', ${ix}, this.checked)"></td>
         </tr>`;
       });
       html += '</tbody></table></div>';
       bd.innerHTML = html;
 
+      // edición inline proveedor
       bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
         const prov = cell.dataset.prov;
         const idx = Number(cell.dataset.idx);
@@ -1567,81 +1497,72 @@ function renderProvidersPanels(){
 
         if(f==='name'){
           attachAutocomplete(cell, picked=>{
-            pushUndo('Editar nombre proveedor');
+            pushUndo('prov pick');
             cell.innerText = picked;
             orders[prov][idx].name = picked;
             persistState();
           });
         }
 
-        cell.addEventListener('keydown', (e)=>{
-          if(f==='qty'){
-            if(e.key==='+'||e.key==='='){ e.preventDefault(); pushUndo('Qty + proveedor'); adjustQtyInCell(cell, 1); }
-            if(e.key==='-'){ e.preventDefault(); pushUndo('Qty - proveedor'); adjustQtyInCell(cell, -1); }
-          }
-        });
-
         cell.addEventListener('blur', ()=>{
-          const val = cell.innerText.trim();
-          pushUndo('Editar proveedor');
+          pushUndo('prov edit');
+          const val = (cell.innerText||'').trim();
           if(f==='qty'){
-            orders[prov][idx].qty = sanitizeQty(val);
+            orders[prov][idx].qty = clampQty(parseSmartQty(val, orders[prov][idx].qty));
           }else{
-            let n = removeDiacriticsUpper(val);
-            n = applySynonyms(n);
-            orders[prov][idx].name = n;
-            cell.innerText = n;
+            const fix = autoFixToVocab(val);
+            orders[prov][idx].name = fix.fixed;
+            cell.innerText = fix.fixed;
           }
+          persistState();
+        }, {passive:true});
+      });
+
+      bd.querySelectorAll('select[data-f="unit"]').forEach(sel=>{
+        sel.addEventListener('change', ()=>{
+          pushUndo('prov unit');
+          const prov = sel.dataset.prov;
+          const idx = Number(sel.dataset.idx);
+          orders[prov][idx].unit = sel.value;
           persistState();
         }, {passive:true});
       });
     }
 
-    card.appendChild(hd);
-    card.appendChild(bd);
+    card.appendChild(hd); card.appendChild(bd);
     cont.appendChild(card);
   });
 }
 
-function markPrepared(prov, idx, checked){
-  // no persistente, solo UX
-  if(checked){
-    toast(`Preparado ✓ (${prov})`, [{label:'Undo', onClick:()=>undo()}]);
-  }
-}
-
-/* ==========================
-   Export proveedor / WhatsApp (igual)
-========================== */
 function exportProvTXT(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+  const txt = list.map(x=> `${x.qty} ${x.unit||'UD'} ${x.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
 }
 function enviarProvWhatsApp(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+  const txt = list.map(x=> `${x.qty} ${x.unit||'UD'} ${x.name}`).join('\n');
   const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
-   Exportación Global (igual que tu base)
+   Exportación Global
 ========================== */
 function copiarGlobal(){
   if(!globalRows.length) return;
-  const txt = globalRows.map(r=>`- ${r.total} ${r.name}`).join('\n');
+  const txt = globalRows.map(r=>`- ${r.total} ${r.unit||'UD'} ${r.name}`).join('\n');
   navigator.clipboard.writeText(txt);
-  toast('Lista global copiada ✅');
+  alert('Lista global copiada.');
 }
 function exportarGlobalTXT(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = globalRows.map(r=>`${r.total}\t${r.name}`).join('\n');
+  const txt = globalRows.map(r=>`${r.total}\t${r.unit||'UD'}\t${r.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
 }
@@ -1649,20 +1570,20 @@ function exportarGlobalXLSX(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([['Producto','Total'], ...globalRows.map(r=>[r.name,r.total])]);
+  const ws = XLSX.utils.aoa_to_sheet([['Producto','Unidad','Total'], ...globalRows.map(r=>[r.name,r.unit||'UD',r.total])]);
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
   XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
 }
 
 /* ==========================
-   TXT Global (asignados + pendientes) (igual)
+   TXT Global (asignados + pendientes)
 ========================== */
 function exportResumenGlobalTXT(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
   const totalMap = {};
   all.forEach(r=>{
-    const k = normKey(r.e);
-    if(!totalMap[k]) totalMap[k] = {name:r.e, total:0};
+    const k = globalKey(r.e||'', r.u||'UD');
+    if(!totalMap[k]) totalMap[k] = {name:r.e, unit:r.u||'UD', total:0};
     totalMap[k].total += (Number(r.q)||0);
   });
 
@@ -1670,12 +1591,13 @@ function exportResumenGlobalTXT(){
   const unassigned = [];
 
   Object.values(totalMap).forEach(it=>{
-    const k = normKey(it.name);
+    if(!it.name || (Number(it.total)||0)<=0) return;
+    const k = globalKey(it.name, it.unit);
     const prov = assignments[k];
     if(prov && PROVEEDORES.includes(prov)){
-      byProv[prov].push({name:it.name, qty:it.total});
+      byProv[prov].push({name:it.name, unit:it.unit, qty:it.total});
     }else{
-      unassigned.push({name:it.name, qty:it.total});
+      unassigned.push({name:it.name, unit:it.unit, qty:it.total});
     }
   });
 
@@ -1683,8 +1605,8 @@ function exportResumenGlobalTXT(){
   PROVEEDORES.forEach(p=>{
     out += `> ${p}:\n`;
     if(byProv[p].length){
-      byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
+      byProv[p].sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
+      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.unit||'UD'} ${x.name}\n`; });
     }else{
       out += `- (sin líneas)\n`;
     }
@@ -1693,8 +1615,8 @@ function exportResumenGlobalTXT(){
 
   out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
   if(unassigned.length){
-    unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
+    unassigned.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
+    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.unit||'UD'} ${x.name}\n`; });
   }else{
     out += `- (sin líneas)\n`;
   }
@@ -1705,27 +1627,28 @@ function exportResumenGlobalTXT(){
 }
 
 /* ==========================
-   Reparto por tiendas (tu módulo) — igual + mantiene precios
+   🚚 REPARTO POR TIENDAS + PRECIOS + WHATSAPP (no persistente)
 ========================== */
+const repartoState = {}; // { tienda : [ {name, qty, unit, price, checked} ] }
+
 function renderRepartoTienda(){
   const code = byId('selRepartoTienda').value;
   const wrap = byId('reparto_wrap');
-  if(!wrap) return;
-
   if(!code){ wrap.innerHTML = '<div class="hint">Selecciona una tienda para ver su lista.</div>'; return; }
 
   const lista = tiendaState[code] || [];
   if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en esta tienda.</div>'; return; }
 
   if(!repartoState[code] || repartoState[code].length !== lista.length){
-    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
+    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, unit:x.u||'UD', price:'', checked:false }));
   }
 
-  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th></th><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
   repartoState[code].forEach((r,i)=>{
     html += `<tr>
       <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', ${i}, this.checked)"></td>
-      <td>${r.name}</td>
+      <td>${r.name||''}</td>
+      <td>${r.unit||'UD'}</td>
       <td>${r.qty}</td>
       <td contenteditable="true" onblur="updateRepartoPrice('${code}', ${i}, this.innerText)">${r.price||''}</td>
     </tr>`;
@@ -1739,7 +1662,7 @@ function toggleRepartoItem(code, idx, checked){
 }
 function updateRepartoPrice(code, idx, val){
   if(!repartoState[code]) return;
-  const num = parseFloat(String(val).replace(',','.'));
+  const num = parseFloat(String(val||'').replace(',','.'));
   repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
 }
 function exportarRepartoTXT(){
@@ -1748,7 +1671,7 @@ function exportarRepartoTXT(){
   const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const txt = seleccionados.map(x => `${x.qty} ${x.unit||'UD'} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a');
@@ -1764,7 +1687,7 @@ function enviarRepartoWhatsApp(){
 
   let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
   seleccionados.forEach(x=>{
-    msg += `- ${x.qty} ${x.name}`;
+    msg += `- ${x.qty} ${x.unit||'UD'} ${x.name}`;
     if(x.price) msg += ` — ${x.price}€`;
     msg += '\n';
   });
@@ -1773,760 +1696,240 @@ function enviarRepartoWhatsApp(){
 }
 
 /* ==========================
+   💶 PRECIOS (historial)
+========================== */
+function priceKey(name){ return normKey(name); }
+function nowTS(){ return Date.now(); }
+function fmtDate(ts){
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const da = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+function ensurePriceItem(prod){
+  const k = priceKey(prod);
+  if(!prices[k]){
+    prices[k] = {name: removeDiacriticsUpper(prod), unit:'KG', current:'', history:[]};
+  }else{
+    if(!prices[k].name) prices[k].name = removeDiacriticsUpper(prod);
+    if(!Array.isArray(prices[k].history)) prices[k].history = [];
+    if(!prices[k].unit) prices[k].unit = 'KG';
+  }
+  return prices[k];
+}
+function syncPriceCatalogFromVocab(){
+  pushUndo('sync precios');
+  const vocab = loadVocab();
+  vocab.forEach(v=> ensurePriceItem(v));
+  persistState();
+  renderPrices();
+}
+function renderPrices(){
+  const wrap = byId('prices_wrap'); if(!wrap) return;
+  const q = normKey(byId('priceSearch')?.value || '');
+  let arr = Object.values(prices||{});
+  if(q) arr = arr.filter(x=> normKey(x.name||'').includes(q));
+  arr.sort((a,b)=> (a.name||'').localeCompare(b.name||'','es'));
+
+  byId('priceCount').textContent = String(arr.length);
+
+  if(!arr.length){ wrap.innerHTML = '<div class="hint">No hay productos. Pulsa “Sincronizar catálogo”.</div>'; return; }
+
+  let html = `<div class="scroll-x"><table>
+    <thead><tr><th>Producto</th><th>Unidad precio</th><th>Precio actual</th><th>Historial (últimos 3)</th></tr></thead><tbody>`;
+
+  arr.forEach((it,ix)=>{
+    const last3 = (it.history||[]).slice(-3).reverse().map(h=> `${fmtDate(h.ts)}: ${h.price}€`).join(' · ');
+    html += `<tr>
+      <td>${it.name||''}</td>
+      <td>
+        <select onchange="setPriceUnit('${priceKey(it.name)}', this.value)">
+          ${['KG','CAJA','UD','MANOJO','SACO','BOLSA','BANDEJA'].map(u=>`<option value="${u}" ${u===(it.unit||'KG')?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <span contenteditable="true" onblur="setPrice('${priceKey(it.name)}', this.innerText)">${it.current!==''?it.current:''}</span>
+        <span class="mini">€</span>
+      </td>
+      <td class="mini">${last3 || '—'}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  wrap.innerHTML = html;
+}
+function setPriceUnit(k, unit){
+  pushUndo('unidad precio');
+  if(!prices[k]) return;
+  prices[k].unit = unit;
+  persistState();
+}
+function setPrice(k, val){
+  pushUndo('precio');
+  if(!prices[k]) return;
+  const num = parseFloat(String(val||'').replace(',','.'));
+  if(isNaN(num)){ prices[k].current=''; persistState(); return; }
+  const p = num.toFixed(2);
+  // si cambia, registrar historial
+  const prev = prices[k].current;
+  prices[k].current = p;
+  if(prev!==p){
+    prices[k].history.push({ts: nowTS(), price: p});
+    // limitar historial
+    if(prices[k].history.length>60) prices[k].history = prices[k].history.slice(-60);
+  }
+  persistState();
+  renderPrices();
+}
+function pasarSeleccionadosAPrecios(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona una tienda en Reparto primero.'); return; }
+  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados en Reparto.'); return; }
+
+  pushUndo('reparto -> precios');
+
+  seleccionados.forEach(x=>{
+    if(!x.name) return;
+    const item = ensurePriceItem(x.name);
+    // si hay precio puesto, guardarlo como current + historial
+    if(x.price){
+      const k = priceKey(item.name);
+      const num = parseFloat(String(x.price).replace(',','.'));
+      if(!isNaN(num)){
+        prices[k].unit = (x.unit==='KG' ? 'KG' : (x.unit==='CAJA'?'CAJA': (x.unit==='MANOJO'?'MANOJO': (x.unit==='SACO'?'SACO': (x.unit==='BOLSA'?'BOLSA': (x.unit==='BANDEJA'?'BANDEJA':'UD'))))));
+        prices[k].current = num.toFixed(2);
+        prices[k].history.push({ts: nowTS(), price: prices[k].current});
+        if(prices[k].history.length>60) prices[k].history = prices[k].history.slice(-60);
+      }
+    }
+  });
+
+  persistState();
+  showTab('precios');
+  renderPrices();
+}
+function exportPricesJSON(){
+  const obj = prices||{};
+  const blob = new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = `arslan_precios_${new Date().toISOString().split('T')[0]}.json`; a.click();
+}
+function importPricesJSON(){
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange = ()=>{
+    const f = inp.files && inp.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const data = JSON.parse(String(r.result||'{}'));
+        if(typeof data!=='object' || !data) throw new Error('JSON inválido');
+        pushUndo('import precios');
+        prices = data;
+        persistState();
+        renderPrices();
+        alert('Precios importados.');
+      }catch(e){
+        alert('No se pudo importar: ' + e.message);
+      }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function exportPricesXLSX(){
+  const arr = Object.values(prices||{}).sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+  if(!arr.length){ alert('No hay precios.'); return; }
+  const wb = XLSX.utils.book_new();
+  const rows = [['Producto','Unidad precio','Precio actual','Historial (JSON)']];
+  arr.forEach(it=>{
+    rows.push([it.name||'', it.unit||'KG', it.current!==''?it.current:'', JSON.stringify(it.history||[])]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Precios');
+  XLSX.writeFile(wb, `arslan_precios_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+/* ==========================
+   Backup completo (seguridad)
+========================== */
+function openBackupModal(){
+  const data = fullBackupObject();
+  byId('backupTxt').value = JSON.stringify(data, null, 2);
+  byId('backupModal').style.display='flex';
+}
+function closeBackupModal(){ byId('backupModal').style.display='none'; }
+function fullBackupObject(){
+  return {
+    version: 'ARSLAN_LISTAS_V34_PROPLUS',
+    ts: nowTS(),
+    vocab: byId('vocabTxt')?.value || '',
+    tiendaState,
+    assignments,
+    orders,
+    PROVEEDORES,
+    prices
+  };
+}
+function copyFullBackup(){
+  const txt = byId('backupTxt').value || JSON.stringify(fullBackupObject(), null, 2);
+  navigator.clipboard.writeText(txt);
+  localStorage.setItem(LS.BACKUP, txt);
+  alert('Backup copiado.');
+}
+function downloadFullBackup(){
+  const txt = byId('backupTxt').value || JSON.stringify(fullBackupObject(), null, 2);
+  const blob = new Blob([txt],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = `arslan_backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
+}
+function importFullBackup(){
+  const raw = prompt('Pega aquí el JSON del backup completo (sobrescribe el estado actual):');
+  if(!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    if(!data || typeof data!=='object') throw new Error('JSON inválido');
+    pushUndo('import backup');
+
+    // vocab
+    if(typeof data.vocab==='string' && data.vocab.trim()){
+      localStorage.setItem(LS.VOCAB, data.vocab);
+      byId('vocabTxt').value = data.vocab;
+    }
+    // state
+    if(data.tiendaState) {
+      tiendaState.sp = Array.isArray(data.tiendaState.sp)? data.tiendaState.sp : [];
+      tiendaState.sl = Array.isArray(data.tiendaState.sl)? data.tiendaState.sl : [];
+      tiendaState.st = Array.isArray(data.tiendaState.st)? data.tiendaState.st : [];
+    }
+    assignments = data.assignments || {};
+    orders = data.orders || {};
+    prices = data.prices || {};
+    PROVEEDORES = Array.isArray(data.PROVEEDORES) && data.PROVEEDORES.length ? data.PROVEEDORES : DEFAULT_PROVEEDORES.slice();
+
+    ensureProvidersInit();
+    persistAllNow();
+    renderAll();
+    alert('Backup importado correctamente.');
+  }catch(e){
+    alert('No se pudo importar: ' + e.message);
+  }
+}
+
+/* ==========================
    FAB helpers
 ========================== */
 function toggleFabMenu(forceHide){
   const m = byId('fabMenu');
-  if(!m) return;
   if(forceHide){ m.classList.remove('show'); return; }
   m.classList.toggle('show');
 }
 document.addEventListener('click', (e)=>{
   const m = byId('fabMenu'), f = byId('fab');
-  if(!m || !f) return;
-  if(!m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
-}, {capture:true});
-
-/* ==========================
-   Search global
-========================== */
-const debouncedSearchGlobal = debounce(()=>unificarGlobal(), 120);
-function debouncedSearchGlobal(){}
-
-/* ==========================
-   Frecuentes por tienda (top 12 por texto/estado)
-========================== */
-function computeFrecuentes(code){
-  const txt = byId('in_'+code)?.value || '';
-  const vocab = loadVocab();
-  const counts = {};
-  toLines(txt).forEach(line=>{
-    const p = parseLine(line);
-    if(!p) return;
-    let n = applySynonyms(p.name);
-    const m = bestMatch(n, vocab);
-    const chosen = (m && m.name) ? m.name : removeDiacriticsUpper(n);
-    const k = normKey(chosen);
-    counts[k] = (counts[k]||0)+1;
-  });
-  const arr = Object.entries(counts).map(([k,c])=>({k,c})).sort((a,b)=>b.c-a.c).slice(0,12);
-  const vocabMap = {};
-  vocab.forEach(v=>vocabMap[normKey(v)]=v);
-  return arr.map(x=>vocabMap[x.k] || x.k);
-}
-function renderFrecuentes(code){
-  const box = byId('chips_'+code);
-  if(!box) return;
-  const list = computeFrecuentes(code);
-  if(!list.length){
-    box.innerHTML = '<span class="hint">Sin frecuentes aún.</span>';
-    return;
-  }
-  box.innerHTML = '';
-  list.forEach(name=>{
-    const c = document.createElement('div');
-    c.className='chip';
-    c.innerHTML = `<b>+</b> ${name}`;
-    c.onclick = ()=>{
-      pushUndo(`Frecuente + ${code.toUpperCase()}`);
-      // añade línea rápida al textarea
-      const ta = byId('in_'+code);
-      if(!ta) return;
-      const lines = toLines(ta.value);
-      // si existe, suma cantidad en la línea (simple)
-      let found=false;
-      for(let i=0;i<lines.length;i++){
-        const p = parseLine(lines[i]);
-        if(!p) continue;
-        if(normKey(applySynonyms(p.name))===normKey(name)){
-          const newQty = (Number(p.qty)||0)+1;
-          lines[i] = `${name} ${newQty}`;
-          found=true;
-          break;
-        }
-      }
-      if(!found){
-        lines.push(`${name} 1`);
-      }
-      ta.value = lines.join('\n');
-      persistState();
-    };
-    box.appendChild(c);
-  });
-}
-function renderFrecuentesAll(){
-  renderFrecuentes('sp');
-  renderFrecuentes('sl');
-  renderFrecuentes('st');
-}
-
-/* ==========================
-   Precios + historial (modal)
-========================== */
-function ensurePriceEntry(productName){
-  const k = normKey(productName);
-  if(!pricesDB[k]){
-    pricesDB[k] = { name: removeDiacriticsUpper(productName), history: [] };
-  }
-  return pricesDB[k];
-}
-function addPrice(productName, price, note){
-  const k = normKey(productName);
-  const entry = ensurePriceEntry(productName);
-  entry.name = removeDiacriticsUpper(productName);
-  entry.history.unshift({ ts: Date.now(), price: Number(price), note: note||'' });
-  if(entry.history.length>60) entry.history = entry.history.slice(0,60);
-  pricesDB[k]=entry;
-  persistState();
-}
-
-function openPrices(focusProv){
-  const body = document.createElement('div');
-
-  const top = document.createElement('div');
-  top.className='row';
-  top.innerHTML = `
-    <input id="priceSearch" placeholder="Buscar producto..." style="flex:1; min-width:220px">
-    <button class="btn muted small" id="btnPriceFromGlobal">Añadir desde Global</button>
-    <button class="btn muted small" id="btnPriceExport">Export precios JSON</button>
-  `;
-  body.appendChild(top);
-
-  const listWrap = document.createElement('div');
-  listWrap.style.marginTop='10px';
-  body.appendChild(listWrap);
-
-  function renderPriceList(q){
-    const qk = normKey(q||'');
-    const all = Object.values(pricesDB||{});
-    const filtered = qk ? all.filter(x=>normKey(x.name).includes(qk)) : all;
-    filtered.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-
-    if(!filtered.length){
-      listWrap.innerHTML = `<div class="hint">Sin precios guardados aún.</div>`;
-      return;
-    }
-
-    let html = `<div class="scroll-x"><table>
-      <thead><tr><th>Producto</th><th>Último precio</th><th>Historial</th><th>Acción</th></tr></thead><tbody>`;
-    filtered.forEach(it=>{
-      const last = it.history && it.history.length ? it.history[0] : null;
-      const lastTxt = last ? (Number(last.price).toFixed(2)+'€') : '—';
-      html += `<tr>
-        <td class="green">${it.name}</td>
-        <td>${lastTxt}</td>
-        <td>${(it.history||[]).slice(0,3).map(h=>`${new Date(h.ts).toISOString().slice(0,10)}: ${Number(h.price).toFixed(2)}€${h.note?(' ('+h.note+')'):''}`).join('<br>') || '—'}</td>
-        <td><button class="btn small" onclick="promptPrice('${it.name.replace(/'/g,"\\'")}')">+ Precio</button></td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
-    listWrap.innerHTML = html;
-  }
-
-  byId('modalTitle').innerText = '💶 Precios e historial';
-  byId('modalBody').innerHTML = '';
-  byId('modalBody').appendChild(body);
-  byId('modalFoot').innerHTML = `<button class="btn muted" onclick="closeModal()">Cerrar</button>`;
-  openModal();
-
-  const inp = body.querySelector('#priceSearch');
-  inp.addEventListener('input', debounce(()=>renderPriceList(inp.value), 120));
-
-  body.querySelector('#btnPriceFromGlobal').onclick = ()=>{
-    // tomar nombres globalRows visibles
-    if(!globalRows.length){
-      alert('No hay globalRows visibles. Ve a Global y unifica primero.');
-      return;
-    }
-    const pick = globalRows.slice(0,30).map(x=>x.name).join('\n');
-    const msg = prompt('Pega/edita productos (uno por línea) para añadir precio:', pick);
-    if(!msg) return;
-    toLines(msg).forEach(n=>ensurePriceEntry(n));
-    persistState();
-    renderPriceList(inp.value);
-    toast('Productos añadidos a precios ✅');
-  };
-
-  body.querySelector('#btnPriceExport').onclick = ()=>{
-    const blob = new Blob([JSON.stringify(pricesDB,null,2)],{type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `arslan_precios_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-  };
-
-  renderPriceList('');
-}
-
-function promptPrice(productName){
-  const p = prompt(`Precio para ${productName} (€):`);
-  if(p===null) return;
-  const val = parseFloat(String(p).replace(',','.'));
-  if(isNaN(val) || val<=0){ alert('Precio inválido'); return; }
-  const note = prompt('Nota (opcional):', '');
-  pushUndo('Añadir precio');
-  addPrice(productName, val, note||'');
-  toast('Precio guardado ✅');
-  openPrices();
-}
-
-/* ==========================
-   Duplicados + fusionar (modal)
-========================== */
-function openDupMerge(){
-  // construye lista de posibles duplicados del global actual
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  const uniqueNames = Array.from(new Set(all.map(r=>removeDiacriticsUpper(r.e))));
-  const pairs = [];
-
-  for(let i=0;i<uniqueNames.length;i++){
-    for(let j=i+1;j<uniqueNames.length;j++){
-      const a = uniqueNames[i], b = uniqueNames[j];
-      if(normKey(a)===normKey(b)) continue;
-      const sc = similarityScore(a,b);
-      if(sc>=0.88) pairs.push({a,b,sc});
-    }
-  }
-  pairs.sort((x,y)=>y.sc-x.sc);
-
-  const body = document.createElement('div');
-  body.innerHTML = `<div class="hint">Selecciona un par para fusionar (mantiene totales y asignaciones). Recomendado revisar antes.</div>`;
-
-  const wrap = document.createElement('div');
-  wrap.style.marginTop='10px';
-  body.appendChild(wrap);
-
-  if(!pairs.length){
-    wrap.innerHTML = `<div class="hint">No hay duplicados fuertes ahora.</div>`;
-  }else{
-    let html = `<div class="scroll-x"><table><thead><tr><th>A</th><th>B</th><th>Score</th><th>Acción</th></tr></thead><tbody>`;
-    pairs.slice(0,60).forEach(p=>{
-      html += `<tr>
-        <td class="red">${p.a}</td>
-        <td class="red">${p.b}</td>
-        <td>${p.sc.toFixed(2)}</td>
-        <td><button class="btn small" onclick="mergeTwoProducts('${p.a.replace(/'/g,"\\'")}', '${p.b.replace(/'/g,"\\'")}')">Fusionar</button></td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
-    wrap.innerHTML = html;
-  }
-
-  byId('modalTitle').innerText = '🧩 Duplicados: detectar y fusionar';
-  byId('modalBody').innerHTML = '';
-  byId('modalBody').appendChild(body);
-  byId('modalFoot').innerHTML = `<button class="btn muted" onclick="closeModal()">Cerrar</button>`;
-  openModal();
-}
-
-function mergeTwoProducts(aName, bName){
-  const target = prompt(`Fusionar en nombre final (ENTER = usar A)\nA: ${aName}\nB: ${bName}`, aName);
-  if(target===null) return;
-
-  pushUndo('Fusionar duplicados');
-
-  const A = normKey(aName), B = normKey(bName), T = normKey(target);
-  const finalName = removeDiacriticsUpper(target);
-
-  // 1) tiendas: reemplaza e = finalName si es A o B
-  ['sp','sl','st'].forEach(code=>{
-    (tiendaState[code]||[]).forEach(r=>{
-      const k = normKey(r.e);
-      if(k===A || k===B) r.e = finalName;
-    });
-  });
-
-  // 2) assignments: si A o B asignados, pasa a T (prioridad A)
-  const provA = assignments[A];
-  const provB = assignments[B];
-  if(provA) assignments[T]=provA;
-  else if(provB) assignments[T]=provB;
-  delete assignments[A]; delete assignments[B];
-
-  // 3) orders: sumar líneas donde name sea A o B, y convertir a finalName
-  PROVEEDORES.forEach(p=>{
-    const list = orders[p]||[];
-    let sum=0;
-    const keep=[];
-    list.forEach(it=>{
-      const k = normKey(it.name);
-      if(k===A || k===B || k===T){
-        sum += Number(it.qty)||0;
-      }else{
-        keep.push(it);
-      }
-    });
-    if(sum>0) keep.push({name:finalName, qty:sum});
-    orders[p]=keep;
-  });
-
-  // 4) prices: fusionar historial
-  const pa = pricesDB[A], pb = pricesDB[B], pt = pricesDB[T] || {name:finalName, history:[]};
-  let hist = [];
-  if(pa && Array.isArray(pa.history)) hist = hist.concat(pa.history);
-  if(pb && Array.isArray(pb.history)) hist = hist.concat(pb.history);
-  if(pt && Array.isArray(pt.history)) hist = hist.concat(pt.history);
-  hist.sort((x,y)=>y.ts-x.ts);
-  pricesDB[T] = {name:finalName, history: hist.slice(0,60)};
-  delete pricesDB[A]; delete pricesDB[B];
-
-  persistState();
-  closeModal();
-  // re-render
-  renderTable('sp'); renderTable('sl'); renderTable('st');
-  buildProvBar(); unificarGlobal(); renderProvidersPanels();
-  toast('Fusión realizada ✅', [{label:'Undo', onClick:()=>undo()}]);
-}
-
-/* ==========================
-   Revisión / auditoría (modal)
-========================== */
-function openReview(){
-  const issues = [];
-
-  // tiendas: rojos + qty 0
-  ['sp','sl','st'].forEach(code=>{
-    (tiendaState[code]||[]).forEach((r,idx)=>{
-      if(r.a) issues.push({type:'Nombre por revisar', where:`${code.toUpperCase()} #${idx+1}`, msg:r.e});
-      if(r.q<=0) issues.push({type:'Cantidad inválida', where:`${code.toUpperCase()} #${idx+1}`, msg:`${r.e} = ${r.q}`});
-      if(r.q>=rules.warnHighQty) issues.push({type:'Cantidad alta', where:`${code.toUpperCase()} #${idx+1}`, msg:`${r.e} = ${r.q}`});
-    });
-  });
-
-  // global duplicates
-  const allNames = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]).map(r=>r.e);
-  for(let i=0;i<allNames.length;i++){
-    for(let j=i+1;j<allNames.length;j++){
-      const sc = similarityScore(allNames[i], allNames[j]);
-      if(sc>=0.90 && normKey(allNames[i])!==normKey(allNames[j])){
-        issues.push({type:'Duplicado posible', where:'GLOBAL', msg:`${allNames[i]}  ~  ${allNames[j]} (${sc.toFixed(2)})`});
-      }
-    }
-  }
-
-  const body = document.createElement('div');
-  body.innerHTML = `<div class="hint">Lista de problemas detectados. Recomendado corregir antes de exportar.</div>`;
-
-  const wrap = document.createElement('div');
-  wrap.style.marginTop='10px';
-  body.appendChild(wrap);
-
-  if(!issues.length){
-    wrap.innerHTML = `<div class="hint">✅ Todo bien. No se detectaron problemas fuertes.</div>`;
-  }else{
-    let html = `<div class="scroll-x"><table><thead><tr><th>Tipo</th><th>Dónde</th><th>Detalle</th></tr></thead><tbody>`;
-    issues.slice(0,200).forEach(it=>{
-      html += `<tr><td class="red">${it.type}</td><td>${it.where}</td><td>${it.msg}</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
-    wrap.innerHTML = html;
-  }
-
-  byId('modalTitle').innerText = '🧪 Revisión y calidad de datos';
-  byId('modalBody').innerHTML = '';
-  byId('modalBody').appendChild(body);
-  byId('modalFoot').innerHTML = `<button class="btn muted" onclick="closeModal()">Cerrar</button>`;
-  openModal();
-}
-
-/* ==========================
-   Proveedores CRUD + settings (modal)
-========================== */
-function openSettings(){
-  const body = document.createElement('div');
-  body.innerHTML = `
-    <div class="card">
-      <div class="hd"><strong>📦 Proveedores</strong></div>
-      <div class="bd">
-        <div class="hint">Crear/editar/eliminar proveedores sin tocar código.</div>
-        <div class="row" style="margin-top:8px">
-          <input id="newProvName" placeholder="Nuevo proveedor..." style="flex:1; min-width:220px">
-          <button class="btn" id="btnAddProv">+ Añadir</button>
-        </div>
-        <div id="provList" style="margin-top:10px"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="hd"><strong>✅ Validaciones</strong></div>
-      <div class="bd">
-        <div class="row">
-          <label class="hint">Aviso cantidad alta:</label>
-          <input id="inpWarnHigh" type="number" min="1" style="width:120px" value="${rules.warnHighQty}">
-          <label class="hint"><input id="chkZero" type="checkbox" ${rules.warnZeroQty?'checked':''}> avisar qty ≤ 0</label>
-          <label class="hint"><input id="chkDec" type="checkbox" ${rules.allowDecimals?'checked':''}> permitir decimales</label>
-          <button class="btn muted" id="btnSaveRules">Guardar</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  function renderProvList(){
-    const wrap = body.querySelector('#provList');
-    if(!wrap) return;
-    if(!PROVEEDORES.length){
-      wrap.innerHTML = `<div class="hint">Sin proveedores. Añade uno arriba.</div>`;
-      return;
-    }
-    let html = `<div class="scroll-x"><table><thead><tr><th>#</th><th>Proveedor</th><th>Acciones</th></tr></thead><tbody>`;
-    PROVEEDORES.forEach((p,idx)=>{
-      html += `<tr>
-        <td>${idx+1}</td>
-        <td><input value="${p}" data-idx="${idx}" class="provRename" style="width:240px"></td>
-        <td>
-          <button class="btn small muted" onclick="moveProv(${idx}, -1)">↑</button>
-          <button class="btn small muted" onclick="moveProv(${idx}, 1)">↓</button>
-          <button class="btn small bad" onclick="deleteProv(${idx})">Borrar</button>
-        </td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
-    wrap.innerHTML = html;
-
-    wrap.querySelectorAll('.provRename').forEach(inp=>{
-      inp.addEventListener('change', ()=>{
-        const idx = Number(inp.dataset.idx);
-        const val = removeDiacriticsUpper(inp.value||'').trim();
-        if(!val){ inp.value = PROVEEDORES[idx]; return; }
-        pushUndo('Renombrar proveedor');
-        const old = PROVEEDORES[idx];
-        PROVEEDORES[idx] = val;
-
-        // migrar orders key
-        if(old!==val){
-          if(!orders[val]) orders[val] = [];
-          (orders[old]||[]).forEach(it=>orders[val].push(it));
-          delete orders[old];
-
-          // migrar assignments valores
-          Object.keys(assignments).forEach(k=>{
-            if(assignments[k]===old) assignments[k]=val;
-          });
-
-          if(ACTIVE_PROV===old) ACTIVE_PROV=val;
-        }
-
-        persistState();
-        buildProvBar(); renderProvidersPanels(); unificarGlobal();
-        renderProvList();
-      });
-    });
-  }
-
-  window.moveProv = function(idx, dir){
-    const j = idx + dir;
-    if(j<0 || j>=PROVEEDORES.length) return;
-    pushUndo('Reordenar proveedores');
-    const tmp = PROVEEDORES[idx];
-    PROVEEDORES[idx]=PROVEEDORES[j];
-    PROVEEDORES[j]=tmp;
-    persistState();
-    buildProvBar();
-    renderProvList();
-  };
-
-  window.deleteProv = function(idx){
-    const p = PROVEEDORES[idx];
-    if(!confirm(`¿Borrar proveedor "${p}"? (sus líneas quedarán sin proveedor)`)) return;
-    pushUndo('Borrar proveedor');
-
-    // quitar orders del proveedor (se perdería) -> lo pasamos a un "SIN PROVEEDOR" temporal en assignments? mejor: lo mantenemos pero fuera.
-    // aquí: mover a un contenedor local "UNASSIGNED_BUFFER"
-    const moved = orders[p] || [];
-    delete orders[p];
-
-    // eliminar proveedor de lista
-    PROVEEDORES.splice(idx,1);
-    if(!PROVEEDORES.length) PROVEEDORES = ['ESMO'];
-    if(!PROVEEDORES.includes(ACTIVE_PROV)) ACTIVE_PROV = PROVEEDORES[0];
-
-    // limpiar assignments que apuntaban a ese proveedor
-    Object.keys(assignments).forEach(k=>{
-      if(assignments[k]===p) delete assignments[k];
-    });
-
-    // si había productos asignados, los devolvemos a global (borrando assignment) y mantenemos tiendas intactas
-    // "moved" queda en memoria: lo reinyectamos a global devolviendo assignment (ya borrado) + sumas volverán por tiendas al unificar
-
-    persistState();
-    buildProvBar(); renderProvidersPanels(); unificarGlobal();
-    renderProvList();
-    toast(`Proveedor borrado: ${p}`, [{label:'Undo', onClick:()=>undo()}]);
-  };
-
-  body.querySelector('#btnAddProv').onclick = ()=>{
-    const inp = body.querySelector('#newProvName');
-    const name = removeDiacriticsUpper(inp.value||'').trim();
-    if(!name) return;
-    if(PROVEEDORES.includes(name)){ alert('Ya existe'); return; }
-    pushUndo('Añadir proveedor');
-    PROVEEDORES.push(name);
-    orders[name] = orders[name] || [];
-    inp.value='';
-    persistState();
-    buildProvBar(); renderProvidersPanels();
-    renderProvList();
-  };
-
-  body.querySelector('#btnSaveRules').onclick = ()=>{
-    pushUndo('Cambiar reglas');
-    const wh = Number(body.querySelector('#inpWarnHigh').value||150);
-    rules.warnHighQty = isNaN(wh)?150:wh;
-    rules.warnZeroQty = !!body.querySelector('#chkZero').checked;
-    rules.allowDecimals = !!body.querySelector('#chkDec').checked;
-    localStorage.setItem(LS.RULES, JSON.stringify(rules));
-    toast('Reglas guardadas ✅');
-    renderTable('sp'); renderTable('sl'); renderTable('st');
-    unificarGlobal();
-  };
-
-  byId('modalTitle').innerText = '⚙️ Ajustes';
-  byId('modalBody').innerHTML = '';
-  byId('modalBody').appendChild(body);
-  byId('modalFoot').innerHTML = `<button class="btn muted" onclick="closeModal()">Cerrar</button>`;
-  openModal();
-  renderProvList();
-}
-
-/* ==========================
-   Backup JSON total + Import + Merge
-========================== */
-function exportAllJSON(){
-  const payload = {
-    version: 'v3.5',
-    exportedAt: new Date().toISOString(),
-    vocab: byId('vocabTxt')?.value || '',
-    synonyms: byId('synTxt')?.value || (localStorage.getItem(LS.SYN)||''),
-    PROVEEDORES,
-    ACTIVE_PROV,
-    tiendaState,
-    assignments,
-    orders,
-    rules,
-    pricesDB
-  };
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `arslan_listas_backup_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
-
-function importAllJSON(){
-  const inp = document.createElement('input');
-  inp.type='file';
-  inp.accept='application/json';
-  inp.onchange = async ()=>{
-    const file = inp.files && inp.files[0];
-    if(!file) return;
-    const txt = await file.text();
-    let data=null;
-    try{ data = JSON.parse(txt); }catch{ alert('JSON inválido'); return; }
-    if(!data) return;
-
-    pushUndo('Import JSON');
-
-    // merge inteligente
-    if(typeof data.vocab==='string' && data.vocab.trim()){
-      byId('vocabTxt').value = uniqueVocab(toLines(data.vocab)).join('\n');
-      localStorage.setItem(LS.VOCAB, byId('vocabTxt').value);
-    }
-    if(typeof data.synonyms==='string'){
-      byId('synTxt').value = data.synonyms;
-      localStorage.setItem(LS.SYN, data.synonyms);
-      synonymsMap = buildSynonymsMapFromText(data.synonyms);
-    }
-    if(Array.isArray(data.PROVEEDORES) && data.PROVEEDORES.length){
-      // merge: añade los nuevos
-      data.PROVEEDORES.map(x=>removeDiacriticsUpper(x)).forEach(p=>{
-        if(!PROVEEDORES.includes(p)) PROVEEDORES.push(p);
-      });
-    }
-    if(data.tiendaState){
-      ['sp','sl','st'].forEach(k=>{
-        if(Array.isArray(data.tiendaState[k])){
-          // merge simple: concat
-          tiendaState[k] = (tiendaState[k]||[]).concat(data.tiendaState[k]);
-        }
-      });
-    }
-    if(data.assignments && typeof data.assignments==='object'){
-      assignments = {...assignments, ...data.assignments};
-    }
-    if(data.orders && typeof data.orders==='object'){
-      Object.keys(data.orders).forEach(p=>{
-        const P = removeDiacriticsUpper(p);
-        if(!orders[P]) orders[P]=[];
-        if(Array.isArray(data.orders[p])) orders[P] = orders[P].concat(data.orders[p]);
-        if(!PROVEEDORES.includes(P)) PROVEEDORES.push(P);
-      });
-    }
-    if(data.rules && typeof data.rules==='object'){
-      rules = {...rules, ...data.rules};
-    }
-    if(data.pricesDB && typeof data.pricesDB==='object'){
-      pricesDB = {...pricesDB, ...data.pricesDB};
-    }
-
-    // normaliza orders duplicados por nombre
-    PROVEEDORES.forEach(p=>{
-      const map = new Map();
-      (orders[p]||[]).forEach(it=>{
-        const k = normKey(it.name);
-        if(!map.has(k)) map.set(k,{name:removeDiacriticsUpper(it.name), qty:0});
-        map.get(k).qty += Number(it.qty)||0;
-      });
-      orders[p] = Array.from(map.values());
-    });
-
-    ACTIVE_PROV = (data.ACTIVE_PROV && PROVEEDORES.includes(data.ACTIVE_PROV)) ? data.ACTIVE_PROV : (PROVEEDORES[0]||ACTIVE_PROV);
-    persistStateNow();
-
-    renderTable('sp'); renderTable('sl'); renderTable('st');
-    buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderFrecuentesAll();
-    toast('Import realizado ✅', [{label:'Undo', onClick:()=>undo()}]);
-  };
-  inp.click();
-}
-
-/* ==========================
-   Modal / Toast helpers
-========================== */
-function openModal(){
-  const b = byId('modalBack');
-  if(b) b.style.display='flex';
-}
-function closeModal(){
-  const b = byId('modalBack');
-  if(b) b.style.display='none';
-}
-function modalBackdropClick(e){
-  if(e.target && e.target.id==='modalBack') closeModal();
-}
-
-let TOAST_T = null;
-function toast(message, actions){
-  const t = byId('toast');
-  const msg = byId('toastMsg');
-  const act = byId('toastActions');
-  if(!t || !msg || !act) return;
-
-  msg.innerText = message || 'Listo';
-  act.innerHTML = '';
-  (actions||[]).forEach(a=>{
-    const b = document.createElement('button');
-    b.className='btn small muted';
-    b.innerText = a.label || 'OK';
-    b.onclick = ()=>{ try{ a.onClick && a.onClick(); }catch{}; };
-    act.appendChild(b);
-  });
-
-  t.classList.add('show');
-  clearTimeout(TOAST_T);
-  TOAST_T = setTimeout(()=>t.classList.remove('show'), 3200);
-}
-
-/* ==========================
-   Ayuda rápida (modal)
-========================== */
-function openQuickHelp(){
-  const body = document.createElement('div');
-  body.innerHTML = `
-    <div class="hint">
-      <b>Atajos Global</b><br>
-      - <span class="kbd">↑</span>/<span class="kbd">↓</span> mover fila activa<br>
-      - <span class="kbd">Enter</span> asignar ✅ a proveedor activo<br>
-      - <span class="kbd">1..9</span> cambiar proveedor a # y asignar fila activa<br>
-      - <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Undo<br>
-      - <span class="kbd">Ctrl</span>+<span class="kbd">F</span> Buscar (en Global)<br>
-      - <span class="kbd">Esc</span> cerrar autocomplete / modal<br><br>
-
-      <b>Cantidades inteligentes</b><br>
-      - En campos de cantidad: <span class="kbd">+</span> / <span class="kbd">-</span> suma/resta 1<br><br>
-
-      <b>Extras</b><br>
-      - Precios: botón 💶 (guarda historial interno)<br>
-      - Duplicados: botón 🧩 para fusionar<br>
-      - Ajustes: proveedores editables + validaciones
-    </div>
-  `;
-  byId('modalTitle').innerText = '⌨️ Atajos y ayuda';
-  byId('modalBody').innerHTML = '';
-  byId('modalBody').appendChild(body);
-  byId('modalFoot').innerHTML = `<button class="btn muted" onclick="closeModal()">Cerrar</button>`;
-  openModal();
-}
-
-/* ==========================
-   TECLADO GLOBAL (asignaciones + navegación)
-========================== */
-document.addEventListener('keydown', (e)=>{
-  // cerrar modal / autocomplete
-  if(e.key==='Escape'){
-    closeAC();
-    closeModal();
-  }
-
-  // Ctrl+Z undo
-  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='z'){
-    e.preventDefault();
-    undo();
-    return;
-  }
-
-  // Ctrl+F -> focus search global si estás en global
-  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='f'){
-    const tabGlobalVisible = byId('tab-global') && byId('tab-global').style.display!=='none';
-    if(tabGlobalVisible){
-      e.preventDefault();
-      byId('searchGlobal')?.focus();
-      return;
-    }
-  }
-
-  // si no estás en global visible, no aplicamos asignación rápida
-  const tabGlobalVisible = byId('tab-global') && byId('tab-global').style.display!=='none';
-  if(!tabGlobalVisible) return;
-
-  // evitar cuando escribes en input/textarea/contenteditable
-  const ae = document.activeElement;
-  const tag = (ae && ae.tagName) ? ae.tagName.toLowerCase() : '';
-  const isEditing = (tag==='input' || tag==='textarea' || ae?.isContentEditable);
-  if(isEditing) return;
-
-  // arriba/abajo: mover fila activa
-  if(e.key==='ArrowDown'){
-    e.preventDefault();
-    GLOBAL_ACTIVE_INDEX = Math.min(GLOBAL_ACTIVE_INDEX+1, Math.max(0, globalRows.length-1));
-    unificarGlobal();
-    return;
-  }
-  if(e.key==='ArrowUp'){
-    e.preventDefault();
-    GLOBAL_ACTIVE_INDEX = Math.max(GLOBAL_ACTIVE_INDEX-1, 0);
-    unificarGlobal();
-    return;
-  }
-
-  // Enter: asigna fila activa al proveedor activo
-  if(e.key==='Enter'){
-    e.preventDefault();
-    assignFromGlobal(GLOBAL_ACTIVE_INDEX);
-    return;
-  }
-
-  // 1..9: cambiar proveedor (por índice) y asignar fila activa
-  if(/^[1-9]$/.test(e.key)){
-    const n = Number(e.key);
-    const idx = n-1;
-    if(idx>=0 && idx<PROVEEDORES.length){
-      e.preventDefault();
-      ACTIVE_PROV = PROVEEDORES[idx];
-      buildProvBar();
-      assignFromGlobal(GLOBAL_ACTIVE_INDEX);
-      return;
-    }
-  }
+  if(m && f && !m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
 }, {capture:true});
 
 /* ==========================
@@ -2537,493 +1940,19 @@ document.addEventListener('keydown', (e)=>{
   applyTheme(savedTheme);
 
   loadVocab();
-  loadSynonyms();
   loadState();
 
-  // render inicial
+  // catálogo precios (no obliga, pero sincroniza al menos lo básico)
+  try{
+    syncPriceCatalogFromVocab();
+  }catch{}
+
+  renderProvKpi();
+  updateUndoPill();
+
   showTab('dic');
-
-  // prepara barras y cálculos
-  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderFrecuentesAll(); });
-
+  idle(()=>{ buildProvBar(); unificarGlobal(); });
 })();
 </script>
-     <!-- =========================
-PART 3/3 — CIERRES + FIXES FINALES
-✅ Incluye: funciones faltantes del modal (proveedores/precios), atajos teclado en asignación,
-✅ FIX “Cannot set properties of null”, handlers globales y cierres de HTML.
-➡️ Pega ESTO al final de tu archivo (después de tu PART 2/3), sustituyendo cualquier cierre </script></body></html> que tengas.
-========================= -->
-
-<script>
-/* =========================================================
-   FIXES DEFENSIVOS (evitar null errors en cargas parciales)
-========================================================= */
-function safeById(id){ return document.getElementById(id) || null; }
-function safeQS(sel){ try{ return document.querySelector(sel);}catch(e){return null;} }
-
-function safeSetText(id, text){
-  const el = safeById(id);
-  if(el) el.textContent = text;
-}
-
-function safeSetHTML(id, html){
-  const el = safeById(id);
-  if(el) el.innerHTML = html;
-}
-
-/* =========================================================
-   ATAJOS DE TECLADO — ASIGNACIONES (Global)
-   - 1..9: asigna al proveedor en ese índice
-   - Q/W/E/R/T/Y: proveedor rápido (primero 6)
-   - Enter: asigna proveedor activo sobre fila enfocada
-   - Z / Ctrl+Z: Undo
-   - Ctrl+Y / Shift+Ctrl+Z: Redo
-========================================================= */
-(function bindKeyboardShortcuts(){
-  document.addEventListener('keydown', (e)=>{
-    // no molestar al escribir en inputs/textarea/contenteditable (excepto global table)
-    const ae = document.activeElement;
-    const isTyping = ae && (
-      ae.tagName === 'INPUT' ||
-      ae.tagName === 'TEXTAREA' ||
-      ae.isContentEditable
-    );
-
-    // Ctrl+Z / Ctrl+Y (permitido siempre)
-    const key = (e.key||'').toLowerCase();
-    const ctrl = e.ctrlKey || e.metaKey;
-
-    if(ctrl && key==='z' && !e.shiftKey){
-      if(typeof undo==='function'){ e.preventDefault(); undo(); }
-      return;
-    }
-    if((ctrl && key==='y') || (ctrl && key==='z' && e.shiftKey)){
-      if(typeof redo==='function'){ e.preventDefault(); redo(); }
-      return;
-    }
-
-    // Resto atajos: solo en TAB GLOBAL visible
-    const tabGlobal = safeById('tab-global');
-    if(!tabGlobal || tabGlobal.style.display === 'none') return;
-
-    // Evita capturar si está escribiendo en un campo (para no interferir),
-    // PERO si está dentro de la tabla global, sí dejamos atajos.
-    let inGlobalTable = false;
-    if(ae){
-      const gw = safeById('global_wrap');
-      if(gw && gw.contains(ae)) inGlobalTable = true;
-    }
-    if(isTyping && !inGlobalTable) return;
-
-    // 1..9 asigna proveedor por índice
-    if(/^[1-9]$/.test(e.key)){
-      const idx = Number(e.key) - 1;
-      if(PROVEEDORES && PROVEEDORES[idx]){
-        ACTIVE_PROV = PROVEEDORES[idx];
-        if(typeof buildProvBar==='function') buildProvBar();
-        // asignar fila seleccionada si existe
-        const tr = getFocusedGlobalRow();
-        if(tr){
-          const i = Number(tr.dataset.i);
-          if(Number.isFinite(i) && typeof assignFromGlobal==='function'){
-            e.preventDefault();
-            assignFromGlobal(i);
-          }
-        }else{
-          e.preventDefault();
-        }
-      }
-      return;
-    }
-
-    // Q/W/E/R/T/Y -> primeros 6 proveedores
-    const mapKeys = { q:0, w:1, e:2, r:3, t:4, y:5 };
-    if(mapKeys[key]!==undefined && PROVEEDORES && PROVEEDORES[mapKeys[key]]){
-      ACTIVE_PROV = PROVEEDORES[mapKeys[key]];
-      if(typeof buildProvBar==='function') buildProvBar();
-      const tr = getFocusedGlobalRow();
-      if(tr){
-        const i = Number(tr.dataset.i);
-        if(Number.isFinite(i) && typeof assignFromGlobal==='function'){
-          e.preventDefault();
-          assignFromGlobal(i);
-        }
-      }else{
-        e.preventDefault();
-      }
-      return;
-    }
-
-    // Enter: asigna proveedor activo a fila enfocada
-    if(e.key === 'Enter'){
-      const tr = getFocusedGlobalRow();
-      if(tr){
-        const i = Number(tr.dataset.i);
-        if(Number.isFinite(i) && typeof assignFromGlobal==='function'){
-          e.preventDefault();
-          assignFromGlobal(i);
-        }
-      }
-      return;
-    }
-
-    // Z solo (sin ctrl): Undo rápido
-    if(!ctrl && key==='z'){
-      if(typeof undo==='function'){ e.preventDefault(); undo(); }
-      return;
-    }
-  }, {capture:true});
-
-  function getFocusedGlobalRow(){
-    const gw = safeById('global_wrap');
-    if(!gw) return null;
-    const ae = document.activeElement;
-    if(ae && gw.contains(ae)){
-      const tr = ae.closest('tr[data-i]');
-      if(tr) return tr;
-    }
-    // fallback: primera fila
-    return gw.querySelector('tr[data-i]') || null;
-  }
-})();
-
-/* =========================================================
-   MODAL SIMPLE (para Proveedores / Precios / Import Export)
-   ✅ Si ya lo tenías en PART 1/2, esto completa funciones faltantes.
-========================================================= */
-function ensureModal(){
-  let modal = document.getElementById('arslanModal');
-  if(modal) return modal;
-
-  modal = document.createElement('div');
-  modal.id = 'arslanModal';
-  modal.style.position = 'fixed';
-  modal.style.inset = '0';
-  modal.style.background = 'rgba(0,0,0,.45)';
-  modal.style.zIndex = '99999';
-  modal.style.display = 'none';
-  modal.style.padding = '16px';
-  modal.style.backdropFilter = 'blur(3px)';
-
-  modal.innerHTML = `
-    <div id="arslanModalBox" style="
-      max-width:720px;margin:0 auto;background:var(--bg);
-      border:1px solid var(--border);border-radius:14px;
-      box-shadow:var(--shadow);overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;
-                  padding:10px 12px;border-bottom:1px solid var(--border);">
-        <strong id="arslanModalTitle">Modal</strong>
-        <button class="btn muted small" onclick="closeModal()">Cerrar</button>
-      </div>
-      <div id="arslanModalBody" style="padding:12px"></div>
-    </div>
-  `;
-  modal.addEventListener('click', (e)=>{
-    if(e.target===modal) closeModal();
-  });
-  document.body.appendChild(modal);
-  return modal;
-}
-
-function openModal(title, html){
-  const m = ensureModal();
-  const t = document.getElementById('arslanModalTitle');
-  const b = document.getElementById('arslanModalBody');
-  if(t) t.textContent = title || 'Modal';
-  if(b) b.innerHTML = html || '';
-  m.style.display = 'block';
-}
-
-function closeModal(){
-  const m = document.getElementById('arslanModal');
-  if(m) m.style.display = 'none';
-}
-
-/* =========================================================
-   PROVEEDORES CRUD (sin tocar código)
-   - Guarda lista en localStorage
-   - Mantiene compatibilidad con PROVEEDORES original
-========================================================= */
-const LS_PROV = 'arslan_v34_proveedores_custom';
-
-function loadCustomProviders(){
-  try{
-    const raw = localStorage.getItem(LS_PROV);
-    if(!raw) return null;
-    const arr = JSON.parse(raw);
-    if(Array.isArray(arr) && arr.length) return arr;
-  }catch{}
-  return null;
-}
-
-function saveCustomProviders(arr){
-  localStorage.setItem(LS_PROV, JSON.stringify(arr));
-}
-
-function getProviders(){
-  const custom = loadCustomProviders();
-  return custom && custom.length ? custom : PROVEEDORES;
-}
-
-function setProviders(newList){
-  // actualiza PROVEEDORES global sin romper referencias
-  if(!Array.isArray(newList) || !newList.length) return;
-  PROVEEDORES.length = 0;
-  newList.forEach(p=>PROVEEDORES.push(p));
-  // asegurar orders
-  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
-  if(!PROVEEDORES.includes(ACTIVE_PROV)) ACTIVE_PROV = PROVEEDORES[0];
-  saveCustomProviders(PROVEEDORES.slice());
-  persistState();
-  if(typeof buildProvBar==='function') buildProvBar();
-  if(typeof renderProvidersPanels==='function') renderProvidersPanels();
-  if(typeof unificarGlobal==='function') unificarGlobal();
-}
-
-function openProvidersManager(){
-  const list = getProviders();
-  openModal('📦 Gestionar proveedores', `
-    <div class="hint" style="margin-bottom:8px">Uno por línea. Se guarda en el dispositivo.</div>
-    <textarea id="provEditTxt" style="min-height:160px">${list.map(x=>x).join('\n')}</textarea>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn" onclick="saveProvidersFromModal()">Guardar</button>
-      <button class="btn ghost" onclick="resetProvidersToDefault()">Restaurar por defecto</button>
-    </div>
-  `);
-}
-
-function saveProvidersFromModal(){
-  const ta = document.getElementById('provEditTxt');
-  if(!ta) return;
-  const lines = toLines(ta.value).map(x=>x.trim()).filter(Boolean);
-  const uniq = [];
-  const seen = new Set();
-  lines.forEach(p=>{
-    const k = normKey(p);
-    if(!k) return;
-    if(seen.has(k)) return;
-    seen.add(k);
-    uniq.push(removeDiacriticsUpper(p));
-  });
-  if(!uniq.length){ alert('Debe haber al menos 1 proveedor.'); return; }
-  setProviders(uniq);
-  closeModal();
-  alert('Proveedores guardados.');
-}
-
-function resetProvidersToDefault(){
-  localStorage.removeItem(LS_PROV);
-  // recargar la página para volver al array original definido en tu script
-  location.reload();
-}
-
-/* =========================================================
-   PRECIOS + HISTORIAL (por producto)
-   - Guardado: localStorage
-   - Historial: array de {ts, price}
-========================================================= */
-const LS_PRICES = 'arslan_v34_prices';
-let priceDB = {}; // { normKey(name) : {name, last, history:[{ts,price}] } }
-
-function loadPrices(){
-  try{
-    const raw = localStorage.getItem(LS_PRICES);
-    if(raw){
-      const obj = JSON.parse(raw);
-      if(obj && typeof obj==='object') priceDB = obj;
-    }
-  }catch{}
-}
-
-function savePrices(){
-  try{ localStorage.setItem(LS_PRICES, JSON.stringify(priceDB||{})); }catch{}
-}
-
-function setPriceForProduct(name, price){
-  const k = normKey(name);
-  if(!k) return;
-  const p = Number(String(price).replace(',','.'));
-  if(!isFinite(p) || p<=0) return;
-  if(!priceDB[k]) priceDB[k] = { name: removeDiacriticsUpper(name), last: p, history: [] };
-  priceDB[k].name = removeDiacriticsUpper(name);
-  priceDB[k].last = p;
-  priceDB[k].history = Array.isArray(priceDB[k].history) ? priceDB[k].history : [];
-  priceDB[k].history.push({ ts: Date.now(), price: p });
-  // limitar historial a 60 entradas por producto
-  if(priceDB[k].history.length>60) priceDB[k].history = priceDB[k].history.slice(-60);
-  savePrices();
-}
-
-function getPriceForProduct(name){
-  const k = normKey(name);
-  const it = priceDB[k];
-  return it ? it.last : null;
-}
-
-function openPricesPanel(){
-  // muestra productos conocidos: del vocab y de orders/global
-  const vocab = toLines((safeById('vocabTxt')?.value)||'');
-  const set = new Map(); // k -> name
-
-  vocab.forEach(v=>{ const k = normKey(v); if(k) set.set(k, removeDiacriticsUpper(v)); });
-  // global
-  (globalRows||[]).forEach(r=>{ const k = normKey(r.name); if(k) set.set(k, removeDiacriticsUpper(r.name)); });
-  // orders
-  Object.keys(orders||{}).forEach(p=>{
-    (orders[p]||[]).forEach(x=>{ const k = normKey(x.name); if(k) set.set(k, removeDiacriticsUpper(x.name)); });
-  });
-
-  // construir tabla
-  const arr = Array.from(set.values()).sort((a,b)=>a.localeCompare(b,'es'));
-  let html = `
-    <div class="hint" style="margin-bottom:10px">Define precio por producto (se guarda con historial). Puedes buscar con Ctrl+F.</div>
-    <div class="scroll-x">
-      <table>
-        <thead><tr><th>Producto</th><th>Precio</th><th>Historial</th></tr></thead>
-        <tbody>
-  `;
-  arr.forEach(name=>{
-    const p = getPriceForProduct(name);
-    const k = normKey(name);
-    const hist = priceDB[k]?.history || [];
-    const last3 = hist.slice(-3).map(h=> `${new Date(h.ts).toISOString().slice(0,10)}: ${Number(h.price).toFixed(2)}€`).join(' | ');
-    html += `
-      <tr>
-        <td>${name}</td>
-        <td contenteditable="true"
-            onblur="__priceBlur('${k}', '${name}', this.innerText)"
-            style="min-width:110px">${p?Number(p).toFixed(2):''}</td>
-        <td class="hint" style="min-width:220px">${last3 || '(sin historial)'}</td>
-      </tr>
-    `;
-  });
-  html += `</tbody></table></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn muted" onclick="exportPricesJSON()">⬇️ Exportar precios JSON</button>
-      <button class="btn muted" onclick="importPricesJSON()">⬆️ Importar precios JSON</button>
-    </div>
-  `;
-
-  openModal('💶 Precios + historial', html);
-}
-
-window.__priceBlur = function(k, name, val){
-  const p = parseFloat(String(val||'').replace(',','.'));
-  if(!isFinite(p) || p<=0){
-    // si vacío, no hacer nada
-    return;
-  }
-  setPriceForProduct(name, p);
-};
-
-function exportPricesJSON(){
-  const data = JSON.stringify(priceDB||{}, null, 2);
-  const blob = new Blob([data], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `arslan_prices_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
-
-function importPricesJSON(){
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = '.json,application/json';
-  inp.onchange = ()=>{
-    const f = inp.files && inp.files[0];
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{
-      try{
-        const obj = JSON.parse(r.result);
-        if(!obj || typeof obj!=='object'){ alert('JSON inválido'); return; }
-        // merge
-        Object.keys(obj).forEach(k=>{
-          const it = obj[k];
-          if(!it) return;
-          const name = it.name || k;
-          const last = Number(it.last);
-          if(isFinite(last) && last>0){
-            if(!priceDB[k]) priceDB[k] = {name: removeDiacriticsUpper(name), last:last, history: []};
-            priceDB[k].name = removeDiacriticsUpper(name);
-            priceDB[k].last = last;
-            // merge history
-            const h = Array.isArray(it.history) ? it.history : [];
-            priceDB[k].history = Array.isArray(priceDB[k].history) ? priceDB[k].history : [];
-            h.forEach(x=>{
-              const ts = Number(x.ts); const pr = Number(x.price);
-              if(isFinite(ts) && isFinite(pr) && pr>0) priceDB[k].history.push({ts, price: pr});
-            });
-            // dedupe por ts+price
-            const ded = new Map();
-            priceDB[k].history.forEach(x=> ded.set(`${x.ts}-${x.price}`, x));
-            priceDB[k].history = Array.from(ded.values()).sort((a,b)=>a.ts-b.ts).slice(-60);
-          }
-        });
-        savePrices();
-        closeModal();
-        alert('Precios importados y combinados.');
-      }catch(e){
-        alert('Error leyendo JSON: '+ e.message);
-      }
-    };
-    r.readAsText(f);
-  };
-  inp.click();
-}
-
-/* =========================================================
-   BOTONES EXTRA (si existen) — enganchar sin romper
-   Si no existen, no hace nada.
-========================================================= */
-(function bindOptionalButtons(){
-  // Si en tus PART 1/2 añadiste botones tipo:
-  // <button onclick="openProvidersManager()">Proveedores</button>
-  // <button onclick="openPricesPanel()">Precios</button>
-  // aquí no hace falta, pero dejamos compatibilidad.
-
-  // Hook para mostrar “FAB” o accesos: nada requerido.
-})();
-
-/* =========================================================
-   FIX “PROVEEDORES” dinámicos en barras/paneles
-   - Reemplaza usos directos de PROVEEDORES en funciones
-   (Sin tocar tu base: solo “intercepta” si quieres)
-========================================================= */
-(function patchProviderLoops(){
-  // Si tu código original usa PROVEEDORES directamente,
-  // con setProviders() ya lo actualizamos. No hace falta parche.
-})();
-
-/* =========================================================
-   INIT EXTRA (carga precios + asegura proveedores)
-========================================================= */
-(function initPart3(){
-  try{
-    loadPrices();
-
-    // si hay proveedores custom, aplicarlos
-    const custom = loadCustomProviders();
-    if(custom && custom.length){
-      // aplicar a PROVEEDORES
-      PROVEEDORES.length = 0;
-      custom.forEach(p=>PROVEEDORES.push(p));
-      PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
-      if(!PROVEEDORES.includes(ACTIVE_PROV)) ACTIVE_PROV = PROVEEDORES[0];
-    }
-
-    // si estás en proveedores tab y existe selector reparto, render
-    const sel = safeById('selRepartoTienda');
-    if(sel){
-      // no forzar; solo mantener estable
-    }
-  }catch(e){
-    console.warn('INIT PART3 warning:', e);
-  }
-})();
-</script>
-
 </body>
 </html>
-
