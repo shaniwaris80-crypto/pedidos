@@ -3,18 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS (PRO+)</title>
+<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
     --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
-    --soft:#f3f4f6;
   }
   [data-theme="dark"]{
     --bg:#0b0f14; --ink:#e5e7eb; --muted:#9aa0a6; --border:#1f2937; --panel:#111827; --shadow:0 2px 10px rgba(0,0,0,.35);
-    --soft:#0f1622;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -22,29 +20,27 @@
     font-family:'Poppins',sans-serif;color:var(--ink);background:var(--bg);margin:0;
     transition: background .2s ease, color .2s ease;
   }
-  h1{font-size:16px;margin:0;color:var(--ink)}
+  h1{font-size:18px;margin:0;color:var(--ink)}
   .topbar{
     position:sticky; top:0; z-index:1000; background:var(--bg); border-bottom:1px solid var(--border);
     display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
     backdrop-filter: saturate(1.2) blur(6px);
     gap:10px;
   }
-  .topbar .left{display:flex; align-items:center; gap:8px; min-width:0}
-  .topbar .left h1{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60vw}
+  .topbar .left{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .theme-toggle{border:1px solid var(--border); background:var(--panel); color:var(--ink); border-radius:10px; padding:6px 10px; cursor:pointer; font-size:13px}
-  .container{padding:12px 12px 86px}
+  .container{padding:12px 12px 76px}
   .hint{font-size:12px;color:var(--muted)}
   .card{border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow);margin-bottom:12px; transition: transform .12s ease}
   .card:active{transform:scale(.998)}
-  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:10px}
+  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:10px; flex-wrap:wrap}
   .card .bd{padding:10px 12px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap; justify-content:flex-end}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
   .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px; transition: opacity .2s ease, transform .1s ease}
   .btn:active{transform: translateY(1px)}
   .btn.ghost{background:var(--bg);color:var(--kiwi);border:1px solid var(--kiwi)}
   .btn.muted{background:var(--bg);border:1px solid var(--border);color:var(--ink)}
   .btn.small{padding:6px 10px;font-size:13px}
-  .btn.danger{background:var(--bg);border:1px solid var(--bad);color:var(--bad)}
   textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px;background:var(--bg);color:var(--ink)}
   table{width:100%;border-collapse:collapse}
   th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
@@ -57,11 +53,14 @@
   [data-theme="dark"] .pill.warn{border-color:#7f1d1d;background:#2b0d0d;color:#fecaca}
   .red{color:var(--bad);font-weight:700}
   .green{color:var(--ok);font-weight:700}
-  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:240px;overflow-y:auto}
-  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px; display:flex; justify-content:space-between; gap:10px}
-  .ac-item small{color:var(--muted)}
-  .ac-item:hover{background:var(--soft)}
-  [data-theme="dark"] .ac-item:hover{background:#0f1622}
+
+  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
+  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
+  .ac-item:hover{background:#f3f4f6}
+  [data-theme="dark"] .ac-item:hover{background:#111827}
+  .ac-item.active{background:rgba(22,163,74,.10)}
+  [data-theme="dark"] .ac-item.active{background:rgba(22,163,74,.18)}
+
   .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
   .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:var(--bg);color:var(--kiwi);cursor:pointer;font-size:13px}
   .prov-btn.active{background:var(--kiwi);color:#fff}
@@ -70,76 +69,53 @@
   .dup{background:#fff5f5}
   [data-theme="dark"] .dup{background:#2b0d0d}
   .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-  .row-selected{outline:2px solid rgba(22,163,74,.35)}
+
   .tabbar{
     position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);
-    display:flex;justify-content:space-around;align-items:center;height:64px;z-index:999;
-    padding:4px 6px;
+    display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
   }
   .tabbar button{
     background:var(--bg);border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
-    padding:8px 8px; border-radius:12px; transition: background .15s ease, color .15s ease;
-    min-width:64px;
+    padding:6px 8px; border-radius:10px; transition: background .15s ease, color .15s ease
   }
-  .tabbar button.active{color:var(--kiwi); background:rgba(22,163,74,.10)}
+  .tabbar button.active{color:var(--kiwi); background:rgba(22,163,74,.08)}
   .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
-  select,input[type="text"]{
-    border:1px solid var(--border); background:var(--bg); color:var(--ink);
-    border-radius:10px; padding:8px 10px; font-size:14px;
-  }
+
   .fab{
-    position:fixed; right:14px; bottom:88px; z-index:1001;
+    position:fixed; right:14px; bottom:72px; z-index:1001;
     width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
     background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%); color:#fff; font-size:22px; box-shadow:var(--shadow)
   }
   .fab-menu{
-    position:fixed; right:14px; bottom:150px; z-index:1000; display:none; flex-direction:column; gap:8px
+    position:fixed; right:14px; bottom:134px; z-index:1000; display:none; flex-direction:column; gap:8px
   }
   .fab-menu .fab-item{
-    border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
-    text-align:left;
+    border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; box-shadow:var(--shadow)
   }
   .fab-menu.show{display:flex}
-  .mini{font-size:12px;color:var(--muted)}
-  .qctrl{display:inline-flex; gap:6px; align-items:center}
-  .qbtn{
-    border:1px solid var(--border); background:var(--panel); color:var(--ink);
-    border-radius:10px; padding:4px 8px; cursor:pointer; font-size:13px;
-  }
-  .qbtn:active{transform: translateY(1px)}
-  .sticky-tools{position:sticky; top:54px; z-index:10; background:var(--bg); padding:8px 0; border-bottom:1px dashed var(--border); margin-bottom:8px}
-  .kpi{
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
-  }
-  .kpi .pill{background:var(--panel)}
-  .modal-backdrop{
-    position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:2000; align-items:center; justify-content:center; padding:16px;
-  }
-  .modal{
-    width:min(720px, 100%); background:var(--bg); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
-  }
-  .modal .hd{padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:10px}
-  .modal .bd{padding:10px 12px}
-  .modal textarea{min-height:220px}
+
+  /* Mini help shortcuts */
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    border:1px solid var(--border); background:var(--panel); padding:2px 6px; border-radius:8px; font-size:12px; color:var(--muted)}
 </style>
 </head>
 <body>
   <div class="topbar">
     <div class="left">
-      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS (PRO+)</h1>
-      <span class="pill">Móvil rápido</span>
-      <span class="pill" id="pillUndo">⟲ Undo: 0</span>
+      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
+      <span class="pill">Modo móvil optimizado</span>
+      <span class="pill">Atajos: <span class="kbd">Enter</span> asigna · <span class="kbd">↑/↓</span> navega · <span class="kbd">Ctrl+Z</span> deshacer</span>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <button class="theme-toggle" onclick="undo()" title="Deshacer último cambio">↩️ Undo</button>
+    <div class="toolbar">
+      <button class="btn muted small" onclick="clearDay()">🧼 Limpiar día</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
     </div>
   </div>
 
   <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas (Estandarizar/Editar) → Global (Unificar / Duplicados / Asignar) → Proveedores (TXT) → Precios (historial)
+      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Precios (solo comprados) → Proveedores (TXT)
     </div>
 
     <!-- TAB: Diccionario -->
@@ -150,29 +126,12 @@
           <div class="toolbar">
             <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
             <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="openBackupModal()">🧰 Backup / Import</button>
-            <button class="btn danger" onclick="resetAll()">🧹 Limpiar todo</button>
+            <button class="btn muted" onclick="resetAll()">🧹 Limpiar TODO (incluye vocab)</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:6px">
-            Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
-            <span class="mini">Tip: al corregir manualmente, al salir del campo se auto-ajusta al vocabulario si hay match fuerte.</span>
-          </div>
+          <div class="hint" style="margin-bottom:6px">Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
           <textarea id="vocabTxt"></textarea>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">
-          <strong>🏷️ Proveedores (editable en app)</strong>
-          <div class="toolbar">
-            <button class="btn muted" onclick="openProvidersModal()">⚙️ Gestionar proveedores</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">Los proveedores se guardan en tu navegador (local). Se usan en Global y Proveedores.</div>
-          <div class="kpi" id="provKpi" style="margin-top:8px"></div>
         </div>
       </div>
     </section>
@@ -182,54 +141,49 @@
       <div class="grid-3">
         <!-- San Pablo -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Pablo</strong>
+          <div class="hd"><strong>🏪 San Pablo</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sp')">Guardar</button>
+              <button class="btn" onclick="guardarTienda('sp')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('sp')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
-            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2kg&#10;aguacate granel 4"></textarea>
-            <div class="hint">Edita en la tabla. Cantidad: puedes escribir <b>+1</b>, <b>-0.5</b>, <b>x2</b> (multiplica), o número normal.</div>
+            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir (↑/↓ + Enter).</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
-
         <!-- San Lesmes -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Lesmes</strong>
+          <div class="hd"><strong>🏪 San Lesmes</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sl')">Guardar</button>
+              <button class="btn" onclick="guardarTienda('sl')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('sl')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Autocompletar mejorado (fuzzy). Al corregir manualmente, se auto-ajusta si score alto.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir (↑/↓ + Enter).</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
-
         <!-- Santiago -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 Santiago</strong>
+          <div class="hd"><strong>🏪 Santiago</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('st')">Guardar</button>
+              <button class="btn" onclick="guardarTienda('st')">Guardar tienda</button>
               <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
               <button class="btn muted" onclick="enviarTiendaWhatsApp('st')">📲 WhatsApp</button>
             </div>
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Validaciones: cantidad>0, nombre no vacío. Si hay algo raro, lo marca para revisar.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir (↑/↓ + Enter).</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
@@ -239,8 +193,7 @@
     <!-- TAB: Global -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
-        <div class="hd">
-          <strong>🧮 Unificación global</strong>
+        <div class="hd"><strong>🧮 Unificación global</strong>
           <div class="toolbar">
             <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
             <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
@@ -250,27 +203,43 @@
           </div>
         </div>
         <div class="bd">
-          <div class="sticky-tools">
-            <div class="kpi">
-              <span class="pill">Proveedor activo: <b id="activeProvTxt"></b></span>
-              <span class="pill">Seleccionados: <b id="selCount">0</b></span>
-              <button class="btn small muted" onclick="mergeSelected()">🧬 Fusionar seleccionados</button>
-              <button class="btn small muted" onclick="clearSelections()">🧽 Limpiar selección</button>
-            </div>
-            <div class="card" style="margin-top:8px">
-              <div class="bd">
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                  <span class="hint">Proveedor activo:</span>
-                  <div class="prov-bar" id="provBar"></div>
-                </div>
+          <div class="hint">
+            ✅ asigna al proveedor activo.
+            Atajos aquí: <span class="kbd">Enter</span> asigna fila enfocada · <span class="kbd">↑/↓</span> mover · <span class="kbd">Ctrl+Z</span> deshacer último.
+          </div>
+
+          <div class="card" style="margin-top:8px">
+            <div class="bd">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="hint">Proveedor activo:</span>
+                <div class="prov-bar" id="provBar"></div>
               </div>
             </div>
           </div>
 
-          <div class="hint" style="margin-bottom:6px">
-            ✅ asigna al proveedor activo. Duplicados probables se marcan en rojo (⚠️). Puedes seleccionar filas (tap/click) y fusionarlas.
-          </div>
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Precios (SOLO comprados/estandarizados) -->
+    <section class="tab" id="tab-precios" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <strong>💶 Precios (solo lo comprado / estandarizado)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="refreshPricesTab()">🔄 Actualizar lista</button>
+            <button class="btn muted" onclick="exportChangedPricesTXT()">📄 TXT (solo modificados)</button>
+            <button class="btn muted" onclick="sendChangedPricesWhatsApp()">📲 WhatsApp (solo modificados)</button>
+            <button class="btn" onclick="exportChangedPricesPDF()">🖨️ PDF (solo modificados)</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">
+            Aquí salen <b>solo los productos que están en tiendas / global</b> (lo “comprado” o al menos estandarizado).
+            Si un precio no cambió, <b>NO</b> aparece en TXT/WhatsApp/PDF de “modificados”.
+          </div>
+          <div id="prices_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
@@ -278,63 +247,29 @@
     <!-- TAB: Proveedores -->
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
-        <div class="hd">
-          <strong>📦 Distribución por proveedor</strong>
-          <div class="toolbar">
-            <button class="btn muted" onclick="openProvidersModal()">⚙️ Proveedores</button>
-          </div>
-        </div>
+        <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
         <div class="bd">
           <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
         </div>
       </div>
 
       <div class="card" style="margin-top:12px">
-        <div class="hd">
-          <strong>🚚 Reparto por tiendas</strong>
+        <div class="hd"><strong>🚚 Reparto por tiendas</strong>
           <div class="toolbar">
             <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
             <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
-            <button class="btn small muted" onclick="pasarSeleccionadosAPrecios()">💶 Pasar a Precios</button>
           </div>
         </div>
         <div class="bd">
-          <div style="margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <div style="margin-bottom:8px;">
             <select id="selRepartoTienda" onchange="renderRepartoTienda()">
               <option value="">Selecciona tienda...</option>
               <option value="sp">🏪 San Pablo</option>
               <option value="sl">🏪 San Lesmes</option>
               <option value="st">🏪 Santiago</option>
             </select>
-            <span class="hint">Marca líneas, añade precio, exporta/WhatsApp o pásalo al historial.</span>
           </div>
           <div id="reparto_wrap" class="scroll-x"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: Precios -->
-    <section class="tab" id="tab-precios" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>💶 Precios por producto (con historial)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="syncPriceCatalogFromVocab()">↻ Sincronizar catálogo</button>
-            <button class="btn muted" onclick="exportPricesJSON()">⬇️ Export precios</button>
-            <button class="btn muted" onclick="importPricesJSON()">⬆️ Import precios</button>
-            <button class="btn muted" onclick="exportPricesXLSX()">📊 Excel</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <input type="text" id="priceSearch" placeholder="Buscar producto..." oninput="renderPrices()" style="flex:1; min-width:220px;">
-            <span class="pill">Productos: <b id="priceCount">0</b></span>
-          </div>
-          <div class="hint" style="margin:8px 0">
-            - Al cambiar un precio, se guarda <b>historial</b> (fecha + precio).<br>
-            - Puedes pasar líneas seleccionadas del reparto a este módulo para poner precios rápido.
-          </div>
-          <div id="prices_wrap" class="scroll-x"></div>
         </div>
       </div>
     </section>
@@ -348,56 +283,16 @@
     <button class="fab-item" onclick="exportarGlobalXLSX(); toggleFabMenu(true)">📊 Excel</button>
     <button class="fab-item" onclick="copiarGlobal(); toggleFabMenu(true)">📋 Copiar</button>
     <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
-    <button class="fab-item" onclick="undo(); toggleFabMenu(true)">↩️ Undo</button>
   </div>
 
   <!-- Tabbar móvil -->
   <nav class="tabbar">
-    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Dic</span></button>
+    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
     <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Prov</span></button>
     <button id="btn-precios" onclick="showTab('precios')">💶<span>Precios</span></button>
+    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
   </nav>
-
-  <!-- Modal: Backup -->
-  <div class="modal-backdrop" id="backupModal">
-    <div class="modal">
-      <div class="hd">
-        <strong>🧰 Backup / Importación (seguro)</strong>
-        <button class="btn muted small" onclick="closeBackupModal()">Cerrar</button>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">
-          Exporta todo (tiendas + asignaciones + pedidos + proveedores + precios + vocab). Para importar, pega JSON y pulsa “Importar”.
-        </div>
-        <div class="toolbar" style="margin-bottom:8px">
-          <button class="btn muted" onclick="copyFullBackup()">📋 Copiar backup</button>
-          <button class="btn muted" onclick="downloadFullBackup()">⬇️ Descargar backup</button>
-          <button class="btn" onclick="importFullBackup()">⬆️ Importar (pegar JSON)</button>
-        </div>
-        <textarea id="backupTxt" placeholder="Aquí saldrá el JSON del backup..."></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Providers -->
-  <div class="modal-backdrop" id="provModal">
-    <div class="modal">
-      <div class="hd">
-        <strong>⚙️ Gestionar proveedores</strong>
-        <button class="btn muted small" onclick="closeProvidersModal()">Cerrar</button>
-      </div>
-      <div class="bd">
-        <div class="hint" style="margin-bottom:8px">Un proveedor por línea. Se guardan y aparecen en Global/Proveedores.</div>
-        <div class="toolbar" style="margin-bottom:8px">
-          <button class="btn ghost" onclick="saveProvidersFromModal()">Guardar proveedores</button>
-          <button class="btn muted" onclick="resetProviders()">Restaurar por defecto</button>
-        </div>
-        <textarea id="provTxt" placeholder="ESMO&#10;MONTENEGRO&#10;ÁNGEL VACA"></textarea>
-      </div>
-    </div>
-  </div>
 
 <script>
 /* ==========================
@@ -413,7 +308,7 @@ function toggleTheme(){
 }
 
 /* ==========================
-   Debounce + idle
+   Debounce util + recálculo en idle
 ========================== */
 function debounce(fn, wait=300){
   let t=null;
@@ -425,10 +320,10 @@ function debounce(fn, wait=300){
 const idle = (cb)=> (window.requestIdleCallback? requestIdleCallback(cb): setTimeout(cb, 1));
 
 /* ==========================
-   Tabs
+   Tabs (móvil) + render diferido + limpieza
 ========================== */
 function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores','precios'];
+  const ids = ['dic','tiendas','global','precios','proveedores'];
   ids.forEach(k=>{
     const tab = document.getElementById('tab-'+k);
     const btn = document.getElementById('btn-'+k);
@@ -442,36 +337,23 @@ function showTab(key){
   closeAC();
 
   if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); }); }
+  if(key==='precios'){ idle(()=>{ refreshPricesTab(); }); }
   if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); }); }
-  if(key==='precios'){ idle(()=>{ renderPrices(); }); }
 }
 
 /* ==========================
-   Config / Storage keys
+   Config y utilidades
 ========================== */
 const LS = {
   VOCAB:'arslan_v34_vocab',
   STORES:'arslan_v34_stores',
   ASSIGN:'arslan_v34_assign',
   ORDERS:'arslan_v34_orders',
-  PROVS:'arslan_v34_providers',
-  PRICES:'arslan_v34_prices',
-  BACKUP:'arslan_v34_backup_last'
+  PRICES:'arslan_v34_prices' // NUEVO
 };
 
-const DEFAULT_PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-
-const UNIT_ALIASES = [
-  {u:'KG', words:['kg','kgs','kilo','kilos']},
-  {u:'CAJA', words:['caja','cajas']},
-  {u:'UD', words:['ud','uds','u','unidad','unidades','pieza','piezas']},
-  {u:'MANOJO', words:['manojo','manojos']},
-  {u:'SACO', words:['saco','sacos']},
-  {u:'BOLSA', words:['bolsa','bolsas']},
-  {u:'BANDEJA', words:['bdja','bandeja','bandejas']},
-];
-
-const IGNORE_WORDS = ['caja','cajas','kg','kgs','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos','bolsa','bolsas','bandeja','bandejas','bdja','pieza','piezas'];
+const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
+const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
 
 const $ = s => document.querySelector(s);
 const byId = id => document.getElementById(id);
@@ -492,77 +374,6 @@ function normKey(s){
 function stripGenericWords(s){
   const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS.includes(t.toLowerCase()));
   return tokens.join(' ').trim();
-}
-
-/* ==========================
-   Undo (deshacer)
-========================== */
-const UNDO_MAX = 60;
-let undoStack = []; // [{label, snap}]
-function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
-
-function snapshot(){
-  return {
-    tiendaState: deepClone(tiendaState),
-    assignments: deepClone(assignments),
-    orders: deepClone(orders),
-    PROVEEDORES: deepClone(PROVEEDORES),
-    prices: deepClone(prices)
-  };
-}
-function restoreSnap(s){
-  if(!s) return;
-  tiendaState.sp = Array.isArray(s.tiendaState?.sp)? s.tiendaState.sp : [];
-  tiendaState.sl = Array.isArray(s.tiendaState?.sl)? s.tiendaState.sl : [];
-  tiendaState.st = Array.isArray(s.tiendaState?.st)? s.tiendaState.st : [];
-  assignments = s.assignments || {};
-  orders = s.orders || {};
-  PROVEEDORES = Array.isArray(s.PROVEEDORES) && s.PROVEEDORES.length ? s.PROVEEDORES : DEFAULT_PROVEEDORES.slice();
-  prices = s.prices || {};
-  ensureProvidersInit();
-  persistAllNow();
-  renderAll();
-}
-function pushUndo(label){
-  undoStack.push({label: label||'cambio', snap: snapshot()});
-  if(undoStack.length>UNDO_MAX) undoStack.shift();
-  updateUndoPill();
-}
-function updateUndoPill(){
-  const el = byId('pillUndo');
-  if(el) el.textContent = `⟲ Undo: ${undoStack.length}`;
-}
-function undo(){
-  if(!undoStack.length){ alert('No hay nada que deshacer.'); return; }
-  const last = undoStack.pop();
-  restoreSnap(last.snap);
-  updateUndoPill();
-}
-function renderAll(){
-  ['sp','sl','st'].forEach(renderTable);
-  buildProvBar();
-  renderProvidersPanels();
-  unificarGlobal();
-  renderProvKpi();
-  renderPrices();
-}
-
-/* ==========================
-   Persistencia
-========================== */
-const persistState = debounce(function(){
-  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
-  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
-  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
-  localStorage.setItem(LS.PROVS, JSON.stringify(PROVEEDORES));
-  localStorage.setItem(LS.PRICES, JSON.stringify(prices));
-}, 350);
-function persistAllNow(){
-  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
-  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
-  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
-  localStorage.setItem(LS.PROVS, JSON.stringify(PROVEEDORES));
-  localStorage.setItem(LS.PRICES, JSON.stringify(prices));
 }
 
 /* ==========================
@@ -790,18 +601,149 @@ function loadVocab(){
   byId('vocabTxt').value = list.join('\n');
   return list;
 }
+
+/* ==========================
+   Estado + persist
+========================== */
+const tiendaState = { sp:[], sl:[], st:[] };
+let globalRows = [];
+let assignments = {};
+let orders = {};
+let ACTIVE_PROV = PROVEEDORES[0];
+
+/* ======= PRECIOS (solo lo comprado) =======
+priceDB: { [normKey]: { name, current, history:[{ts,price}], lastExportedCurrent } }
+- current: último precio guardado
+- lastExportedCurrent: para exportar SOLO MODIFICADOS
+*/
+let priceDB = {};
+
+const persistState = debounce(function(){
+  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
+  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
+  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.PRICES, JSON.stringify(priceDB));
+}, 350);
+
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
+    ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
+  }catch{}
+  try{
+    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
+    assignments = a||{};
+  }catch{}
+  try{
+    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
+    orders = o||{};
+  }catch{}
+  try{
+    const p = JSON.parse(localStorage.getItem(LS.PRICES)||'{}');
+    priceDB = p||{};
+  }catch{}
+
+  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
+}
+
+/* Limpiar TODO */
+function resetAll(){
+  if(confirm('¿Seguro que quieres limpiar TODO? (incluye vocabulario)')){
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+/* Limpiar día (NO borra vocabulario; sí reinicia tiendas/asignaciones/pedidos y “precios del día” exportables) */
+function clearDay(){
+  if(!confirm('¿Limpiar día? (pone en 0 tiendas/asignaciones/pedidos y reinicia export de precios; NO borra vocabulario ni historial)')) return;
+
+  // tiendas
+  tiendaState.sp = []; tiendaState.sl = []; tiendaState.st = [];
+  byId('in_sp').value=''; byId('in_sl').value=''; byId('in_st').value='';
+  byId('tbl_sp_wrap').innerHTML=''; byId('tbl_sl_wrap').innerHTML=''; byId('tbl_st_wrap').innerHTML='';
+
+  // global/prov
+  assignments = {};
+  orders = {};
+  PROVEEDORES.forEach(p=>orders[p]=[]);
+
+  // precios: NO borramos historial, pero reiniciamos “último export” para que “modificados” sea desde hoy
+  Object.keys(priceDB).forEach(k=>{
+    if(priceDB[k]) priceDB[k].lastExportedCurrent = priceDB[k].current ?? null;
+  });
+
+  persistState();
+  unificarGlobal();
+  renderProvidersPanels();
+  refreshPricesTab();
+  alert('Día limpiado. Vocabulario e historial de precios se mantienen.');
+}
+
+/* ==========================
+   Undo (asignaciones + precios)
+========================== */
+const UNDO_STACK = [];
+function pushUndo(action){
+  UNDO_STACK.push({ ...action, ts: Date.now() });
+  if(UNDO_STACK.length>200) UNDO_STACK.shift();
+}
+function undo(){
+  const a = UNDO_STACK.pop();
+  if(!a) return;
+
+  if(a.type==='assign'){
+    // revert assign
+    const { key, prov, qty, name } = a;
+    // quitar assignment
+    delete assignments[key];
+    // restar del pedido del proveedor
+    const list = orders[prov]||[];
+    const ix = list.findIndex(x=> normKey(x.name)===key);
+    if(ix>-1){
+      list[ix].qty = (Number(list[ix].qty)||0) - (Number(qty)||0);
+      if(list[ix].qty<=0) list.splice(ix,1);
+    }
+    orders[prov]=list;
+    persistState();
+    idle(()=>unificarGlobal());
+    renderProvidersPanels();
+  }
+
+  if(a.type==='price'){
+    const { key, prevCurrent, prevLastExported } = a;
+    if(!priceDB[key]) return;
+    priceDB[key].current = prevCurrent;
+    priceDB[key].lastExportedCurrent = prevLastExported;
+    // NO borramos history para no romper (solo revertimos current / lastExported)
+    persistState();
+    refreshPricesTab();
+  }
+}
+
+/* Ctrl+Z global */
+document.addEventListener('keydown', (e)=>{
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
+  const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+  if(cmdOrCtrl && e.key.toLowerCase()==='z'){
+    e.preventDefault();
+    undo();
+  }
+}, {capture:true});
+
+/* ==========================
+   Guardar vocab
+========================== */
 function saveVocab(){
-  pushUndo('guardar vocab');
   localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
   alert('Vocabulario guardado.');
-  syncPriceCatalogFromVocab();
   renderProvidersPanels();
   unificarGlobal();
+  refreshPricesTab();
 }
 function addNewWord(){
   const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
   if(!entry) return;
-  pushUndo('nuevo producto vocab');
   const current = toLines(byId('vocabTxt').value);
   const added = toLines(entry);
   const merged = uniqueVocab(current.concat(added));
@@ -810,64 +752,7 @@ function addNewWord(){
 }
 
 /* ==========================
-   Proveedores (editable)
-========================== */
-let PROVEEDORES = DEFAULT_PROVEEDORES.slice();
-function ensureProvidersInit(){
-  if(!Array.isArray(PROVEEDORES) || !PROVEEDORES.length) PROVEEDORES = DEFAULT_PROVEEDORES.slice();
-  // orders buckets
-  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
-  // limpiar orders de proveedores borrados (no destruye: los deja en hidden bucket)
-  Object.keys(orders).forEach(p=>{
-    if(!PROVEEDORES.includes(p)){
-      // mantener en memoria (por seguridad), pero no renderizar
-    }
-  });
-}
-function renderProvKpi(){
-  const kpi = byId('provKpi');
-  if(!kpi) return;
-  kpi.innerHTML = '';
-  PROVEEDORES.forEach(p=>{
-    const s = document.createElement('span');
-    s.className = 'pill';
-    s.textContent = p;
-    kpi.appendChild(s);
-  });
-}
-function openProvidersModal(){
-  byId('provTxt').value = PROVEEDORES.join('\n');
-  byId('provModal').style.display='flex';
-}
-function closeProvidersModal(){
-  byId('provModal').style.display='none';
-}
-function resetProviders(){
-  if(!confirm('¿Restaurar proveedores por defecto?')) return;
-  pushUndo('reset proveedores');
-  PROVEEDORES = DEFAULT_PROVEEDORES.slice();
-  ensureProvidersInit();
-  persistState();
-  renderProvKpi();
-  buildProvBar();
-  renderProvidersPanels();
-  closeProvidersModal();
-}
-function saveProvidersFromModal(){
-  const lines = uniqueVocab(toLines(byId('provTxt').value).map(x=>x.trim()).filter(Boolean));
-  if(!lines.length){ alert('Debe haber al menos 1 proveedor.'); return; }
-  pushUndo('guardar proveedores');
-  PROVEEDORES = lines;
-  ensureProvidersInit();
-  persistState();
-  renderProvKpi();
-  buildProvBar();
-  renderProvidersPanels();
-  closeProvidersModal();
-}
-
-/* ==========================
-   Coincidencia aproximada (Dice + TokenSet) + ranking
+   Coincidencia aproximada (Dice + TokenSet)
 ========================== */
 function bigrams(str){
   const s = stripGenericWords(str);
@@ -898,40 +783,21 @@ function bestMatch(query, vocabArr){
   });
   return best;
 }
-function topMatches(query, vocabArr, limit=8){
-  const q = stripGenericWords(query);
-  const ranked = vocabArr.map(v=>({v, s: similarityScore(q,v)}))
-    .filter(x=>x.s>0.40)
-    .sort((a,b)=>b.s-a.s)
-    .slice(0,limit);
-  return ranked;
-}
 
 /* ==========================
-   Parser líneas (cantidad + nombre + unidad)
+   Parser líneas (cantidad + nombre)
 ========================== */
-function detectUnit(raw){
-  const low = String(raw||'').toLowerCase();
-  for(const u of UNIT_ALIASES){
-    for(const w of u.words){
-      const re = new RegExp(`\\b${w}\\b`,'i');
-      if(re.test(low)) return u.u;
-    }
-  }
-  return 'UD';
-}
 function parseLine(raw){
   if(!raw) return null;
   let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
   s = s.replace(/^[-•*]\s*/,'');
   let qty=null, name=s;
-  const unit = detectUnit(s);
 
   const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
   if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
   if(qty===null){
-    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas|manojo|manojos|saco|sacos|bolsa|bolsas|bandeja|bandejas|bdja|pieza|piezas)?\s*$/i);
+    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas)?\s*$/i);
     if(mEnd){ qty=Number(mEnd[1].replace(',','.')); name=s.slice(0,mEnd.index).trim(); }
   }
   if(qty===null){
@@ -941,71 +807,44 @@ function parseLine(raw){
   if(qty===null){ qty=1; }
 
   name = stripGenericWords(name);
-  return { original: removeDiacriticsUpper(s), name, qty, unit };
+  return { original: removeDiacriticsUpper(s), name, qty };
 }
 
 /* ==========================
-   Estado
-========================== */
-const tiendaState = { sp:[], sl:[], st:[] }; // [{o,e,q,a,u}]
-let globalRows = [];                          // [{name,total,unit}]
-let assignments = {};                         // { normKey(name+'|'+unit) : proveedor }
-let orders = {};                              // { proveedor : [{name, qty, unit}] }
-let ACTIVE_PROV = null;
-let prices = {};                              // { normKey(product): {unit:'KG', current:1.23, history:[{ts, price}] } }
-
-function loadState(){
-  try{
-    const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
-    ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
-  }catch{}
-  try{
-    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
-    assignments = a||{};
-  }catch{}
-  try{
-    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
-    orders = o||{};
-  }catch{}
-  try{
-    const p = JSON.parse(localStorage.getItem(LS.PROVS)||'[]');
-    if(Array.isArray(p) && p.length) PROVEEDORES = p;
-  }catch{}
-  try{
-    const pr = JSON.parse(localStorage.getItem(LS.PRICES)||'{}');
-    prices = pr||{};
-  }catch{}
-
-  ensureProvidersInit();
-  if(!ACTIVE_PROV) ACTIVE_PROV = PROVEEDORES[0];
-}
-function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocab, proveedores, precios, pedidos)?')){ localStorage.clear(); location.reload(); }
-}
-
-/* ==========================
-   Autocomplete mejorado
+   Autocomplete mejorado (↑/↓ + Enter)
 ========================== */
 let AC_ACTIVE = null;
-function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
-
+let AC_STATE = null; // {box, items, idx, onPick}
+function closeAC(){
+  if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; }
+  AC_STATE = null;
+}
+function setActiveACIndex(i){
+  if(!AC_STATE) return;
+  AC_STATE.idx = Math.max(0, Math.min(i, AC_STATE.items.length-1));
+  AC_STATE.items.forEach((el,ix)=> el.classList.toggle('active', ix===AC_STATE.idx));
+  // scroll into view
+  const el = AC_STATE.items[AC_STATE.idx];
+  if(el && AC_STATE.box){
+    const b = AC_STATE.box;
+    const top = el.offsetTop, bottom = top + el.offsetHeight;
+    if(top < b.scrollTop) b.scrollTop = top;
+    else if(bottom > b.scrollTop + b.clientHeight) b.scrollTop = bottom - b.clientHeight;
+  }
+}
 function attachAutocomplete(cell, onPick){
+  // input -> muestra
   cell.addEventListener('input', ()=>{
     const val = stripGenericWords(cell.innerText||'');
     closeAC();
     if(!val) return;
-    const vocab = loadVocab();
 
-    // mezcla: includes + fuzzy top
-    const inc = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,4).map(v=>({v,s:0.99}));
-    const top = topMatches(val, vocab, 8);
-    const merged = [];
-    const seen = new Set();
-    inc.concat(top).forEach(x=>{
-      const k = normKey(x.v);
-      if(!seen.has(k)){ seen.add(k); merged.push(x); }
-    });
-    const suggestions = merged.slice(0,8);
+    const vocab = loadVocab();
+    const key = normKey(val);
+    const suggestions = vocab
+      .filter(v=> normKey(v).includes(key))
+      .slice(0,10);
+
     if(!suggestions.length) return;
 
     const rect = cell.getBoundingClientRect();
@@ -1015,194 +854,150 @@ function attachAutocomplete(cell, onPick){
     box.style.top = (rect.bottom + window.scrollY) + 'px';
     box.style.width = rect.width + 'px';
 
-    suggestions.forEach(s=>{
+    const items = [];
+    suggestions.forEach((s,ix)=>{
       const item = document.createElement('div');
       item.className='ac-item';
-      item.innerHTML = `<span>${s.v}</span><small>${Math.round((s.s||0)*100)}%</small>`;
-      item.onclick = ()=>{ onPick(s.v); closeAC(); };
+      item.textContent = s;
+      item.onclick = ()=>{ onPick(s); closeAC(); };
       box.appendChild(item);
+      items.push(item);
     });
 
     document.body.appendChild(box);
     AC_ACTIVE = box;
+    AC_STATE = { box, items, idx:0, onPick: (picked)=>onPick(picked) };
+    setActiveACIndex(0);
   }, {passive:true});
 
-  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
-}
-function autoFixToVocab(name){
-  const vocab = loadVocab();
-  const cleaned = removeDiacriticsUpper(name);
-  const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
-  if(exact) return {fixed: exact, ok:true, score:1};
-  const m = bestMatch(cleaned, vocab);
-  // umbral “fuerte” para auto-aplicar
-  if(m.name && m.score>=0.90) return {fixed: m.name, ok:true, score:m.score};
-  return {fixed: cleaned, ok:false, score:(m.score||0)};
+  // teclado
+  cell.addEventListener('keydown', (e)=>{
+    if(!AC_STATE) return;
+
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      setActiveACIndex(AC_STATE.idx+1);
+    }else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      setActiveACIndex(AC_STATE.idx-1);
+    }else if(e.key==='Enter'){
+      // si hay AC abierto, Enter elige sugerencia (y evita salto de línea)
+      e.preventDefault();
+      const pickedEl = AC_STATE.items[AC_STATE.idx];
+      if(pickedEl){
+        const picked = pickedEl.textContent;
+        AC_STATE.onPick(picked);
+        closeAC();
+      }
+    }else if(e.key==='Escape'){
+      e.preventDefault();
+      closeAC();
+    }
+  });
+
+  // click fuera cierra
+  document.addEventListener('click', (e)=>{
+    if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){
+      closeAC();
+    }
+  }, {capture:true});
 }
 
 /* ==========================
-   Cantidades inteligentes
-========================== */
-function parseSmartQty(input, current){
-  const s = String(input||'').trim();
-  const cur = Number(current)||0;
-  if(!s) return cur;
-
-  // +n / -n
-  if(/^[+-]\s*\d+([.,]\d+)?$/.test(s)){
-    const n = Number(s.replace(',','.'));
-    return cur + n;
-  }
-  // xN
-  if(/^(x|\*)\s*\d+([.,]\d+)?$/i.test(s)){
-    const n = Number(s.replace(/^(x|\*)\s*/i,'').replace(',','.'));
-    return cur * n;
-  }
-  // número normal
-  const n = Number(s.replace(',','.'));
-  if(!isNaN(n)) return n;
-  return cur;
-}
-function clampQty(q){
-  q = Number(q)||0;
-  if(q<0) q=0;
-  return q;
-}
-
-/* ==========================
-   Render tabla tienda (con unidad + botones rápidos)
+   Render tabla tienda
 ========================== */
 function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
   const rows = tiendaState[code]||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
-
-  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Unidad</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
-    const bad = r.a || !r.e || (Number(r.q)||0)<=0;
     html += `<tr>
-      <td>${r.o||''}</td>
-      <td contenteditable="true" data-i="${i}" data-f="e" ${bad? 'class="red"':''}>${r.e||''}</td>
-      <td>
-        <select data-i="${i}" data-f="u" onchange="onStoreUnitChange('${code}', ${i}, this.value)">
-          ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix,arr)=>arr.indexOf(v)===ix).map(u=>`<option value="${u}" ${u===(r.u||'UD')?'selected':''}>${u}</option>`).join('')}
-        </select>
-      </td>
-      <td>
-        <div class="qctrl">
-          <button class="qbtn" onclick="quickQty('${code}',${i},-1)">-1</button>
-          <span contenteditable="true" data-i="${i}" data-f="q">${r.q}</span>
-          <button class="qbtn" onclick="quickQty('${code}',${i},+1)">+1</button>
-        </div>
-      </td>
-      <td>${bad? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
+      <td>${r.o}</td>
+      <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
+      <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
+      <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // editable handlers + autocomplete + smart qty
-  wrap.querySelectorAll('td [contenteditable], td[contenteditable]').forEach(cell=>{
-    if(cell.getAttribute('contenteditable')!=='true') return;
-
+  wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const i = Number(cell.dataset.i);
     const f = cell.dataset.f;
 
     if(f==='e'){
       attachAutocomplete(cell, (picked)=>{
-        pushUndo(`autopick ${code}`);
         cell.innerText = picked;
         tiendaState[code][i].e = picked;
         tiendaState[code][i].a = false;
         cell.classList.remove('red');
-        cell.closest('tr').querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
         persistState();
-        idle(()=>unificarGlobal());
+        idle(()=>{ unificarGlobal(); refreshPricesTab(); });
       });
     }
 
     cell.addEventListener('blur', ()=>{
-      const val = (cell.innerText||'').trim();
-
+      const val = cell.innerText.trim();
       if(f==='q'){
-        pushUndo(`qty ${code}`);
-        const newQ = clampQty(parseSmartQty(val, tiendaState[code][i].q));
-        tiendaState[code][i].q = newQ;
+        tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
       }else{
-        pushUndo(`name ${code}`);
-        const fix = autoFixToVocab(val);
-        tiendaState[code][i].e = fix.fixed;
-        tiendaState[code][i].a = !fix.ok;
+        const cleaned = removeDiacriticsUpper(val);
+        tiendaState[code][i].e = cleaned;
+
+        const vocab = loadVocab();
+        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+        const tdState = cell.parentElement.querySelector('td:last-child');
+        if(exact){
+          tiendaState[code][i].a=false; cell.classList.remove('red');
+          tdState.innerHTML='<span class="pill ok">OK</span>';
+        }else{
+          tiendaState[code][i].a=true; cell.classList.add('red');
+          tdState.innerHTML='<span class="pill warn">Revisar</span>';
+        }
       }
-
-      // estado / validación
-      const r = tiendaState[code][i];
-      const bad = r.a || !r.e || (Number(r.q)||0)<=0;
-      const tdState = cell.closest('tr').querySelector('td:last-child');
-      const nameCell = cell.closest('tr').querySelector('td[data-f="e"]');
-      if(bad){ nameCell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
-      else { nameCell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
-
       persistState();
-      idle(()=>unificarGlobal());
+      idle(()=>{ unificarGlobal(); refreshPricesTab(); });
     }, {passive:true});
   });
-}
-function onStoreUnitChange(code, idx, unit){
-  pushUndo(`unit ${code}`);
-  if(!tiendaState[code] || !tiendaState[code][idx]) return;
-  tiendaState[code][idx].u = unit;
-  persistState();
-  idle(()=>unificarGlobal());
-}
-function quickQty(code, idx, delta){
-  pushUndo(`quick qty ${code}`);
-  const r = tiendaState[code]?.[idx];
-  if(!r) return;
-  r.q = clampQty((Number(r.q)||0) + Number(delta||0));
-  persistState();
-  renderTable(code);
-  idle(()=>unificarGlobal());
 }
 
 /* ==========================
    Estandarizar por tienda
 ========================== */
 function estandarizar(code){
-  pushUndo(`estandarizar ${code}`);
   const vocab = loadVocab();
   const txt = byId('in_'+code).value;
   const rows = [];
-
   toLines(txt).forEach(line=>{
     const p = parseLine(line);
     if(!p) return;
 
-    // validaciones mínimas
-    const q = clampQty(p.qty);
-    const u = p.unit || 'UD';
-    if(!p.name) return;
-
     const exact = vocab.find(v=> normKey(v)===normKey(p.name));
     if(exact){
-      rows.push({o:p.original, e:exact, q:q, a:(q<=0), u:u});
+      rows.push({o:p.original, e:exact, q:p.qty, a:false});
       return;
     }
+
     const m = bestMatch(p.name, vocab);
-    // auto-aplicar si score fuerte
-    const chosen = (m.name && m.score>=0.90) ? m.name : (m.name || p.name);
-    const ok = (m.name && m.score>=0.90);
-    rows.push({o:p.original, e:removeDiacriticsUpper(chosen), q:q, a:(!ok) || (q<=0), u:u});
+    const chosen = m.name || removeDiacriticsUpper(p.name);
+
+    // marcar revisar si score flojo o no es exacto
+    const score = m.score || 0;
+    const needsReview = score < 0.86;
+
+    rows.push({o:p.original, e:chosen, q:p.qty, a:needsReview});
   });
 
   tiendaState[code] = rows;
   renderTable(code);
   persistState();
-  idle(()=>unificarGlobal());
+  idle(()=>{ unificarGlobal(); refreshPricesTab(); });
 }
 
 function guardarTienda(code){
-  const out = (tiendaState[code]||[]).map(r=> `${r.q} ${r.u} ${r.e}`).join('\n');
+  const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
   byId('in_'+code).value = out;
   alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
 }
@@ -1210,83 +1005,61 @@ function guardarTienda(code){
 function exportarTiendaTXT(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a && (Number(r.q)||0)>0 && r.e);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo) o cantidades inválidas.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = okRows.map(x => `${x.q} ${x.u} ${x.e}`).join('\n');
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
   const blob = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `${code}_estandarizado_${today}.txt`;
   a.click();
 }
+
 function enviarTiendaWhatsApp(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
-  const okRows = tienda.filter(r => !r.a && (Number(r.q)||0)>0 && r.e);
-  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo) o cantidades inválidas.'); return; }
-  const txt = okRows.map(x => `${x.q} ${x.u} ${x.e}`).join('\n');
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
   const msg = encodeURIComponent(`🛒 *Pedido ${code.toUpperCase()}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
-   Global: unificar + duplicados + selección + merge
+   Unificar global + similares
 ========================== */
-let globalSelected = new Set(); // indices in visible table
-function clearSelections(){
-  globalSelected.clear();
-  updateSelUI();
-  // re-render just highlights
-  const wrap = byId('global_wrap');
-  wrap.querySelectorAll('tr[data-i]').forEach(tr=>tr.classList.remove('row-selected'));
-}
-function updateSelUI(){
-  const c = byId('selCount');
-  if(c) c.textContent = String(globalSelected.size);
-}
-
-function globalKey(name, unit){
-  return normKey(name) + '|' + String(unit||'UD');
-}
-
 function unificarGlobal(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
   const map = new Map();
-
   all.forEach(r=>{
-    const name = r.e || '';
-    const unit = r.u || 'UD';
-    const key = globalKey(name, unit);
-    if(!map.has(key)) map.set(key,{name: removeDiacriticsUpper(name), unit: unit, total:0});
+    const key = normKey(r.e);
+    if(!map.has(key)) map.set(key,{name:r.e,total:0});
     map.get(key).total += (Number(r.q)||0);
   });
+  const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
-  const arr = Array.from(map.values())
-    .filter(x=>x.name && (Number(x.total)||0)>0)
-    .sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
-
-  // detectar similares (solo dentro misma unidad)
   const names = arr.map(x=>x.name);
   const similarSet = new Set();
-  for(let i=0;i<arr.length;i++){
-    for(let j=i+1;j<arr.length;j++){
-      if(arr[i].unit!==arr[j].unit) continue;
-      const s1 = arr[i].name, s2 = arr[j].name;
+  for(let i=0;i<names.length;i++){
+    for(let j=i+1;j<names.length;j++){
+      const s1 = names[i], s2 = names[j];
       const sc = similarityScore(s1, s2);
       if(sc>=0.86 && normKey(s1)!==normKey(s2)){
-        similarSet.add(globalKey(s1,arr[i].unit));
-        similarSet.add(globalKey(s2,arr[j].unit));
+        similarSet.add(s1); similarSet.add(s2);
       }
     }
   }
-
   renderGlobalTable(arr, similarSet);
-  byId('activeProvTxt').textContent = ACTIVE_PROV || '';
 }
 
+/* ==========================
+   GLOBAL + Asignación a proveedor (con atajos)
+========================== */
+let GLOBAL_FOCUS_INDEX = 0;
+
 function renderGlobalTable(rows, similarSet){
-  const visible = rows.filter(r => !assignments[globalKey(r.name, r.unit)]);
+  const visible = rows.filter(r => !assignments[normKey(r.name)]);
   globalRows = visible;
 
   const wrap = byId('global_wrap');
@@ -1294,43 +1067,80 @@ function renderGlobalTable(rows, similarSet){
 
   let html = `
     <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>. ✅ asigna. Click en fila = seleccionar.
+      Proveedor activo: <b>${ACTIVE_PROV}</b>.
+      Atajos: <span class="kbd">Enter</span> asigna · <span class="kbd">↑/↓</span> mover · <span class="kbd">Tab</span> siguiente celda · <span class="kbd">Ctrl+Z</span> deshacer
     </div>
-    <div class="scroll-x"><table>
-      <thead><tr><th></th><th>Producto</th><th>Unidad</th><th>Total</th><th>Estado</th></tr></thead>
+    <div class="scroll-x"><table id="globalTable">
+      <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
       <tbody>`;
-
   visible.forEach((r,i)=>{
-    const key = globalKey(r.name, r.unit);
-    const isSimilar = similarSet.has(key);
-    const selected = globalSelected.has(i);
-    html += `<tr data-i="${i}" class="${(isSimilar?'dup ':'') + (selected?'row-selected':'')}">
-      <td><button class="ok-assign" onclick="assignFromGlobal(${i}); event.stopPropagation();">✅</button></td>
+    const isSimilar = similarSet.has(r.name);
+    html += `<tr data-i="${i}" class="${isSimilar?'dup':''}">
+      <td><button class="ok-assign" onclick="assignFromGlobal(${i})" title="Asignar (Enter)">✅</button></td>
       <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
-      <td>
-        <select data-f="unit">
-          ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix,arr)=>arr.indexOf(v)===ix).map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
-        </select>
-      </td>
       <td contenteditable="true" data-f="total">${r.total}</td>
       <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
-
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // selección por click en fila
-  wrap.querySelectorAll('tr[data-i]').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
-      const idx = Number(tr.dataset.i);
-      if(globalSelected.has(idx)){ globalSelected.delete(idx); tr.classList.remove('row-selected'); }
-      else { globalSelected.add(idx); tr.classList.add('row-selected'); }
-      updateSelUI();
-    }, {passive:true});
-  });
+  // focus helpers
+  const table = byId('globalTable');
+  if(table){
+    table.addEventListener('click', (e)=>{
+      const tr = e.target.closest('tr[data-i]');
+      if(tr) GLOBAL_FOCUS_INDEX = Number(tr.dataset.i);
+    }, {capture:true});
 
-  // Edición inline + autocomplete + smart qty + auto-fix
+    // keyboard shortcuts inside global table
+    table.addEventListener('keydown', (e)=>{
+      // only if focus inside table
+      const inTable = document.activeElement && table.contains(document.activeElement);
+      if(!inTable) return;
+
+      if(e.key==='ArrowDown'){
+        e.preventDefault();
+        GLOBAL_FOCUS_INDEX = Math.min(globalRows.length-1, GLOBAL_FOCUS_INDEX+1);
+        focusGlobalRow(GLOBAL_FOCUS_INDEX);
+      }else if(e.key==='ArrowUp'){
+        e.preventDefault();
+        GLOBAL_FOCUS_INDEX = Math.max(0, GLOBAL_FOCUS_INDEX-1);
+        focusGlobalRow(GLOBAL_FOCUS_INDEX);
+      }else if(e.key==='Enter'){
+        // Enter asigna (si hay AC abierto, el AC consume Enter en attachAutocomplete)
+        const ae = document.activeElement;
+        if(ae && ae.isContentEditable){
+          // si está editando nombre/total y no hay AC, Enter no debe meter salto
+          e.preventDefault();
+        }
+        assignFromGlobal(GLOBAL_FOCUS_INDEX);
+      }else if(e.key==='Escape'){
+        closeAC();
+      }
+    }, {capture:true});
+  }
+
+  function focusGlobalRow(i){
+    const tr = wrap.querySelector(`tr[data-i="${i}"]`);
+    if(!tr) return;
+    const cell = tr.querySelector('td[contenteditable]'); // foco a producto
+    if(cell){
+      cell.focus();
+      // mover cursor al final
+      try{
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }catch{}
+    }
+    tr.scrollIntoView({block:'nearest'});
+  }
+
+  // Edición inline + autocomplete
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const tr = cell.parentElement;
     const idx = Number(tr.dataset.i);
@@ -1338,91 +1148,65 @@ function renderGlobalTable(rows, similarSet){
 
     if(f==='name'){
       attachAutocomplete(cell, (picked)=>{
-        pushUndo('global pick');
         cell.innerText = picked;
         globalRows[idx].name = picked;
         tr.classList.remove('dup');
         tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
         persistState();
+        idle(()=>refreshPricesTab());
       });
     }
 
     cell.addEventListener('blur', ()=>{
-      pushUndo('global edit');
-      const val = (cell.innerText||'').trim();
-
+      const val = cell.innerText.trim();
       if(f==='total'){
-        globalRows[idx].total = clampQty(parseSmartQty(val, globalRows[idx].total));
+        globalRows[idx].total = Number(String(val).replace(',','.'))||0;
       }else{
-        const fix = autoFixToVocab(val);
-        globalRows[idx].name = fix.fixed;
-        cell.innerText = fix.fixed;
+        const cleaned = removeDiacriticsUpper(val);
+        globalRows[idx].name = cleaned;
+
+        const vocab = loadVocab();
+        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+        if(exact){
+          tr.classList.remove('dup');
+          tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        }else{
+          let dup = false;
+          for(let k=0;k<globalRows.length;k++){
+            if(k===idx) continue;
+            const sc = similarityScore(globalRows[idx].name, globalRows[k].name);
+            if(sc>=0.86 && normKey(globalRows[idx].name)!==normKey(globalRows[k].name)){ dup=true; break; }
+          }
+          if(dup){
+            tr.classList.add('dup');
+            tr.querySelector('td:last-child').innerHTML = '<span class="pill warn">Posible duplicado</span>';
+          }else{
+            tr.classList.remove('dup');
+            tr.querySelector('td:last-child').innerHTML = '<span class="pill">OK</span>';
+          }
+        }
       }
-
       persistState();
+      idle(()=>refreshPricesTab());
     }, {passive:true});
   });
-
-  // cambios unidad
-  wrap.querySelectorAll('select[data-f="unit"]').forEach(sel=>{
-    const tr = sel.closest('tr');
-    const idx = Number(tr.dataset.i);
-    sel.addEventListener('change', ()=>{
-      pushUndo('global unit');
-      globalRows[idx].unit = sel.value;
-      // re-evaluar duplicados al cambiar unidad
-      idle(()=>unificarGlobal());
-      persistState();
-    }, {passive:true});
-  });
-}
-
-function mergeSelected(){
-  if(globalSelected.size<2){ alert('Selecciona al menos 2 filas para fusionar.'); return; }
-  pushUndo('fusionar global');
-
-  const idxs = Array.from(globalSelected).sort((a,b)=>a-b);
-  const baseIdx = idxs[0];
-  const base = globalRows[baseIdx];
-  if(!base){ alert('Selección inválida.'); return; }
-
-  let sum = Number(base.total)||0;
-  const unit = base.unit;
-
-  // sumar y eliminar
-  for(let k=idxs.length-1;k>=1;k--){
-    const i = idxs[k];
-    const it = globalRows[i];
-    if(!it) continue;
-    if(it.unit!==unit){
-      // si unidad distinta, no fusiona (seguridad)
-      continue;
-    }
-    sum += Number(it.total)||0;
-    globalRows.splice(i,1);
-  }
-  base.total = sum;
-  globalSelected.clear();
-  updateSelUI();
-
-  // re-render visible (solo tabla global)
-  renderGlobalTable(globalRows, new Set());
-  persistState();
 }
 
 function assignFromGlobal(idx){
   const item = globalRows[idx];
   if(!item) return;
+  const k = normKey(item.name);
+  if(!k) return;
 
-  pushUndo('asignar proveedor');
+  // guardar undo
+  pushUndo({ type:'assign', key:k, prov:ACTIVE_PROV, qty:Number(item.total)||0, name:item.name });
 
-  const k = globalKey(item.name, item.unit);
   assignments[k] = ACTIVE_PROV;
 
   const list = orders[ACTIVE_PROV]||[];
-  const exIdx = list.findIndex(x=> globalKey(x.name,x.unit)===k);
+  const exIdx = list.findIndex(x=> normKey(x.name)===k);
   if(exIdx>-1){ list[exIdx].qty += Number(item.total)||0; }
-  else{ list.push({name:item.name, unit:item.unit, qty:Number(item.total)||0}); }
+  else{ list.push({name:item.name, qty:Number(item.total)||0}); }
   orders[ACTIVE_PROV] = list;
 
   persistState();
@@ -1436,9 +1220,6 @@ function assignFromGlobal(idx){
 function buildProvBar(){
   const bar = byId('provBar'); if(!bar) return;
   bar.innerHTML='';
-  if(!ACTIVE_PROV || !PROVEEDORES.includes(ACTIVE_PROV)) ACTIVE_PROV = PROVEEDORES[0];
-  byId('activeProvTxt').textContent = ACTIVE_PROV || '';
-
   PROVEEDORES.forEach(p=>{
     const b = document.createElement('button');
     b.className = 'prov-btn' + (p===ACTIVE_PROV?' active':'');
@@ -1459,7 +1240,6 @@ function renderProvidersPanels(){
     const list = orders[p]||[];
     const card = document.createElement('div');
     card.className='card';
-
     const hd = document.createElement('div');
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
@@ -1467,64 +1247,43 @@ function renderProvidersPanels(){
         <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
         <button class="btn small muted" onclick="enviarProvWhatsApp('${p}')">📲 WhatsApp</button>
       </div>`;
-
     const bd = document.createElement('div');
     bd.className='bd';
 
     if(!list.length){
       bd.innerHTML = '<div class="hint">Sin productos asignados.</div>';
     }else{
-      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th></tr></thead><tbody>';
+      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
       list.forEach((it,ix)=>{
         html += `<tr>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-          <td>
-            <select data-prov="${p}" data-idx="${ix}" data-f="unit">
-              ${UNIT_ALIASES.map(x=>x.u).concat(['UD']).filter((v,ix2,arr)=>arr.indexOf(v)===ix2).map(u=>`<option value="${u}" ${u===(it.unit||'UD')?'selected':''}>${u}</option>`).join('')}
-            </select>
-          </td>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
       bd.innerHTML = html;
 
-      // edición inline proveedor
       bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
         const prov = cell.dataset.prov;
         const idx = Number(cell.dataset.idx);
         const f = cell.dataset.f;
-
         if(f==='name'){
           attachAutocomplete(cell, picked=>{
-            pushUndo('prov pick');
             cell.innerText = picked;
             orders[prov][idx].name = picked;
             persistState();
+            idle(()=>refreshPricesTab());
           });
         }
-
         cell.addEventListener('blur', ()=>{
-          pushUndo('prov edit');
-          const val = (cell.innerText||'').trim();
+          const val = cell.innerText.trim();
           if(f==='qty'){
-            orders[prov][idx].qty = clampQty(parseSmartQty(val, orders[prov][idx].qty));
+            orders[prov][idx].qty = Number(String(val).replace(',','.'))||0;
           }else{
-            const fix = autoFixToVocab(val);
-            orders[prov][idx].name = fix.fixed;
-            cell.innerText = fix.fixed;
+            orders[prov][idx].name = removeDiacriticsUpper(val);
           }
           persistState();
-        }, {passive:true});
-      });
-
-      bd.querySelectorAll('select[data-f="unit"]').forEach(sel=>{
-        sel.addEventListener('change', ()=>{
-          pushUndo('prov unit');
-          const prov = sel.dataset.prov;
-          const idx = Number(sel.dataset.idx);
-          orders[prov][idx].unit = sel.value;
-          persistState();
+          idle(()=>refreshPricesTab());
         }, {passive:true});
       });
     }
@@ -1538,14 +1297,14 @@ function exportProvTXT(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = list.map(x=> `${x.qty} ${x.unit||'UD'} ${x.name}`).join('\n');
+  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
 }
 function enviarProvWhatsApp(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
-  const txt = list.map(x=> `${x.qty} ${x.unit||'UD'} ${x.name}`).join('\n');
+  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
   const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
@@ -1555,14 +1314,14 @@ function enviarProvWhatsApp(prov){
 ========================== */
 function copiarGlobal(){
   if(!globalRows.length) return;
-  const txt = globalRows.map(r=>`- ${r.total} ${r.unit||'UD'} ${r.name}`).join('\n');
+  const txt = globalRows.map(r=>`- ${r.total} ${r.name}`).join('\n');
   navigator.clipboard.writeText(txt);
   alert('Lista global copiada.');
 }
 function exportarGlobalTXT(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = globalRows.map(r=>`${r.total}\t${r.unit||'UD'}\t${r.name}`).join('\n');
+  const txt = globalRows.map(r=>`${r.total}\t${r.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
 }
@@ -1570,34 +1329,30 @@ function exportarGlobalXLSX(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
   const today = new Date().toISOString().split('T')[0];
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([['Producto','Unidad','Total'], ...globalRows.map(r=>[r.name,r.unit||'UD',r.total])]);
+  const ws = XLSX.utils.aoa_to_sheet([['Producto','Total'], ...globalRows.map(r=>[r.name,r.total])]);
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
   XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
 }
 
-/* ==========================
-   TXT Global (asignados + pendientes)
-========================== */
+/* TXT Global (asignados + pendientes) */
 function exportResumenGlobalTXT(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
   const totalMap = {};
   all.forEach(r=>{
-    const k = globalKey(r.e||'', r.u||'UD');
-    if(!totalMap[k]) totalMap[k] = {name:r.e, unit:r.u||'UD', total:0};
+    const k = normKey(r.e);
+    if(!totalMap[k]) totalMap[k] = {name:r.e, total:0};
     totalMap[k].total += (Number(r.q)||0);
   });
 
   const byProv = {}; PROVEEDORES.forEach(p=>byProv[p]=[]);
   const unassigned = [];
-
   Object.values(totalMap).forEach(it=>{
-    if(!it.name || (Number(it.total)||0)<=0) return;
-    const k = globalKey(it.name, it.unit);
+    const k = normKey(it.name);
     const prov = assignments[k];
     if(prov && PROVEEDORES.includes(prov)){
-      byProv[prov].push({name:it.name, unit:it.unit, qty:it.total});
+      byProv[prov].push({name:it.name, qty:it.total});
     }else{
-      unassigned.push({name:it.name, unit:it.unit, qty:it.total});
+      unassigned.push({name:it.name, qty:it.total});
     }
   });
 
@@ -1605,8 +1360,8 @@ function exportResumenGlobalTXT(){
   PROVEEDORES.forEach(p=>{
     out += `> ${p}:\n`;
     if(byProv[p].length){
-      byProv[p].sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
-      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.unit||'UD'} ${x.name}\n`; });
+      byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
     }else{
       out += `- (sin líneas)\n`;
     }
@@ -1615,8 +1370,8 @@ function exportResumenGlobalTXT(){
 
   out += `📌 SIN PROVEEDOR ASIGNADO:\n`;
   if(unassigned.length){
-    unassigned.sort((a,b)=> (a.name+a.unit).localeCompare(b.name+b.unit,'es'));
-    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.unit||'UD'} ${x.name}\n`; });
+    unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
   }else{
     out += `- (sin líneas)\n`;
   }
@@ -1627,10 +1382,259 @@ function exportResumenGlobalTXT(){
 }
 
 /* ==========================
+   PRECIOS (solo comprados/estandarizados)
+========================== */
+function getPurchasedKeysAndNames(){
+  // Solo lo estandarizado en tiendas (si hay 40 items, aquí salen 40; NO todo el vocab)
+  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const map = new Map(); // key -> name (estandarizado)
+  all.forEach(r=>{
+    const name = (r && r.e) ? r.e : '';
+    const k = normKey(name);
+    if(k){
+      if(!map.has(k)) map.set(k, removeDiacriticsUpper(name));
+    }
+  });
+
+  // también incluir lo que exista en globalRows (por si editaste ahí)
+  (globalRows||[]).forEach(r=>{
+    const k = normKey(r.name);
+    if(k && !map.has(k)) map.set(k, removeDiacriticsUpper(r.name));
+  });
+
+  return map;
+}
+
+function ensurePriceRecord(key, name){
+  if(!priceDB[key]){
+    priceDB[key] = {
+      name: name || key,
+      current: null,
+      history: [],
+      lastExportedCurrent: null
+    };
+  }else{
+    // actualizar nombre “bonito” si cambia
+    if(name && priceDB[key].name !== name) priceDB[key].name = name;
+    if(!Array.isArray(priceDB[key].history)) priceDB[key].history = [];
+  }
+  return priceDB[key];
+}
+
+function markPrice(key, newPrice){
+  const rec = priceDB[key];
+  const prevCurrent = rec.current;
+  const prevLastExported = rec.lastExportedCurrent;
+
+  // undo snapshot
+  pushUndo({ type:'price', key, prevCurrent, prevLastExported });
+
+  rec.current = newPrice;
+  rec.history.push({ ts: Date.now(), price: newPrice });
+
+  persistState();
+}
+
+function getChangedPriceLines(){
+  const purchased = getPurchasedKeysAndNames();
+  const changed = [];
+
+  purchased.forEach((name, key)=>{
+    const rec = ensurePriceRecord(key, name);
+    const cur = rec.current;
+    const lastExp = rec.lastExportedCurrent;
+
+    // solo si hay precio y cambió desde el último export
+    if(cur!==null && cur!==undefined && String(cur)!=='' && Number(cur)>0){
+      if(lastExp===null || Number(cur) !== Number(lastExp)){
+        changed.push({ key, name: rec.name, price: Number(cur) });
+      }
+    }
+  });
+
+  changed.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  return changed;
+}
+
+function refreshPricesTab(){
+  const wrap = byId('prices_wrap');
+  if(!wrap) return;
+
+  const purchased = getPurchasedKeysAndNames();
+  const keys = Array.from(purchased.keys()).sort((a,b)=>{
+    return (purchased.get(a)||'').localeCompare(purchased.get(b)||'','es');
+  });
+
+  if(!keys.length){
+    wrap.innerHTML = `<div class="hint">Aún no hay productos estandarizados en tiendas. (Primero pega/estandariza listas)</div>`;
+    return;
+  }
+
+  let html = `<table><thead>
+    <tr>
+      <th>Producto</th>
+      <th>Precio</th>
+      <th>Último</th>
+      <th>Cambio</th>
+      <th>Export</th>
+    </tr>
+  </thead><tbody>`;
+
+  keys.forEach((k, idx)=>{
+    const name = purchased.get(k);
+    const rec = ensurePriceRecord(k, name);
+    const cur = rec.current;
+    const last = rec.history && rec.history.length>1 ? rec.history[rec.history.length-2].price : null;
+    const delta = (cur!==null && last!==null) ? (Number(cur)-Number(last)) : null;
+    const changed = (rec.current!==null && rec.lastExportedCurrent!==null) ? (Number(rec.current)!==Number(rec.lastExportedCurrent)) : (rec.current!==null && rec.lastExportedCurrent===null);
+
+    html += `<tr data-pk="${k}">
+      <td>${rec.name}</td>
+      <td contenteditable="true" data-f="price" class="${changed?'green':''}">${(cur!==null && cur!==undefined)? Number(cur).toFixed(2):''}</td>
+      <td>${(last!==null && last!==undefined)? Number(last).toFixed(2):'<span class="hint">—</span>'}</td>
+      <td>${delta===null? '<span class="hint">—</span>' : (delta>=0? `<span class="green">+${delta.toFixed(2)}</span>`:`<span class="red">${delta.toFixed(2)}</span>`)}</td>
+      <td>${changed? '<span class="pill ok">Modificado</span>' : '<span class="pill">Sin cambios</span>'}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  // edit handlers + teclado (Enter no salto)
+  wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
+    cell.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        cell.blur();
+      }
+    });
+    cell.addEventListener('blur', ()=>{
+      const tr = cell.closest('tr');
+      const key = tr ? tr.dataset.pk : null;
+      if(!key || !priceDB[key]) return;
+
+      const raw = (cell.innerText||'').trim();
+      if(!raw){
+        // vaciar precio sin romper
+        pushUndo({ type:'price', key, prevCurrent: priceDB[key].current, prevLastExported: priceDB[key].lastExportedCurrent });
+        priceDB[key].current = null;
+        persistState();
+        refreshPricesTab();
+        return;
+      }
+
+      const num = parseFloat(raw.replace(',','.'));
+      if(isNaN(num) || num<=0){
+        alert('Precio inválido. Usa un número > 0');
+        cell.innerText = (priceDB[key].current!==null && priceDB[key].current!==undefined) ? Number(priceDB[key].current).toFixed(2) : '';
+        return;
+      }
+
+      // guardar precio con historial
+      markPrice(key, Number(num.toFixed(2)));
+      refreshPricesTab();
+    }, {passive:true});
+  });
+}
+
+/* Export TXT (solo precios modificados) */
+function exportChangedPricesTXT(){
+  const changed = getChangedPriceLines();
+  if(!changed.length){
+    alert('No hay precios modificados (desde el último export).');
+    return;
+  }
+  const txt = changed.map(x=> `${x.name}: ${x.price.toFixed(2)}€`).join('\n');
+  const today = new Date().toISOString().split('T')[0];
+  const blob = new Blob([txt],{type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `precios_modificados_${today}.txt`;
+  a.click();
+
+  // marcar como exportados
+  changed.forEach(x=>{
+    if(priceDB[x.key]) priceDB[x.key].lastExportedCurrent = priceDB[x.key].current;
+  });
+  persistState();
+  refreshPricesTab();
+}
+
+/* WhatsApp (solo precios modificados) */
+function sendChangedPricesWhatsApp(){
+  const changed = getChangedPriceLines();
+  if(!changed.length){
+    alert('No hay precios modificados (desde el último export).');
+    return;
+  }
+  let msg = `💶 *Precios modificados*\n\n`;
+  changed.forEach(x=>{
+    msg += `- ${x.name}: ${x.price.toFixed(2)}€\n`;
+  });
+  const enc = encodeURIComponent(msg);
+  window.open(`https://wa.me/?text=${enc}`, '_blank');
+
+  // marcar exportados (porque ya los “enviaste”)
+  changed.forEach(x=>{
+    if(priceDB[x.key]) priceDB[x.key].lastExportedCurrent = priceDB[x.key].current;
+  });
+  persistState();
+  refreshPricesTab();
+}
+
+/* PDF (solo precios modificados)
+   Nota: esto abre un "print view". En móvil/PC puedes guardar como PDF desde imprimir.
+*/
+function exportChangedPricesPDF(){
+  const changed = getChangedPriceLines();
+  if(!changed.length){
+    alert('No hay precios modificados (desde el último export).');
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const rows = changed.map(x=> `<tr><td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(x.name)}</td><td style="padding:8px;border-bottom:1px solid #ddd; text-align:right">${x.price.toFixed(2)}€</td></tr>`).join('');
+
+  const html = `
+  <html><head><meta charset="utf-8"><title>Precios modificados</title>
+  <style>
+    body{font-family:Arial, sans-serif; padding:18px}
+    h2{margin:0 0 6px}
+    .sub{color:#666; font-size:12px; margin-bottom:14px}
+    table{width:100%; border-collapse:collapse}
+    th{font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#444; text-align:left; padding:8px; border-bottom:2px solid #111}
+  </style>
+  </head><body>
+    <h2>Precios modificados</h2>
+    <div class="sub">${today}</div>
+    <table>
+      <thead><tr><th>Producto</th><th style="text-align:right">Precio</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+
+  // marcar exportados
+  changed.forEach(x=>{
+    if(priceDB[x.key]) priceDB[x.key].lastExportedCurrent = priceDB[x.key].current;
+  });
+  persistState();
+  refreshPricesTab();
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ==========================
    🚚 REPARTO POR TIENDAS + PRECIOS + WHATSAPP (no persistente)
 ========================== */
-const repartoState = {}; // { tienda : [ {name, qty, unit, price, checked} ] }
-
+const repartoState = {};
 function renderRepartoTienda(){
   const code = byId('selRepartoTienda').value;
   const wrap = byId('reparto_wrap');
@@ -1640,15 +1644,14 @@ function renderRepartoTienda(){
   if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en esta tienda.</div>'; return; }
 
   if(!repartoState[code] || repartoState[code].length !== lista.length){
-    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, unit:x.u||'UD', price:'', checked:false }));
+    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
   }
 
-  let html = '<table><thead><tr><th></th><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
   repartoState[code].forEach((r,i)=>{
     html += `<tr>
       <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', ${i}, this.checked)"></td>
-      <td>${r.name||''}</td>
-      <td>${r.unit||'UD'}</td>
+      <td>${r.name}</td>
       <td>${r.qty}</td>
       <td contenteditable="true" onblur="updateRepartoPrice('${code}', ${i}, this.innerText)">${r.price||''}</td>
     </tr>`;
@@ -1662,7 +1665,7 @@ function toggleRepartoItem(code, idx, checked){
 }
 function updateRepartoPrice(code, idx, val){
   if(!repartoState[code]) return;
-  const num = parseFloat(String(val||'').replace(',','.'));
+  const num = parseFloat(val.replace(',','.'));
   repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
 }
 function exportarRepartoTXT(){
@@ -1671,7 +1674,7 @@ function exportarRepartoTXT(){
   const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  const txt = seleccionados.map(x => `${x.qty} ${x.unit||'UD'} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a');
@@ -1687,236 +1690,12 @@ function enviarRepartoWhatsApp(){
 
   let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
   seleccionados.forEach(x=>{
-    msg += `- ${x.qty} ${x.unit||'UD'} ${x.name}`;
+    msg += `- ${x.qty} ${x.name}`;
     if(x.price) msg += ` — ${x.price}€`;
     msg += '\n';
   });
   msg = encodeURIComponent(msg);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
-}
-
-/* ==========================
-   💶 PRECIOS (historial)
-========================== */
-function priceKey(name){ return normKey(name); }
-function nowTS(){ return Date.now(); }
-function fmtDate(ts){
-  const d = new Date(ts);
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const da = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${da}`;
-}
-function ensurePriceItem(prod){
-  const k = priceKey(prod);
-  if(!prices[k]){
-    prices[k] = {name: removeDiacriticsUpper(prod), unit:'KG', current:'', history:[]};
-  }else{
-    if(!prices[k].name) prices[k].name = removeDiacriticsUpper(prod);
-    if(!Array.isArray(prices[k].history)) prices[k].history = [];
-    if(!prices[k].unit) prices[k].unit = 'KG';
-  }
-  return prices[k];
-}
-function syncPriceCatalogFromVocab(){
-  pushUndo('sync precios');
-  const vocab = loadVocab();
-  vocab.forEach(v=> ensurePriceItem(v));
-  persistState();
-  renderPrices();
-}
-function renderPrices(){
-  const wrap = byId('prices_wrap'); if(!wrap) return;
-  const q = normKey(byId('priceSearch')?.value || '');
-  let arr = Object.values(prices||{});
-  if(q) arr = arr.filter(x=> normKey(x.name||'').includes(q));
-  arr.sort((a,b)=> (a.name||'').localeCompare(b.name||'','es'));
-
-  byId('priceCount').textContent = String(arr.length);
-
-  if(!arr.length){ wrap.innerHTML = '<div class="hint">No hay productos. Pulsa “Sincronizar catálogo”.</div>'; return; }
-
-  let html = `<div class="scroll-x"><table>
-    <thead><tr><th>Producto</th><th>Unidad precio</th><th>Precio actual</th><th>Historial (últimos 3)</th></tr></thead><tbody>`;
-
-  arr.forEach((it,ix)=>{
-    const last3 = (it.history||[]).slice(-3).reverse().map(h=> `${fmtDate(h.ts)}: ${h.price}€`).join(' · ');
-    html += `<tr>
-      <td>${it.name||''}</td>
-      <td>
-        <select onchange="setPriceUnit('${priceKey(it.name)}', this.value)">
-          ${['KG','CAJA','UD','MANOJO','SACO','BOLSA','BANDEJA'].map(u=>`<option value="${u}" ${u===(it.unit||'KG')?'selected':''}>${u}</option>`).join('')}
-        </select>
-      </td>
-      <td>
-        <span contenteditable="true" onblur="setPrice('${priceKey(it.name)}', this.innerText)">${it.current!==''?it.current:''}</span>
-        <span class="mini">€</span>
-      </td>
-      <td class="mini">${last3 || '—'}</td>
-    </tr>`;
-  });
-
-  html += `</tbody></table></div>`;
-  wrap.innerHTML = html;
-}
-function setPriceUnit(k, unit){
-  pushUndo('unidad precio');
-  if(!prices[k]) return;
-  prices[k].unit = unit;
-  persistState();
-}
-function setPrice(k, val){
-  pushUndo('precio');
-  if(!prices[k]) return;
-  const num = parseFloat(String(val||'').replace(',','.'));
-  if(isNaN(num)){ prices[k].current=''; persistState(); return; }
-  const p = num.toFixed(2);
-  // si cambia, registrar historial
-  const prev = prices[k].current;
-  prices[k].current = p;
-  if(prev!==p){
-    prices[k].history.push({ts: nowTS(), price: p});
-    // limitar historial
-    if(prices[k].history.length>60) prices[k].history = prices[k].history.slice(-60);
-  }
-  persistState();
-  renderPrices();
-}
-function pasarSeleccionadosAPrecios(){
-  const code = byId('selRepartoTienda').value;
-  if(!code){ alert('Selecciona una tienda en Reparto primero.'); return; }
-  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
-  if(!seleccionados.length){ alert('No hay productos seleccionados en Reparto.'); return; }
-
-  pushUndo('reparto -> precios');
-
-  seleccionados.forEach(x=>{
-    if(!x.name) return;
-    const item = ensurePriceItem(x.name);
-    // si hay precio puesto, guardarlo como current + historial
-    if(x.price){
-      const k = priceKey(item.name);
-      const num = parseFloat(String(x.price).replace(',','.'));
-      if(!isNaN(num)){
-        prices[k].unit = (x.unit==='KG' ? 'KG' : (x.unit==='CAJA'?'CAJA': (x.unit==='MANOJO'?'MANOJO': (x.unit==='SACO'?'SACO': (x.unit==='BOLSA'?'BOLSA': (x.unit==='BANDEJA'?'BANDEJA':'UD'))))));
-        prices[k].current = num.toFixed(2);
-        prices[k].history.push({ts: nowTS(), price: prices[k].current});
-        if(prices[k].history.length>60) prices[k].history = prices[k].history.slice(-60);
-      }
-    }
-  });
-
-  persistState();
-  showTab('precios');
-  renderPrices();
-}
-function exportPricesJSON(){
-  const obj = prices||{};
-  const blob = new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download = `arslan_precios_${new Date().toISOString().split('T')[0]}.json`; a.click();
-}
-function importPricesJSON(){
-  const inp = document.createElement('input');
-  inp.type='file'; inp.accept='.json,application/json';
-  inp.onchange = ()=>{
-    const f = inp.files && inp.files[0];
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{
-      try{
-        const data = JSON.parse(String(r.result||'{}'));
-        if(typeof data!=='object' || !data) throw new Error('JSON inválido');
-        pushUndo('import precios');
-        prices = data;
-        persistState();
-        renderPrices();
-        alert('Precios importados.');
-      }catch(e){
-        alert('No se pudo importar: ' + e.message);
-      }
-    };
-    r.readAsText(f);
-  };
-  inp.click();
-}
-function exportPricesXLSX(){
-  const arr = Object.values(prices||{}).sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
-  if(!arr.length){ alert('No hay precios.'); return; }
-  const wb = XLSX.utils.book_new();
-  const rows = [['Producto','Unidad precio','Precio actual','Historial (JSON)']];
-  arr.forEach(it=>{
-    rows.push([it.name||'', it.unit||'KG', it.current!==''?it.current:'', JSON.stringify(it.history||[])]);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, 'Precios');
-  XLSX.writeFile(wb, `arslan_precios_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-/* ==========================
-   Backup completo (seguridad)
-========================== */
-function openBackupModal(){
-  const data = fullBackupObject();
-  byId('backupTxt').value = JSON.stringify(data, null, 2);
-  byId('backupModal').style.display='flex';
-}
-function closeBackupModal(){ byId('backupModal').style.display='none'; }
-function fullBackupObject(){
-  return {
-    version: 'ARSLAN_LISTAS_V34_PROPLUS',
-    ts: nowTS(),
-    vocab: byId('vocabTxt')?.value || '',
-    tiendaState,
-    assignments,
-    orders,
-    PROVEEDORES,
-    prices
-  };
-}
-function copyFullBackup(){
-  const txt = byId('backupTxt').value || JSON.stringify(fullBackupObject(), null, 2);
-  navigator.clipboard.writeText(txt);
-  localStorage.setItem(LS.BACKUP, txt);
-  alert('Backup copiado.');
-}
-function downloadFullBackup(){
-  const txt = byId('backupTxt').value || JSON.stringify(fullBackupObject(), null, 2);
-  const blob = new Blob([txt],{type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download = `arslan_backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
-}
-function importFullBackup(){
-  const raw = prompt('Pega aquí el JSON del backup completo (sobrescribe el estado actual):');
-  if(!raw) return;
-  try{
-    const data = JSON.parse(raw);
-    if(!data || typeof data!=='object') throw new Error('JSON inválido');
-    pushUndo('import backup');
-
-    // vocab
-    if(typeof data.vocab==='string' && data.vocab.trim()){
-      localStorage.setItem(LS.VOCAB, data.vocab);
-      byId('vocabTxt').value = data.vocab;
-    }
-    // state
-    if(data.tiendaState) {
-      tiendaState.sp = Array.isArray(data.tiendaState.sp)? data.tiendaState.sp : [];
-      tiendaState.sl = Array.isArray(data.tiendaState.sl)? data.tiendaState.sl : [];
-      tiendaState.st = Array.isArray(data.tiendaState.st)? data.tiendaState.st : [];
-    }
-    assignments = data.assignments || {};
-    orders = data.orders || {};
-    prices = data.prices || {};
-    PROVEEDORES = Array.isArray(data.PROVEEDORES) && data.PROVEEDORES.length ? data.PROVEEDORES : DEFAULT_PROVEEDORES.slice();
-
-    ensureProvidersInit();
-    persistAllNow();
-    renderAll();
-    alert('Backup importado correctamente.');
-  }catch(e){
-    alert('No se pudo importar: ' + e.message);
-  }
 }
 
 /* ==========================
@@ -1942,16 +1721,9 @@ document.addEventListener('click', (e)=>{
   loadVocab();
   loadState();
 
-  // catálogo precios (no obliga, pero sincroniza al menos lo básico)
-  try{
-    syncPriceCatalogFromVocab();
-  }catch{}
-
-  renderProvKpi();
-  updateUndoPill();
-
   showTab('dic');
-  idle(()=>{ buildProvBar(); unificarGlobal(); });
+
+  idle(()=>{ buildProvBar(); unificarGlobal(); refreshPricesTab(); });
 })();
 </script>
 </body>
