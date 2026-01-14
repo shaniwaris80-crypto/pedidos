@@ -1,32 +1,22 @@
-<!-- ===========================
-PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
-✅ 1 solo archivo (index) con TODAS tus funciones + mejoras:
-- Precios (SOLO comprados/estandarizados) + historial interno
-- Exportar SOLO precios modificados (TXT) y PDF en cuadrícula (Nombre + Precio nuevo)
-- + / − botones para cantidades (Tiendas / Global / Proveedores)
-- Autocomplete con teclado ↑ ↓ Enter
-- Atajos de teclado en asignaciones (Global)
-- Limpiar día (pone a 0 tiendas + asignaciones + pedidos + precios modificados) SIN borrar vocabulario
-- NO toca el sistema de reparto (solo link externo opcional)
-=========================== -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.4+ — KIWI MOBILE TABS</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- ✅ Para generar LINK Repartidor comprimido -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <style>
   :root{
     --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
     --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
-    --focus: rgba(22,163,74,.14);
   }
   [data-theme="dark"]{
     --bg:#0b0f14; --ink:#e5e7eb; --muted:#9aa0a6; --border:#1f2937; --panel:#111827; --shadow:0 2px 10px rgba(0,0,0,.35);
-    --focus: rgba(22,163,74,.18);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -66,11 +56,10 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
   [data-theme="dark"] .pill.warn{border-color:#7f1d1d;background:#2b0d0d;color:#fecaca}
   .red{color:var(--bad);font-weight:700}
   .green{color:var(--ok);font-weight:700}
-  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:240px;overflow-y:auto}
+  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:220px;overflow-y:auto}
   .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
   .ac-item:hover{background:#f3f4f6}
   [data-theme="dark"] .ac-item:hover{background:#111827}
-  .ac-item.active{background:var(--focus)}
   .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
   .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:var(--bg);color:var(--kiwi);cursor:pointer;font-size:13px}
   .prov-btn.active{background:var(--kiwi);color:#fff}
@@ -79,8 +68,6 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
   .dup{background:#fff5f5}
   [data-theme="dark"] .dup{background:#2b0d0d}
   .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-
-  /* Tabbar móvil fija */
   .tabbar{
     position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);
     display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
@@ -93,7 +80,6 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
   .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
 
-  /* FAB */
   .fab{
     position:fixed; right:14px; bottom:72px; z-index:1001;
     width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
@@ -107,72 +93,39 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
   }
   .fab-menu.show{display:flex}
 
-  /* Stepper cantidad (+ / -) */
-  .qty-stepper{display:inline-flex; gap:6px; align-items:center}
-  .step-btn{
-    border:1px solid var(--border);
-    background:var(--panel);
-    color:var(--ink);
-    border-radius:10px;
-    padding:4px 8px;
-    cursor:pointer;
-    font-size:14px;
-    line-height:1;
-  }
-  .step-btn:active{transform: translateY(1px)}
-  .qty-pill{
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:4px 8px;
-    background:var(--bg);
-    min-width:56px;
-    text-align:center;
-    display:inline-block;
-  }
-
-  /* Focus fila global para atajos */
-  .row-focus{ outline:2px solid rgba(22,163,74,.35); outline-offset:-2px; }
-
-  /* Select simple */
+  /* select bonito */
   select{
+    width:100%;
     border:1px solid var(--border);
     border-radius:12px;
-    padding:8px 10px;
+    padding:10px;
     background:var(--bg);
     color:var(--ink);
     font-size:14px;
   }
-
-  /* ====== PRINT (PDF) — solo precios modificados ====== */
-  @media print{
-    body{background:#fff !important; color:#000 !important}
-    .topbar, .tabbar, .fab, .fab-menu, .no-print{display:none !important}
-    #printPrices{display:block !important}
-    #printPrices .card{box-shadow:none}
-    #printPrices table th{position:static}
-  }
-  #printPrices{display:none}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row > *{flex:1}
 </style>
 </head>
 <body>
-  <div class="topbar no-print">
+  <div class="topbar">
     <div class="left">
-      <h1>🍈 ARSLAN LISTAS v3.4+ — KIWI MOBILE TABS</h1>
-      <span class="pill">Móvil optimizado</span>
-      <span class="pill" id="pillFocus">Atajos: 1..6 asigna · ↑↓ mueve · Enter aplica</span>
+      <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
+      <span class="pill">Modo móvil optimizado</span>
+      <span class="pill">🚚 Reparto link: /reparto/</span>
     </div>
     <div class="toolbar">
+      <button class="btn ghost small" onclick="generarLinkRepartidor()">🚚 Link Repartidor</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
-      <button class="btn muted" onclick="limpiarDia()" title="Pone a 0 el día sin borrar vocabulario">🧹 Limpiar día</button>
     </div>
   </div>
 
-  <div class="container no-print">
+  <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores → Precios (solo comprados)
+      Flujo: Diccionario → Tiendas/Clientes (Estandarizar) → Global (Unificar/Asignar) → Proveedores (TXT) → Reparto (clic)
     </div>
 
-    <!-- TAB Diccionario -->
+    <!-- TAB: Diccionario -->
     <section class="tab" id="tab-dic">
       <div class="card">
         <div class="hd">
@@ -180,7 +133,8 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
           <div class="toolbar">
             <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
             <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="resetAll()">🧹 Limpiar TODO</button>
+            <button class="btn muted" onclick="limpiarDia()">🧹 Limpiar día</button>
+            <button class="btn muted" onclick="resetAll()">💥 Reset total</button>
           </div>
         </div>
         <div class="bd">
@@ -192,12 +146,12 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
       </div>
     </section>
 
-    <!-- TAB Tiendas -->
+    <!-- TAB: Tiendas -->
     <section class="tab" id="tab-tiendas" style="display:none">
       <div class="grid-3">
+        <!-- San Pablo -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Pablo</strong>
+          <div class="hd"><strong>🏪 San Pablo</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sp')">Guardar</button>
@@ -206,15 +160,15 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
             </div>
           </div>
           <div class="bd">
-            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
+            <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
+        <!-- San Lesmes -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Lesmes</strong>
+          <div class="hd"><strong>🏪 San Lesmes</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sl')">Guardar</button>
@@ -224,14 +178,14 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
+        <!-- Santiago -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 Santiago</strong>
+          <div class="hd"><strong>🏪 Santiago</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('st')">Guardar</button>
@@ -241,20 +195,37 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
       </div>
+
+      <!-- ✅ NUEVO: CLIENTES/HOTELES -->
+      <div class="card" style="margin-top:12px">
+        <div class="hd">
+          <strong>🏨 Clientes / Hoteles (con TAG)</strong>
+          <div class="toolbar">
+            <button class="btn ghost" onclick="addClient()">+ Nuevo cliente</button>
+            <button class="btn muted" onclick="saveClients()">Guardar clientes</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">
+            Añade pedidos de hoteles/clientes (Braseros Centro/Forum/Edificio/Tomillares/Severo, Riviera, etc.).  
+            ✅ Solo cuentan si tienen líneas. Se suman a Global/Proveedores/Reparto.
+          </div>
+          <div id="clients_wrap"></div>
+        </div>
+      </div>
     </section>
 
-    <!-- TAB Global -->
+    <!-- TAB: Global -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
-        <div class="hd">
-          <strong>🧮 Unificación global</strong>
+        <div class="hd"><strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
+            <button class="btn ghost" onclick="unificarGlobal()">Unificar todo</button>
             <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
             <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
             <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global</button>
@@ -263,7 +234,7 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
         </div>
         <div class="bd">
           <div class="hint">
-            ✅ asigna al proveedor activo. Duplicados por similitud se marcan. Atajos: <b>1..6</b> asigna (fila enfocada), <b>↑↓</b> cambia fila, <b>Enter</b> asigna.
+            ✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
           </div>
 
           <div class="card" style="margin-top:8px">
@@ -272,10 +243,12 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
                 <span class="hint">Proveedor activo:</span>
                 <div class="prov-bar" id="provBar"></div>
               </div>
-              <div class="hint" style="margin-top:8px">
-                Proveedor rápido: <b>1</b>=ESMO, <b>2</b>=MONTENEGRO, <b>3</b>=ÁNGEL VACA, <b>4</b>=JOSÉ ANTONIO, <b>5</b>=JAVI, <b>6</b>=ANGELO
-              </div>
             </div>
+          </div>
+
+          <div class="toolbar" style="margin-top:8px">
+            <button class="btn ghost small" onclick="undoLast()">↩️ Deshacer</button>
+            <span class="pill" id="undoPill">Undo: 0</span>
           </div>
 
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
@@ -283,7 +256,7 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
       </div>
     </section>
 
-    <!-- TAB Proveedores -->
+    <!-- TAB: Proveedores -->
     <section class="tab" id="tab-proveedores" style="display:none">
       <div class="card">
         <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
@@ -292,63 +265,30 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
         </div>
       </div>
 
-      <!-- Reparto por tiendas (tu módulo) -->
+      <!-- REPARTO -->
       <div class="card" style="margin-top:12px">
-        <div class="hd">
-          <strong>🚚 Reparto por tiendas</strong>
+        <div class="hd"><strong>🚚 Reparto (tiendas + clientes)</strong>
           <div class="toolbar">
             <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
             <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
-            <button class="btn small muted" onclick="abrirRepartoExterno()">🔗 Abrir reparto</button>
           </div>
         </div>
         <div class="bd">
           <div class="hint" style="margin-bottom:8px">
-            (Opcional) abre tu link de reparto externo: <b>shaniwaris80-crypto.github.io/reparto/</b>
+            Selecciona destino (tienda o cliente con pedido). Marca lo repartido y exporta.
           </div>
           <div style="margin-bottom:8px;">
-            <select id="selRepartoTienda" onchange="renderRepartoTienda()">
-              <option value="">Selecciona tienda...</option>
-              <option value="sp">🏪 San Pablo</option>
-              <option value="sl">🏪 San Lesmes</option>
-              <option value="st">🏪 Santiago</option>
-            </select>
+            <select id="selRepartoTienda" onchange="renderRepartoTienda()"></select>
           </div>
           <div id="reparto_wrap" class="scroll-x"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB Precios -->
-    <section class="tab" id="tab-precios" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>💶 Precios (solo comprados / estandarizados)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="renderPrecios()">🔄 Refrescar</button>
-            <button class="btn muted" onclick="exportPreciosModificadosTXT()">📄 TXT (solo modificados)</button>
-            <button class="btn" onclick="printPreciosModificadosPDF()">🧾 PDF (cuadrícula)</button>
-            <button class="btn muted" onclick="copiarPreciosModificados()">📋 Copiar modificados</button>
-            <button class="btn muted" onclick="resetModificados()">♻️ Reset modificados</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">
-            Aquí solo salen los productos que aparecen en tus tiendas (comprados/estandarizados).  
-            Si no cambias un precio, <b>NO</b> sale en el TXT/PDF de “modificados”.
-          </div>
-          <div class="hint" style="margin-top:6px">
-            Sugerencia: escribe el precio y pulsa fuera. Se guarda con historial interno.
-          </div>
-          <div id="precios_wrap" class="scroll-x" style="margin-top:10px"></div>
         </div>
       </div>
     </section>
   </div>
 
   <!-- FAB Global -->
-  <button class="fab no-print" id="fab" title="Acciones rápidas" style="display:none" onclick="toggleFabMenu()">⚙️</button>
-  <div class="fab-menu no-print" id="fabMenu">
+  <button class="fab" id="fab" title="Acciones rápidas" style="display:none" onclick="toggleFabMenu()">⚙️</button>
+  <div class="fab-menu" id="fabMenu">
     <button class="fab-item" onclick="unificarGlobal(); toggleFabMenu(true)">🔄 Unificar</button>
     <button class="fab-item" onclick="exportarGlobalTXT(); toggleFabMenu(true)">📄 TXT visible</button>
     <button class="fab-item" onclick="exportarGlobalXLSX(); toggleFabMenu(true)">📊 Excel</button>
@@ -357,31 +297,16 @@ PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
   </div>
 
   <!-- Tabbar -->
-  <nav class="tabbar no-print">
-    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Dicc</span></button>
+  <nav class="tabbar">
+    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
     <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Prov</span></button>
-    <button id="btn-precios" onclick="showTab('precios')">💶<span>Precios</span></button>
+    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Proveedores</span></button>
   </nav>
-
-  <!-- PRINT: PDF solo precios modificados -->
-  <div id="printPrices">
-    <div class="card" style="margin:12px">
-      <div class="hd">
-        <strong>💶 PRECIOS MODIFICADOS</strong>
-        <span class="pill" id="printPricesMeta">—</span>
-      </div>
-      <div class="bd">
-        <div class="hint" id="printPricesHint">Nombre y precio nuevo (sin precios anteriores).</div>
-        <div class="scroll-x" id="printPricesTable"></div>
-      </div>
-    </div>
-  </div>
 
 <script>
 /* ==========================
-   Tema (persistente)
+   Tema (claro/oscuro) con persistencia
 ========================== */
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t==='dark'?'dark':'light');
@@ -393,7 +318,7 @@ function toggleTheme(){
 }
 
 /* ==========================
-   Debounce + idle
+   Debounce util + recálculo en idle
 ========================== */
 function debounce(fn, wait=300){
   let t=null;
@@ -405,15 +330,13 @@ function debounce(fn, wait=300){
 const idle = (cb)=> (window.requestIdleCallback? requestIdleCallback(cb): setTimeout(cb, 1));
 
 /* ==========================
-   Tabs (lazy render)
+   Tabs (móvil) + render diferido + limpieza
 ========================== */
 function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores','precios'];
+  const ids = ['dic','tiendas','global','proveedores'];
   ids.forEach(k=>{
-    const tab = document.getElementById('tab-'+k);
-    const btn = document.getElementById('btn-'+k);
-    if(tab) tab.style.display = (k===key)?'block':'none';
-    if(btn) btn.classList.toggle('active', k===key);
+    document.getElementById('tab-'+k).style.display = (k===key)?'block':'none';
+    document.getElementById('btn-'+k).classList.toggle('active', k===key);
   });
 
   const fab = document.getElementById('fab');
@@ -421,27 +344,26 @@ function showTab(key){
 
   closeAC();
 
-  if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); focusRow(0); }); }
-  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); }); }
-  if(key==='precios'){ idle(()=>{ renderPrecios(); }); }
+  if(key==='tiendas'){ idle(()=>{ renderClientsUI(); buildRepartoSelector(); }); }
+  if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); }); }
+  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); }); }
 }
 
 /* ==========================
-   Config + utilidades
+   Config y utilidades
 ========================== */
 const LS = {
   VOCAB:'arslan_v34_vocab',
   STORES:'arslan_v34_stores',
   ASSIGN:'arslan_v34_assign',
   ORDERS:'arslan_v34_orders',
-  PRICES:'arslan_v34_prices',
-  PRICE_CHANGES:'arslan_v34_price_changes'
+  CLIENTS:'arslan_v34_clients',
+  UNDO:'arslan_v34_undo'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-const IGNORE_WORDS = ['caja','cajas','kg','kgs','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
+const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
 
-const $ = s => document.querySelector(s);
 const byId = id => document.getElementById(id);
 const toLines = t => String(t||'').split(/[\n\r,]/).map(x=>x.trim()).filter(Boolean);
 
@@ -461,10 +383,9 @@ function stripGenericWords(s){
   const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS.includes(t.toLowerCase()));
   return tokens.join(' ').trim();
 }
-function todayISO(){ return new Date().toISOString().split('T')[0]; }
 
 /* ==========================
-   Vocabulario oficial (base)
+   Vocabulario (editable + persistente)
 ========================== */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
@@ -688,12 +609,95 @@ function loadVocab(){
   byId('vocabTxt').value = list.join('\n');
   return list;
 }
+
+/* ==========================
+   Estado global
+========================== */
+const tiendaState = { sp:[], sl:[], st:[] };
+let globalRows = [];
+let assignments = {};
+let orders = {};
+let ACTIVE_PROV = PROVEEDORES[0];
+
+/* CLIENTES/HOTELES */
+let clients = []; 
+// { id, name, tag, input, rows:[{o,e,q,a}] }
+// id: "cli_xxx", tag: "BRASEROS FORUM", etc.
+
+const persistState = debounce(function(){
+  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
+  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
+  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.CLIENTS, JSON.stringify(clients));
+}, 350);
+
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
+    ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
+  }catch{}
+  try{
+    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
+    assignments = a||{};
+  }catch{}
+  try{
+    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
+    orders = o||{};
+  }catch{}
+  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
+
+  try{
+    const c = JSON.parse(localStorage.getItem(LS.CLIENTS)||'[]');
+    clients = Array.isArray(c)? c : [];
+  }catch{ clients = []; }
+}
+
+/* ==========================
+   Reset total / Limpiar día
+========================== */
+function resetAll(){
+  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocabulario)?')){ localStorage.clear(); location.reload(); }
+}
+
+function limpiarDia(){
+  if(!confirm('¿Limpiar el día? (pone en 0 tiendas, clientes, asignaciones y pedidos. NO borra vocabulario)')) return;
+
+  // tiendas
+  tiendaState.sp = [];
+  tiendaState.sl = [];
+  tiendaState.st = [];
+  byId('in_sp').value = '';
+  byId('in_sl').value = '';
+  byId('in_st').value = '';
+  byId('tbl_sp_wrap').innerHTML = '';
+  byId('tbl_sl_wrap').innerHTML = '';
+  byId('tbl_st_wrap').innerHTML = '';
+
+  // clientes
+  clients = clients.map(c=>({ ...c, input:'', rows:[] }));
+  renderClientsUI();
+
+  // asignaciones y pedidos
+  assignments = {};
+  orders = {};
+  PROVEEDORES.forEach(p=>orders[p]=[]);
+
+  // reparto no persistente (por seguridad)
+  for(const k in repartoState){ delete repartoState[k]; }
+
+  persistState();
+  alert('Día limpiado. (Vocabulario intacto)');
+  idle(()=>{ unificarGlobal(); renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); updateUndoPill(); });
+}
+
+/* ==========================
+   Vocab actions
+========================== */
 function saveVocab(){
   localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
   alert('Vocabulario guardado.');
-  renderProvidersPanels();
+  renderClientsUI();
   unificarGlobal();
-  renderPrecios();
 }
 function addNewWord(){
   const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
@@ -704,737 +708,190 @@ function addNewWord(){
   byId('vocabTxt').value = merged.join('\n');
   saveVocab();
 }
-function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar TODO? (incluye vocabulario)')){ localStorage.clear(); location.reload(); }
-}
-</script>
-<!-- ===========================
-PART 1/4 — index.html (ARSLAN LISTAS v3.4+ KIWI MOBILE TABS)
-✅ 1 solo archivo (index) con TODAS tus funciones + mejoras:
-- Precios (SOLO comprados/estandarizados) + historial interno
-- Exportar SOLO precios modificados (TXT) y PDF en cuadrícula (Nombre + Precio nuevo)
-- + / − botones para cantidades (Tiendas / Global / Proveedores)
-- Autocomplete con teclado ↑ ↓ Enter
-- Atajos de teclado en asignaciones (Global)
-- Limpiar día (pone a 0 tiendas + asignaciones + pedidos + precios modificados) SIN borrar vocabulario
-- NO toca el sistema de reparto (solo link externo opcional)
-=========================== -->
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN LISTAS v3.4+ — KIWI MOBILE TABS</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<style>
-  :root{
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bad:#dc2626; --ok:#16a34a; --warn:#f59e0b; --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
-    --focus: rgba(22,163,74,.14);
-  }
-  [data-theme="dark"]{
-    --bg:#0b0f14; --ink:#e5e7eb; --muted:#9aa0a6; --border:#1f2937; --panel:#111827; --shadow:0 2px 10px rgba(0,0,0,.35);
-    --focus: rgba(22,163,74,.18);
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    font-family:'Poppins',sans-serif;color:var(--ink);background:var(--bg);margin:0;
-    transition: background .2s ease, color .2s ease;
-  }
-  h1{font-size:18px;margin:0;color:var(--ink)}
-  .topbar{
-    position:sticky; top:0; z-index:1000; background:var(--bg); border-bottom:1px solid var(--border);
-    display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
-    backdrop-filter: saturate(1.2) blur(6px);
-  }
-  .topbar .left{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .theme-toggle{border:1px solid var(--border); background:var(--panel); color:var(--ink); border-radius:10px; padding:6px 10px; cursor:pointer; font-size:13px}
-  .container{padding:12px 12px 76px}
-  .hint{font-size:12px;color:var(--muted)}
-  .card{border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow);margin-bottom:12px; transition: transform .12s ease}
-  .card:active{transform:scale(.998)}
-  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:8px; flex-wrap:wrap}
-  .card .bd{padding:10px 12px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px; transition: opacity .2s ease, transform .1s ease}
-  .btn:active{transform: translateY(1px)}
-  .btn.ghost{background:var(--bg);color:var(--kiwi);border:1px solid var(--kiwi)}
-  .btn.muted{background:var(--bg);border:1px solid var(--border);color:var(--ink)}
-  .btn.small{padding:6px 10px;font-size:13px}
-  textarea{width:100%;min-height:120px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:vertical;font-size:14px;background:var(--bg);color:var(--ink)}
-  table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:14px;vertical-align:top}
-  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em; position:sticky; top:0; background:var(--bg); z-index:1}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
-  .pill.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
-  .pill.warn{border-color:#fecaca;background:#fee2e2;color:#991b1b}
-  [data-theme="dark"] .pill.ok{border-color:#14532d;background:#052e1a;color:#86efac}
-  [data-theme="dark"] .pill.warn{border-color:#7f1d1d;background:#2b0d0d;color:#fecaca}
-  .red{color:var(--bad);font-weight:700}
-  .green{color:var(--ok);font-weight:700}
-  .ac-box{position:absolute;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:9999;overflow:hidden;max-height:240px;overflow-y:auto}
-  .ac-item{padding:8px 10px;cursor:pointer;font-size:14px}
-  .ac-item:hover{background:#f3f4f6}
-  [data-theme="dark"] .ac-item:hover{background:#111827}
-  .ac-item.active{background:var(--focus)}
-  .prov-bar{display:flex;gap:8px;flex-wrap:wrap}
-  .prov-btn{padding:8px 12px;border-radius:999px;border:1px solid var(--kiwi);background:var(--bg);color:var(--kiwi);cursor:pointer;font-size:13px}
-  .prov-btn.active{background:var(--kiwi);color:#fff}
-  .ok-assign{border:1px solid var(--kiwi);background:#ecfdf5;color:#166534;border-radius:10px;padding:6px 10px;cursor:pointer}
-  [data-theme="dark"] .ok-assign{background:#052e1a;color:#86efac}
-  .dup{background:#fff5f5}
-  [data-theme="dark"] .dup{background:#2b0d0d}
-  .dup .flag{color:#b91c1c;font-weight:700;margin-left:6px}
-
-  /* Tabbar móvil fija */
-  .tabbar{
-    position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);
-    display:flex;justify-content:space-around;align-items:center;height:56px;z-index:999;
-  }
-  .tabbar button{
-    background:var(--bg);border:none;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
-    padding:6px 8px; border-radius:10px; transition: background .15s ease, color .15s ease
-  }
-  .tabbar button.active{color:var(--kiwi); background:rgba(22,163,74,.08)}
-  .grid-3{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:980px){.grid-3{grid-template-columns:repeat(3,1fr)}}
-
-  /* FAB */
-  .fab{
-    position:fixed; right:14px; bottom:72px; z-index:1001;
-    width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
-    background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%); color:#fff; font-size:22px; box-shadow:var(--shadow)
-  }
-  .fab-menu{
-    position:fixed; right:14px; bottom:134px; z-index:1000; display:none; flex-direction:column; gap:8px
-  }
-  .fab-menu .fab-item{
-    border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; box-shadow:var(--shadow)
-  }
-  .fab-menu.show{display:flex}
-
-  /* Stepper cantidad (+ / -) */
-  .qty-stepper{display:inline-flex; gap:6px; align-items:center}
-  .step-btn{
-    border:1px solid var(--border);
-    background:var(--panel);
-    color:var(--ink);
-    border-radius:10px;
-    padding:4px 8px;
-    cursor:pointer;
-    font-size:14px;
-    line-height:1;
-  }
-  .step-btn:active{transform: translateY(1px)}
-  .qty-pill{
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:4px 8px;
-    background:var(--bg);
-    min-width:56px;
-    text-align:center;
-    display:inline-block;
-  }
-
-  /* Focus fila global para atajos */
-  .row-focus{ outline:2px solid rgba(22,163,74,.35); outline-offset:-2px; }
-
-  /* Select simple */
-  select{
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:8px 10px;
-    background:var(--bg);
-    color:var(--ink);
-    font-size:14px;
-  }
-
-  /* ====== PRINT (PDF) — solo precios modificados ====== */
-  @media print{
-    body{background:#fff !important; color:#000 !important}
-    .topbar, .tabbar, .fab, .fab-menu, .no-print{display:none !important}
-    #printPrices{display:block !important}
-    #printPrices .card{box-shadow:none}
-    #printPrices table th{position:static}
-  }
-  #printPrices{display:none}
-</style>
-</head>
-<body>
-  <div class="topbar no-print">
-    <div class="left">
-      <h1>🍈 ARSLAN LISTAS v3.4+ — KIWI MOBILE TABS</h1>
-      <span class="pill">Móvil optimizado</span>
-      <span class="pill" id="pillFocus">Atajos: 1..6 asigna · ↑↓ mueve · Enter aplica</span>
-    </div>
-    <div class="toolbar">
-      <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
-      <button class="btn muted" onclick="limpiarDia()" title="Pone a 0 el día sin borrar vocabulario">🧹 Limpiar día</button>
-    </div>
-  </div>
-
-  <div class="container no-print">
-    <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas (Estandarizar/Exportar) → Global (Unificar/Asignar) → Proveedores → Precios (solo comprados)
-    </div>
-
-    <!-- TAB Diccionario -->
-    <section class="tab" id="tab-dic">
-      <div class="card">
-        <div class="hd">
-          <strong>📚 Vocabulario estandarizado (editable)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
-            <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="resetAll()">🧹 Limpiar TODO</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint" style="margin-bottom:6px">
-            Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
-          </div>
-          <textarea id="vocabTxt"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB Tiendas -->
-    <section class="tab" id="tab-tiendas" style="display:none">
-      <div class="grid-3">
-        <div class="card">
-          <div class="hd">
-            <strong>🏪 San Pablo</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sp')">Guardar</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('sp')">📄 TXT</button>
-              <button class="btn muted" onclick="enviarTiendaWhatsApp('sp')">📲 WhatsApp</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_sp" placeholder="Pega lista San Pablo...&#10;Ej.: 3 cajas tomate daniela&#10;zanahoria 2&#10;aguacate granel 4"></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
-            <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="hd">
-            <strong>🏪 San Lesmes</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('sl')">Guardar</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('sl')">📄 TXT</button>
-              <button class="btn muted" onclick="enviarTiendaWhatsApp('sl')">📲 WhatsApp</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
-            <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="hd">
-            <strong>🏪 Santiago</strong>
-            <div class="toolbar">
-              <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
-              <button class="btn" onclick="guardarTienda('st')">Guardar</button>
-              <button class="btn muted" onclick="exportarTiendaTXT('st')">📄 TXT</button>
-              <button class="btn muted" onclick="enviarTiendaWhatsApp('st')">📲 WhatsApp</button>
-            </div>
-          </div>
-          <div class="bd">
-            <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">+ / − para cantidad. Edita nombre con sugerencias (↑↓ Enter).</div>
-            <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB Global -->
-    <section class="tab" id="tab-global" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>🧮 Unificación global</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="unificarGlobal()">Unificar 3 tiendas</button>
-            <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
-            <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
-            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global</button>
-            <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">
-            ✅ asigna al proveedor activo. Duplicados por similitud se marcan. Atajos: <b>1..6</b> asigna (fila enfocada), <b>↑↓</b> cambia fila, <b>Enter</b> asigna.
-          </div>
-
-          <div class="card" style="margin-top:8px">
-            <div class="bd">
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <span class="hint">Proveedor activo:</span>
-                <div class="prov-bar" id="provBar"></div>
-              </div>
-              <div class="hint" style="margin-top:8px">
-                Proveedor rápido: <b>1</b>=ESMO, <b>2</b>=MONTENEGRO, <b>3</b>=ÁNGEL VACA, <b>4</b>=JOSÉ ANTONIO, <b>5</b>=JAVI, <b>6</b>=ANGELO
-              </div>
-            </div>
-          </div>
-
-          <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB Proveedores -->
-    <section class="tab" id="tab-proveedores" style="display:none">
-      <div class="card">
-        <div class="hd"><strong>📦 Distribución por proveedor</strong></div>
-        <div class="bd">
-          <div class="grid-3" id="provPanels" style="margin-top:8px"></div>
-        </div>
-      </div>
-
-      <!-- Reparto por tiendas (tu módulo) -->
-      <div class="card" style="margin-top:12px">
-        <div class="hd">
-          <strong>🚚 Reparto por tiendas</strong>
-          <div class="toolbar">
-            <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
-            <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
-            <button class="btn small muted" onclick="abrirRepartoExterno()">🔗 Abrir reparto</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint" style="margin-bottom:8px">
-            (Opcional) abre tu link de reparto externo: <b>shaniwaris80-crypto.github.io/reparto/</b>
-          </div>
-          <div style="margin-bottom:8px;">
-            <select id="selRepartoTienda" onchange="renderRepartoTienda()">
-              <option value="">Selecciona tienda...</option>
-              <option value="sp">🏪 San Pablo</option>
-              <option value="sl">🏪 San Lesmes</option>
-              <option value="st">🏪 Santiago</option>
-            </select>
-          </div>
-          <div id="reparto_wrap" class="scroll-x"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB Precios -->
-    <section class="tab" id="tab-precios" style="display:none">
-      <div class="card">
-        <div class="hd">
-          <strong>💶 Precios (solo comprados / estandarizados)</strong>
-          <div class="toolbar">
-            <button class="btn ghost" onclick="renderPrecios()">🔄 Refrescar</button>
-            <button class="btn muted" onclick="exportPreciosModificadosTXT()">📄 TXT (solo modificados)</button>
-            <button class="btn" onclick="printPreciosModificadosPDF()">🧾 PDF (cuadrícula)</button>
-            <button class="btn muted" onclick="copiarPreciosModificados()">📋 Copiar modificados</button>
-            <button class="btn muted" onclick="resetModificados()">♻️ Reset modificados</button>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="hint">
-            Aquí solo salen los productos que aparecen en tus tiendas (comprados/estandarizados).  
-            Si no cambias un precio, <b>NO</b> sale en el TXT/PDF de “modificados”.
-          </div>
-          <div class="hint" style="margin-top:6px">
-            Sugerencia: escribe el precio y pulsa fuera. Se guarda con historial interno.
-          </div>
-          <div id="precios_wrap" class="scroll-x" style="margin-top:10px"></div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- FAB Global -->
-  <button class="fab no-print" id="fab" title="Acciones rápidas" style="display:none" onclick="toggleFabMenu()">⚙️</button>
-  <div class="fab-menu no-print" id="fabMenu">
-    <button class="fab-item" onclick="unificarGlobal(); toggleFabMenu(true)">🔄 Unificar</button>
-    <button class="fab-item" onclick="exportarGlobalTXT(); toggleFabMenu(true)">📄 TXT visible</button>
-    <button class="fab-item" onclick="exportarGlobalXLSX(); toggleFabMenu(true)">📊 Excel</button>
-    <button class="fab-item" onclick="copiarGlobal(); toggleFabMenu(true)">📋 Copiar</button>
-    <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
-  </div>
-
-  <!-- Tabbar -->
-  <nav class="tabbar no-print">
-    <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Dicc</span></button>
-    <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
-    <button id="btn-global" onclick="showTab('global')">🧮<span>Global</span></button>
-    <button id="btn-proveedores" onclick="showTab('proveedores')">📦<span>Prov</span></button>
-    <button id="btn-precios" onclick="showTab('precios')">💶<span>Precios</span></button>
-  </nav>
-
-  <!-- PRINT: PDF solo precios modificados -->
-  <div id="printPrices">
-    <div class="card" style="margin:12px">
-      <div class="hd">
-        <strong>💶 PRECIOS MODIFICADOS</strong>
-        <span class="pill" id="printPricesMeta">—</span>
-      </div>
-      <div class="bd">
-        <div class="hint" id="printPricesHint">Nombre y precio nuevo (sin precios anteriores).</div>
-        <div class="scroll-x" id="printPricesTable"></div>
-      </div>
-    </div>
-  </div>
-
-<script>
-/* ==========================
-   Tema (persistente)
-========================== */
-function applyTheme(t){
-  document.documentElement.setAttribute('data-theme', t==='dark'?'dark':'light');
-  localStorage.setItem('arslan_theme', t);
-}
-function toggleTheme(){
-  const cur = localStorage.getItem('arslan_theme') || 'light';
-  applyTheme(cur==='light'?'dark':'light');
-}
 
 /* ==========================
-   Debounce + idle
+   Coincidencia aproximada (Dice + TokenSet)
 ========================== */
-function debounce(fn, wait=300){
-  let t=null;
-  return function(...args){
-    clearTimeout(t);
-    t=setTimeout(()=>fn.apply(this,args), wait);
-  };
+function bigrams(str){
+  const s = stripGenericWords(str);
+  const arr=[]; for(let i=0;i<s.length-1;i++){ if(s[i]!==' '&&s[i+1]!==' ') arr.push(s.slice(i,i+2)); }
+  return arr;
 }
-const idle = (cb)=> (window.requestIdleCallback? requestIdleCallback(cb): setTimeout(cb, 1));
-
-/* ==========================
-   Tabs (lazy render)
-========================== */
-function showTab(key){
-  const ids = ['dic','tiendas','global','proveedores','precios'];
-  ids.forEach(k=>{
-    const tab = document.getElementById('tab-'+k);
-    const btn = document.getElementById('btn-'+k);
-    if(tab) tab.style.display = (k===key)?'block':'none';
-    if(btn) btn.classList.toggle('active', k===key);
+function diceSim(a,b){
+  const A=bigrams(a), B=bigrams(b);
+  if(!A.length||!B.length) return 0;
+  let hits=0; const pool=B.slice();
+  A.forEach(bg=>{const idx=pool.indexOf(bg); if(idx>-1){hits++; pool.splice(idx,1);} });
+  return (2*hits)/(A.length+B.length);
+}
+function tokenSetSim(a,b){
+  const A=new Set(stripGenericWords(a).split(' ').filter(Boolean));
+  const B=new Set(stripGenericWords(b).split(' ').filter(Boolean));
+  if(!A.size||!B.size) return 0;
+  let inter=0; A.forEach(x=>{ if(B.has(x)) inter++; });
+  return inter / Math.max(A.size,B.size);
+}
+function similarityScore(a,b){ return 0.7*diceSim(a,b) + 0.3*tokenSetSim(a,b); }
+function bestMatch(query, vocabArr){
+  const q = stripGenericWords(query);
+  let best = {name:null, score:0};
+  vocabArr.forEach(v=>{
+    const sc = similarityScore(q, v);
+    if(sc>best.score) best = {name:v, score:sc};
   });
-
-  const fab = document.getElementById('fab');
-  if(key==='global'){ fab.style.display='block'; } else { fab.style.display='none'; toggleFabMenu(true); }
-
-  closeAC();
-
-  if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); focusRow(0); }); }
-  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); }); }
-  if(key==='precios'){ idle(()=>{ renderPrecios(); }); }
+  return best;
 }
 
 /* ==========================
-   Config + utilidades
+   Parser líneas (cantidad + nombre)
 ========================== */
-const LS = {
-  VOCAB:'arslan_v34_vocab',
-  STORES:'arslan_v34_stores',
-  ASSIGN:'arslan_v34_assign',
-  ORDERS:'arslan_v34_orders',
-  PRICES:'arslan_v34_prices',
-  PRICE_CHANGES:'arslan_v34_price_changes'
-};
+function parseLine(raw){
+  if(!raw) return null;
+  let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
+  s = s.replace(/^[-•*]\s*/,'');
+  let qty=null, name=s;
 
-const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
-const IGNORE_WORDS = ['caja','cajas','kg','kgs','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
+  const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
+  if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
-const $ = s => document.querySelector(s);
-const byId = id => document.getElementById(id);
-const toLines = t => String(t||'').split(/[\n\r,]/).map(x=>x.trim()).filter(Boolean);
-
-function removeDiacriticsUpper(s){
-  return String(s||'')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/ñ/g,'N').replace(/Ñ/g,'N')
-    .toUpperCase();
-}
-function normKey(s){
-  return removeDiacriticsUpper(s)
-    .replace(/[^A-Z0-9\s]/g,' ')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-function stripGenericWords(s){
-  const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS.includes(t.toLowerCase()));
-  return tokens.join(' ').trim();
-}
-function todayISO(){ return new Date().toISOString().split('T')[0]; }
-
-/* ==========================
-   Vocabulario oficial (base)
-========================== */
-const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
-MANZANA PINK LADY
-MANDARINA COLOMBE
-MANDARINA PLASENCIA 
-MANDARINA USOPRADES 
-MANZANA GRNNY SMITH 
-NARANJA MESA USOPRADES
-NARANJA ZUMO USOPRADES
-MANZANA STORY 
-GUAYABA
-ROMANESCU 
-PATATA AGRIA 
-PATATA MONALISA
-PATATA SPUNTA
-CEBOLLINO
-ENELDO
-REMOLACHA
-LECHUGA ROBLE
-ESCAROLA
-GUISANTES 
-KIWI MARIPOSA
-AGUACATE LISO
-KIWI ZESPRI GOLD
-PARAGUAYO 
-KIWI TOMASIN PLANCHA
-PERA RINCON DEL SOTO
-MELOCOTON PRIMERA
-AGUACATE GRANEL
-MARACUYA
-MANZANA GOLDEN 24
-PLATANO CANARIO PRIMERA
-MANDARINA HOJA
-MANZANA GOLDEN 20
-NARANJA TOMASIN
-NECTARINA
-NUECES
-SANDIA
-LIMON SEGUNDA
-MANZANA FUJI
-NARANJA MESA SONRISA
-JENGIBRE
-BATATA
-AJO PRIMERA
-CEBOLLA NORMAL
-CALABAZA GRANDE
-PATATA LAVADA
-TOMATE CHERRY RAMA
-TOMATE CHERRY PERA
-TOMATE DANIELA
-TOMATE ROSA PRIMERA
-CEBOLLINO
-TOMATE ASURCADO MARRON
-TOMATE RAMA
-PIMIENTO PADRON
-ZANAHORIA
-PEPINO
-CEBOLLETA
-PUERROS
-BROCOLI
-JUDIA VERDE
-BERENJENA
-PIMIENTO ITALIANO VERDE
-PIMIENTO ITALIANO ROJO
-CHAMPINON
-UVA ROJA
-UVA BLANCA
-ALCACHOFA
-CALABACIN
-COLIFLOR
-BATAVIA
-ICEBERG
-MANDARINA SEGUNDA
-MANZANA GOLDEN 28
-NARANJA ZUMO
-KIWI SEGUNDA
-MANZANA ROYAL GALA 24
-PLATANO CANARIO SUELTO
-CEREZA
-FRESAS
-ARANDANOS
-ESPINACA
-PEREJIL
-CILANTRO
-ACELGAS
-PIMIENTO VERDE
-PIMIENTO ROJO
-MACHO VERDE
-MACHO MADURO
-YUCA
-AVOCADO
-PERA CONFERENCIA PRIMERA BIS
-REINETA PARDA
-POMELO CHINO
-MANDARINA TABALET
-BERZA
-COL DE BRUSELAS
-NUECES SEGUNDA 
-ESCAROLA 
-CEBOLLA ROJA
-MENTA
-HABANERO
-RABANITOS
-POMELO
-PAPAYA
-REINETA 28
-NISPERO
-ALBARICOQUE
-TOMATE PERA
-TOMATE BOLA
-TOMATE PINK
-VALVENOSTA GOLDEN
-MELOCOTON ROJO
-MELON GALIA
-APIO
-NARANJA SANHUJA
-LIMON PRIMERA
-MANGO
-MELOCOTON AMARILLO
-VALVENOSTA ROJA
-PINA
-NARANJA HOJA
-PERA CONFERENCIA SEGUNDA
-CEBOLLA DULCE
-TOMATE ASURCADO AZUL
-ESPARRAGOS BLANCOS
-ESPARRAGOS TRIGUEROS
-REINETA PRIMERA
-AGUACATE PRIMERA
-COCO
-NECTARINA SEGUNDA
-REINETA 24
-NECTARINA CARNE BLANCA
-GUINDILLA
-REINETA VERDE
-PATATA 25KG
-PATATA 5 KG
-TOMATE RAFF
-REPOLLO
-KIWI ZESPRI
-PARAGUAYO SEGUNDA
-MELON
-REINETA 26
-TOMATE ROSA
-MANZANA CRISPS
-ALOE VERA PIEZAS
-TOMATE ENSALADA
-PATATA 10KG
-MELON BOLLO
-CIRUELA ROJA
-LIMA
-GUINEO VERDE
-SETAS
-BANANA
-BONIATO
-FRAMBUESA
-BREVAS
-PERA AGUA
-YAUTIA
-YAME
-OKRA
-MANZANA MELASSI
-CACAHUETE
-SANDIA NEGRA
-SANDIA RAYADA
-HIGOS
-KUMATO
-KIWI CHILE
-MELOCOTON AMARILLO SEGUNDA
-HIERBABUENA
-REMOLACHA
-LECHUGA ROMANA
-KAKI
-CIRUELA CLAUDIA
-PERA LIMONERA
-CIRUELA AMARILLA
-HIGOS BLANCOS
-UVA ALVILLO
-LIMON EXTRA
-PITAHAYA ROJA
-HIGO CHUMBO
-CLEMENTINA
-GRANADA
-NECTARINA PRIMERA BIS
-CHIRIMOYA
-UVA CHELVA
-PIMIENTO CALIFORNIA VERDE
-KIWI TOMASIN
-PIMIENTO CALIFORNIA ROJO
-MANDARINA SATSUMA
-CASTANA
-CAKI
-MANZANA KANZI
-PERA ERCOLINA
-NABO
-UVA ALVILLO NEGRA
-CHAYOTE
-ROYAL GALA 28
-MANDARINA PRIMERA
-PIMIENTO PINTON
-MELOCOTON AMARILLO DE CALANDA
-HINOJOS
-MANDARINA DE HOJA
-UVA ROJA PRIMERA
-UVA BLANCA PRIMERA`;
-
-function uniqueVocab(lines){
-  const seen = new Set(); const out=[];
-  for(const l of lines){
-    const t = removeDiacriticsUpper(l).trim();
-    if(!t) continue;
-    const k = normKey(t);
-    if(!seen.has(k)){ seen.add(k); out.push(t); }
+  if(qty===null){
+    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas)?\s*$/i);
+    if(mEnd){ qty=Number(mEnd[1].replace(',','.')); name=s.slice(0,mEnd.index).trim(); }
   }
-  return out;
+  if(qty===null){
+    const mStart = s.match(/^\s*(\d+[\.,]?\d*)\s+(.*)$/);
+    if(mStart){ qty=Number(mStart[1].replace(',','.')); name=mStart[2].trim(); }
+  }
+  if(qty===null){ qty=1; }
+
+  name = stripGenericWords(name);
+  return { original: removeDiacriticsUpper(s), name, qty };
 }
-function loadVocab(){
-  const saved = localStorage.getItem(LS.VOCAB);
-  const base = saved && saved.trim()? saved : OFFICIAL_VOCAB_RAW;
-  const list = uniqueVocab(toLines(base));
-  byId('vocabTxt').value = list.join('\n');
-  return list;
-}
-function saveVocab(){
-  localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
-  alert('Vocabulario guardado.');
-  renderProvidersPanels();
-  unificarGlobal();
-  renderPrecios();
-}
-function addNewWord(){
-  const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
-  if(!entry) return;
-  const current = toLines(byId('vocabTxt').value);
-  const added = toLines(entry);
-  const merged = uniqueVocab(current.concat(added));
-  byId('vocabTxt').value = merged.join('\n');
-  saveVocab();
-}
-function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar TODO? (incluye vocabulario)')){ localStorage.clear(); location.reload(); }
-}
-</script>
-<!-- ===========================
-PART 3/4 — Global, asignación, proveedores, export, reparto por tiendas, precios (módulo completo)
-=========================== -->
-<script>
+
 /* ==========================
-   Export tienda + WhatsApp
+   Autocomplete
 ========================== */
+let AC_ACTIVE = null;
+function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
+
+function attachAutocomplete(cell, onPick){
+  cell.addEventListener('input', ()=>{
+    const val = stripGenericWords(cell.innerText||'');
+    closeAC();
+    if(!val) return;
+    const vocab = loadVocab();
+    const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
+    if(!suggestions.length) return;
+    const rect = cell.getBoundingClientRect();
+    const box = document.createElement('div');
+    box.className='ac-box';
+    box.style.left = (rect.left + window.scrollX) + 'px';
+    box.style.top = (rect.bottom + window.scrollY) + 'px';
+    box.style.width = rect.width + 'px';
+    suggestions.forEach((s,idx)=>{
+      const item = document.createElement('div');
+      item.className='ac-item';
+      item.textContent = s;
+      item.onclick = ()=>{ onPick(s); closeAC(); };
+      box.appendChild(item);
+    });
+    document.body.appendChild(box);
+    AC_ACTIVE = box;
+  }, {passive:true});
+  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
+}
+
+/* ==========================
+   Render tabla tienda
+========================== */
+function renderTable(code){
+  const wrap = byId('tbl_'+code+'_wrap');
+  const rows = tiendaState[code]||[];
+  if(!rows.length){ wrap.innerHTML=''; return; }
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    html += `<tr>
+      <td>${r.o}</td>
+      <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
+      <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
+      <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
+    const i = Number(cell.dataset.i);
+    const f = cell.dataset.f;
+    if(f==='e'){
+      attachAutocomplete(cell, (picked)=>{
+        cell.innerText = picked;
+        tiendaState[code][i].e = picked;
+        tiendaState[code][i].a = false;
+        cell.classList.remove('red');
+        cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        persistState();
+        pushUndo({type:'edit_store', code});
+        idle(()=>unificarGlobal());
+      });
+    }
+    cell.addEventListener('blur', ()=>{
+      const val = cell.innerText.trim();
+      if(f==='q'){
+        tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
+      }else{
+        const cleaned = removeDiacriticsUpper(val);
+        tiendaState[code][i].e = cleaned;
+        const vocab = loadVocab();
+        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+        const tdState = cell.parentElement.querySelector('td:last-child');
+        if(exact){ tiendaState[code][i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
+        else { tiendaState[code][i].a=true; cell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
+      }
+      persistState();
+      pushUndo({type:'edit_store', code});
+      idle(()=>unificarGlobal());
+    }, {passive:true});
+  });
+}
+
+function estandarizar(code){
+  const vocab = loadVocab();
+  const txt = byId('in_'+code).value;
+  const rows = [];
+  toLines(txt).forEach(line=>{
+    const p = parseLine(line);
+    if(!p) return;
+    const exact = vocab.find(v=> normKey(v)===normKey(p.name));
+    if(exact){ rows.push({o:p.original, e:exact, q:p.qty, a:false}); return; }
+    const m = bestMatch(p.name, vocab);
+    const chosen = m.name || p.name;
+    rows.push({o:p.original, e:chosen, q:p.qty, a:(normKey(chosen)!==normKey(p.name))});
+  });
+  tiendaState[code] = rows;
+  renderTable(code);
+  persistState();
+  pushUndo({type:'estandarizar_store', code});
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
+}
+
+function guardarTienda(code){
+  const out = (tiendaState[code]||[]).map(r=> `${r.e} ${r.q}`).join('\n');
+  byId('in_'+code).value = out;
+  alert(`Tienda ${code.toUpperCase()} guardada en el textarea.`);
+}
+
 function exportarTiendaTXT(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
   const okRows = tienda.filter(r => !r.a);
   if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const today = new Date().toISOString().split('T')[0];
   const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
   const blob = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${code}_estandarizado_${todayISO()}.txt`;
+  a.download = `${code}_estandarizado_${today}.txt`;
   a.click();
 }
 function enviarTiendaWhatsApp(code){
@@ -1448,21 +905,285 @@ function enviarTiendaWhatsApp(code){
 }
 
 /* ==========================
-   Unificar global + similares
+   CLIENTES/HOTELES
 ========================== */
-function unificarGlobal(){
+function genId(){
+  return 'cli_' + Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function addClient(){
+  const name = prompt('Nombre cliente/hotel (ej: BRASEROS / RIVIERA / HOTEL CORDON):');
+  if(!name) return;
+  const tag = prompt('TAG / Sede (ej: CENTRO, FORUM, EDIFICIO, TOMILLARES, SEVERO, GENERAL, TARDE):') || '';
+  clients.push({ id: genId(), name: removeDiacriticsUpper(name), tag: removeDiacriticsUpper(tag), input:'', rows:[] });
+  persistState();
+  renderClientsUI();
+}
+
+function saveClients(){
+  persistState();
+  alert('Clientes guardados.');
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
+}
+
+function deleteClient(id){
+  if(!confirm('¿Eliminar este cliente?')) return;
+  clients = clients.filter(c=>c.id!==id);
+  persistState();
+  renderClientsUI();
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
+}
+
+function renderClientsUI(){
+  const wrap = byId('clients_wrap');
+  if(!wrap) return;
+
+  if(!clients.length){
+    wrap.innerHTML = `<div class="hint">No hay clientes aún. Pulsa “+ Nuevo cliente”.</div>`;
+    return;
+  }
+
+  let html = '';
+  clients.forEach((c)=>{
+    const label = c.tag ? `${c.name} — ${c.tag}` : c.name;
+    html += `
+      <div class="card" style="margin-bottom:10px">
+        <div class="hd">
+          <strong>🏨 ${label}</strong>
+          <div class="toolbar">
+            <button class="btn small ghost" onclick="estandarizarCliente('${c.id}')">Estandarizar</button>
+            <button class="btn small" onclick="guardarCliente('${c.id}')">Guardar</button>
+            <button class="btn small muted" onclick="exportarClienteTXT('${c.id}')">TXT</button>
+            <button class="btn small muted" onclick="enviarClienteWhatsApp('${c.id}')">WhatsApp</button>
+            <button class="btn small muted" onclick="deleteClient('${c.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="row" style="margin-bottom:8px">
+            <div>
+              <div class="hint">Nombre</div>
+              <input style="width:100%;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg);color:var(--ink)"
+                value="${c.name||''}" onblur="updateClientField('${c.id}','name',this.value)">
+            </div>
+            <div>
+              <div class="hint">TAG</div>
+              <input style="width:100%;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg);color:var(--ink)"
+                value="${c.tag||''}" onblur="updateClientField('${c.id}','tag',this.value)">
+            </div>
+          </div>
+          <textarea id="in_${c.id}" placeholder="Pega pedido cliente/hotel...">${c.input||''}</textarea>
+          <div class="hint">Edita en tabla igual que tiendas.</div>
+          <div id="tbl_${c.id}_wrap" class="scroll-x" style="margin-top:8px"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  wrap.innerHTML = html;
+
+  // render tablas existentes
+  clients.forEach(c=>{
+    if(Array.isArray(c.rows) && c.rows.length){
+      renderClientTable(c.id);
+    }
+  });
+}
+
+function updateClientField(id, field, value){
+  const idx = clients.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  if(field==='name') clients[idx].name = removeDiacriticsUpper(value);
+  if(field==='tag') clients[idx].tag = removeDiacriticsUpper(value);
+  persistState();
+  idle(()=>{ buildRepartoSelector(); unificarGlobal(); });
+}
+
+function renderClientTable(id){
+  const wrap = byId('tbl_'+id+'_wrap');
+  const c = clients.find(x=>x.id===id);
+  if(!wrap || !c) return;
+  const rows = c.rows||[];
+  if(!rows.length){ wrap.innerHTML=''; return; }
+
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    html += `<tr>
+      <td>${r.o}</td>
+      <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
+      <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
+      <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
+    const i = Number(cell.dataset.i);
+    const f = cell.dataset.f;
+    if(f==='e'){
+      attachAutocomplete(cell, (picked)=>{
+        cell.innerText = picked;
+        c.rows[i].e = picked;
+        c.rows[i].a = false;
+        cell.classList.remove('red');
+        cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
+        persistState();
+        pushUndo({type:'edit_client', id});
+        idle(()=>unificarGlobal());
+      });
+    }
+    cell.addEventListener('blur', ()=>{
+      const val = cell.innerText.trim();
+      if(f==='q'){
+        c.rows[i].q = Number(String(val).replace(',','.'))||0;
+      }else{
+        const cleaned = removeDiacriticsUpper(val);
+        c.rows[i].e = cleaned;
+        const vocab = loadVocab();
+        const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
+        const tdState = cell.parentElement.querySelector('td:last-child');
+        if(exact){ c.rows[i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
+        else { c.rows[i].a=true; cell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
+      }
+      persistState();
+      pushUndo({type:'edit_client', id});
+      idle(()=>unificarGlobal());
+    }, {passive:true});
+  });
+}
+
+function estandarizarCliente(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const txt = byId('in_'+id).value;
+  c.input = txt;
+  const vocab = loadVocab();
+  const rows = [];
+  toLines(txt).forEach(line=>{
+    const p = parseLine(line);
+    if(!p) return;
+    const exact = vocab.find(v=> normKey(v)===normKey(p.name));
+    if(exact){ rows.push({o:p.original, e:exact, q:p.qty, a:false}); return; }
+    const m = bestMatch(p.name, vocab);
+    const chosen = m.name || p.name;
+    rows.push({o:p.original, e:chosen, q:p.qty, a:(normKey(chosen)!==normKey(p.name))});
+  });
+  c.rows = rows;
+  renderClientTable(id);
+  persistState();
+  pushUndo({type:'estandarizar_client', id});
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
+}
+
+function guardarCliente(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const out = (c.rows||[]).map(r=> `${r.e} ${r.q}`).join('\n');
+  byId('in_'+id).value = out;
+  c.input = out;
+  persistState();
+  alert('Cliente guardado.');
+}
+
+function exportarClienteTXT(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const tienda = c.rows || [];
+  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  const label = (c.tag? `${c.name}_${c.tag}`:c.name).replace(/\s+/g,'_');
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cliente_${label}_${today}.txt`;
+  a.click();
+}
+
+function enviarClienteWhatsApp(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const tienda = c.rows || [];
+  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const label = c.tag? `${c.name} — ${c.tag}`:c.name;
+  const msg = encodeURIComponent(`🏨 *Pedido ${label}*\n\n${txt}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+/* ==========================
+   UNDO simple (últimas acciones)
+========================== */
+let undoStack = [];
+function loadUndo(){
+  try{ undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||'[]') || []; }catch{ undoStack=[]; }
+  updateUndoPill();
+}
+function pushUndo(meta){
+  // guardamos snapshot ligero de estado crítico
+  const snap = {
+    meta: meta||{},
+    ts: Date.now(),
+    tiendaState: JSON.parse(JSON.stringify(tiendaState)),
+    clients: JSON.parse(JSON.stringify(clients)),
+    assignments: JSON.parse(JSON.stringify(assignments)),
+    orders: JSON.parse(JSON.stringify(orders))
+  };
+  undoStack.push(snap);
+  if(undoStack.length>25) undoStack.shift();
+  localStorage.setItem(LS.UNDO, JSON.stringify(undoStack));
+  updateUndoPill();
+}
+function updateUndoPill(){
+  const el = byId('undoPill');
+  if(el) el.textContent = 'Undo: ' + (undoStack.length||0);
+}
+function undoLast(){
+  if(!undoStack.length){ alert('No hay nada para deshacer.'); return; }
+  const snap = undoStack.pop();
+  tiendaState.sp = snap.tiendaState.sp||[];
+  tiendaState.sl = snap.tiendaState.sl||[];
+  tiendaState.st = snap.tiendaState.st||[];
+  clients = snap.clients||[];
+  assignments = snap.assignments||{};
+  orders = snap.orders||{};
+  localStorage.setItem(LS.UNDO, JSON.stringify(undoStack));
+  persistState();
+  updateUndoPill();
+  renderTable('sp'); renderTable('sl'); renderTable('st');
+  renderClientsUI();
+  unificarGlobal();
+  renderProvidersPanels();
+  buildRepartoSelector();
+  renderRepartoTienda();
+}
+
+/* ==========================
+   Unificar global (tiendas + clientes)
+========================== */
+function getAllRowsUnified(){
   const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const clientRows = [];
+  clients.forEach(c=>{
+    (c.rows||[]).forEach(r=>clientRows.push(r));
+  });
+  return all.concat(clientRows);
+}
+
+function unificarGlobal(){
+  const all = getAllRowsUnified();
   const map = new Map();
   all.forEach(r=>{
     const key = normKey(r.e);
-    if(!key) return;
     if(!map.has(key)) map.set(key,{name:r.e,total:0});
     map.get(key).total += (Number(r.q)||0);
   });
-
   const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
-  // detectar similares
   const names = arr.map(x=>x.name);
   const similarSet = new Set();
   for(let i=0;i<names.length;i++){
@@ -1478,37 +1199,18 @@ function unificarGlobal(){
 }
 
 /* ==========================
-   GLOBAL + Asignación
+   GLOBAL + Asignación a proveedor
 ========================== */
-let GLOBAL_FOCUS_IDX = 0;
-
-function focusRow(idx){
-  const wrap = byId('global_wrap');
-  const trs = wrap ? wrap.querySelectorAll('tbody tr') : [];
-  if(!trs.length) return;
-
-  idx = Math.max(0, Math.min(idx, trs.length-1));
-  GLOBAL_FOCUS_IDX = idx;
-
-  trs.forEach(t=>t.classList.remove('row-focus'));
-  trs[idx].classList.add('row-focus');
-  // scroll into view suave
-  try{ trs[idx].scrollIntoView({behavior:'smooth', block:'nearest'}); }catch{}
-}
-
 function renderGlobalTable(rows, similarSet){
   const visible = rows.filter(r => !assignments[normKey(r.name)]);
   globalRows = visible;
 
   const wrap = byId('global_wrap');
-  if(!visible.length){
-    wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>';
-    return;
-  }
+  if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>'; return; }
 
   let html = `
     <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ o atajos 1..6.
+      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
     </div>
     <div class="scroll-x"><table>
       <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
@@ -1517,50 +1219,33 @@ function renderGlobalTable(rows, similarSet){
     const isSimilar = similarSet.has(r.name);
     html += `<tr data-i="${i}" class="${isSimilar?'dup':''}">
       <td><button class="ok-assign" onclick="assignFromGlobal(${i})">✅</button></td>
-      <td contenteditable="true" data-i="${i}" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
-      <td>
-        <div class="qty-stepper">
-          <button class="step-btn" onclick="bumpQtyInGlobal(${i}, -1)">−</button>
-          <span class="qty-pill" contenteditable="true" data-i="${i}" data-f="total">${r.total}</span>
-          <button class="step-btn" onclick="bumpQtyInGlobal(${i}, 1)">+</button>
-        </div>
-      </td>
+      <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
+      <td contenteditable="true" data-f="total">${r.total}</td>
       <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // Edición inline + autocomplete
-  wrap.querySelectorAll('[contenteditable]').forEach(cell=>{
-    const tr = cell.closest('tr');
+  wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
+    const tr = cell.parentElement;
     const idx = Number(tr.dataset.i);
     const f = cell.dataset.f;
-
     if(f==='name'){
-      attachAutocompleteKeyboard(cell, (picked)=>{
+      attachAutocomplete(cell, (picked)=>{
         cell.innerText = picked;
         globalRows[idx].name = picked;
         tr.classList.remove('dup');
         tr.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
-        persistState();
-        idle(()=>renderPrecios());
       });
     }
-
-    cell.addEventListener('focus', ()=>{
-      focusRow(idx);
-    }, {passive:true});
-
     cell.addEventListener('blur', ()=>{
-      const val = (cell.innerText||'').trim();
-
+      const val = cell.innerText.trim();
       if(f==='total'){
-        globalRows[idx].total = clampQty(String(val).replace(',','.'))||0;
+        globalRows[idx].total = Number(String(val).replace(',','.'))||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
         globalRows[idx].name = cleaned;
-
         const vocab = loadVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         if(exact){
@@ -1582,22 +1267,19 @@ function renderGlobalTable(rows, similarSet){
           }
         }
       }
-
       persistState();
-      idle(()=>unificarGlobal());
-      idle(()=>renderPrecios());
+      pushUndo({type:'edit_global'});
     }, {passive:true});
   });
-
-  // foco inicial
-  idle(()=>focusRow(GLOBAL_FOCUS_IDX||0));
 }
 
 function assignFromGlobal(idx){
   const item = globalRows[idx];
   if(!item) return;
-
   const k = normKey(item.name);
+
+  pushUndo({type:'assign', idx, name:item.name, prov:ACTIVE_PROV, qty:item.total});
+
   assignments[k] = ACTIVE_PROV;
 
   const list = orders[ACTIVE_PROV]||[];
@@ -1609,16 +1291,13 @@ function assignFromGlobal(idx){
   persistState();
   idle(()=>unificarGlobal());
   renderProvidersPanels();
-  idle(()=>renderPrecios());
 }
 
 /* ==========================
-   Barra proveedores
+   Barra proveedores + paneles
 ========================== */
 function buildProvBar(){
-  const bar = byId('provBar');
-  if(!bar) return;
-  bar.innerHTML='';
+  const bar = byId('provBar'); bar.innerHTML='';
   PROVEEDORES.forEach(p=>{
     const b = document.createElement('button');
     b.className = 'prov-btn' + (p===ACTIVE_PROV?' active':'');
@@ -1632,27 +1311,19 @@ function buildProvBar(){
   });
 }
 
-/* ==========================
-   Paneles proveedores (edit + stepper)
-========================== */
 function renderProvidersPanels(){
-  const cont = byId('provPanels');
-  if(!cont) return;
-  cont.innerHTML='';
-
+  const cont = byId('provPanels'); cont.innerHTML='';
   PROVEEDORES.forEach(p=>{
     const list = orders[p]||[];
     const card = document.createElement('div');
     card.className='card';
-
     const hd = document.createElement('div');
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT</button>
+        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
         <button class="btn small muted" onclick="enviarProvWhatsApp('${p}')">📲 WhatsApp</button>
       </div>`;
-
     const bd = document.createElement('div');
     bd.className='bd';
 
@@ -1663,45 +1334,38 @@ function renderProvidersPanels(){
       list.forEach((it,ix)=>{
         html += `<tr>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
-          <td class="green">
-            <div class="qty-stepper">
-              <button class="step-btn" onclick="bumpQtyInProv('${p}', ${ix}, -1)">−</button>
-              <span class="qty-pill" contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty">${it.qty}</span>
-              <button class="step-btn" onclick="bumpQtyInProv('${p}', ${ix}, 1)">+</button>
-            </div>
-          </td>
+          <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
       bd.innerHTML = html;
 
-      bd.querySelectorAll('[contenteditable]').forEach(cell=>{
+      bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
         const prov = cell.dataset.prov;
         const idx = Number(cell.dataset.idx);
         const f = cell.dataset.f;
-
         if(f==='name'){
-          attachAutocompleteKeyboard(cell, picked=>{
+          attachAutocomplete(cell, picked=>{
             cell.innerText = picked;
             orders[prov][idx].name = picked;
             persistState();
+            pushUndo({type:'edit_provider', prov});
           });
         }
         cell.addEventListener('blur', ()=>{
-          const val = (cell.innerText||'').trim();
+          const val = cell.innerText.trim();
           if(f==='qty'){
-            orders[prov][idx].qty = clampQty(String(val).replace(',','.'))||0;
+            orders[prov][idx].qty = Number(String(val).replace(',','.'))||0;
           }else{
             orders[prov][idx].name = removeDiacriticsUpper(val);
           }
           persistState();
-          idle(()=>renderPrecios());
+          pushUndo({type:'edit_provider', prov});
         }, {passive:true});
       });
     }
 
-    card.appendChild(hd);
-    card.appendChild(bd);
+    card.appendChild(hd); card.appendChild(bd);
     cont.appendChild(card);
   });
 }
@@ -1709,12 +1373,10 @@ function renderProvidersPanels(){
 function exportProvTXT(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
+  const today = new Date().toISOString().split('T')[0];
   const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`pedido_${prov}_${todayISO()}.txt`;
-  a.click();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
 }
 function enviarProvWhatsApp(prov){
   const list = orders[prov]||[];
@@ -1725,7 +1387,7 @@ function enviarProvWhatsApp(prov){
 }
 
 /* ==========================
-   Exportación Global
+   Export Global
 ========================== */
 function copiarGlobal(){
   if(!globalRows.length) return;
@@ -1735,28 +1397,28 @@ function copiarGlobal(){
 }
 function exportarGlobalTXT(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
+  const today = new Date().toISOString().split('T')[0];
   const txt = globalRows.map(r=>`${r.total}\t${r.name}`).join('\n');
   const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`lista_global_${todayISO()}.txt`;
-  a.click();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`lista_global_${today}.txt`; a.click();
 }
 function exportarGlobalXLSX(){
   if(!globalRows.length){ alert('No hay datos.'); return; }
+  const today = new Date().toISOString().split('T')[0];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([['Producto','Total'], ...globalRows.map(r=>[r.name,r.total])]);
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
-  XLSX.writeFile(wb, `lista_global_${todayISO()}.xlsx`);
+  XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
 }
 
-/* TXT Global (asignados + pendientes) */
+/* ==========================
+   TXT Global (asignados + pendientes)
+========================== */
 function exportResumenGlobalTXT(){
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const all = getAllRowsUnified();
   const totalMap = {};
   all.forEach(r=>{
     const k = normKey(r.e);
-    if(!k) return;
     if(!totalMap[k]) totalMap[k] = {name:r.e, total:0};
     totalMap[k].total += (Number(r.q)||0);
   });
@@ -1766,8 +1428,11 @@ function exportResumenGlobalTXT(){
   Object.values(totalMap).forEach(it=>{
     const k = normKey(it.name);
     const prov = assignments[k];
-    if(prov && PROVEEDORES.includes(prov)) byProv[prov].push({name:it.name, qty:it.total});
-    else unassigned.push({name:it.name, qty:it.total});
+    if(prov && PROVEEDORES.includes(prov)){
+      byProv[prov].push({name:it.name, qty:it.total});
+    }else{
+      unassigned.push({name:it.name, qty:it.total});
+    }
   });
 
   let out = `📦 PEDIDOS POR PROVEEDOR\n\n`;
@@ -1776,7 +1441,9 @@ function exportResumenGlobalTXT(){
     if(byProv[p].length){
       byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
       byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-    }else out += `- (sin líneas)\n`;
+    }else{
+      out += `- (sin líneas)\n`;
+    }
     out += `\n`;
   });
 
@@ -1784,26 +1451,66 @@ function exportResumenGlobalTXT(){
   if(unassigned.length){
     unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
     unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-  }else out += `- (sin líneas)\n`;
+  }else{
+    out += `- (sin líneas)\n`;
+  }
 
+  const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([out],{type:'text/plain'});
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`resumen_pedidos_${todayISO()}.txt`;
-  a.click();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`resumen_pedidos_${today}.txt`; a.click();
 }
 
 /* ==========================
-   Reparto por tiendas (tu módulo) + link externo
+   🚚 REPARTO (tiendas + clientes)
 ========================== */
-const repartoState = {}; // { tienda : [ {name, qty, price, checked} ] }
+const repartoState = {};
+// key destino -> [{name,qty,price,checked}]
+
+function getRepartoDestinations(){
+  const dests = [];
+  // stores
+  dests.push({ key:'sp', label:'🏪 San Pablo', type:'store' });
+  dests.push({ key:'sl', label:'🏪 San Lesmes', type:'store' });
+  dests.push({ key:'st', label:'🏪 Santiago', type:'store' });
+
+  // clients only if they have pedido (rows)
+  clients.forEach(c=>{
+    const has = (c.rows||[]).some(x=>Number(x.q)>0);
+    if(!has) return;
+    const label = c.tag ? `🏨 ${c.name} — ${c.tag}` : `🏨 ${c.name}`;
+    dests.push({ key:c.id, label, type:'client' });
+  });
+
+  return dests;
+}
+
+function buildRepartoSelector(){
+  const sel = byId('selRepartoTienda');
+  if(!sel) return;
+  const dests = getRepartoDestinations();
+  const current = sel.value;
+
+  sel.innerHTML = `<option value="">Selecciona destino...</option>` + dests.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');
+  // mantener selección si existe
+  if(current && dests.some(d=>d.key===current)) sel.value = current;
+}
 
 function renderRepartoTienda(){
   const code = byId('selRepartoTienda').value;
   const wrap = byId('reparto_wrap');
-  if(!code){ wrap.innerHTML = '<div class="hint">Selecciona una tienda para ver su lista.</div>'; return; }
-  const lista = tiendaState[code] || [];
-  if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en esta tienda.</div>'; return; }
+  if(!code){ wrap.innerHTML = '<div class="hint">Selecciona un destino para ver su lista.</div>'; return; }
+
+  // fuente: store o client
+  let lista = [];
+  const isClient = clients.some(c=>c.id===code);
+  if(isClient){
+    const c = clients.find(x=>x.id===code);
+    lista = (c && c.rows) ? c.rows : [];
+  }else{
+    lista = tiendaState[code] || [];
+  }
+
+  if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en este destino.</div>'; return; }
 
   if(!repartoState[code] || repartoState[code].length !== lista.length){
     repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
@@ -1821,30 +1528,36 @@ function renderRepartoTienda(){
   html += '</tbody></table>';
   wrap.innerHTML = html;
 }
+
 function toggleRepartoItem(code, idx, checked){
   if(!repartoState[code]) return;
   repartoState[code][idx].checked = checked;
 }
+
 function updateRepartoPrice(code, idx, val){
   if(!repartoState[code]) return;
-  const num = parseFloat(String(val).replace(',','.'));
+  const num = parseFloat(String(val||'').replace(',','.'));
   repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
 }
+
 function exportarRepartoTXT(){
   const code = byId('selRepartoTienda').value;
-  if(!code){ alert('Selecciona una tienda primero.'); return; }
+  if(!code){ alert('Selecciona un destino primero.'); return; }
   const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
+
   const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `reparto_${code}_${todayISO()}.txt`;
+  a.download = `reparto_${code}_${today}.txt`;
   a.click();
 }
+
 function enviarRepartoWhatsApp(){
   const code = byId('selRepartoTienda').value;
-  if(!code){ alert('Selecciona una tienda primero.'); return; }
+  if(!code){ alert('Selecciona un destino primero.'); return; }
   const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
@@ -1854,161 +1567,8 @@ function enviarRepartoWhatsApp(){
     if(x.price) msg += ` — ${x.price}€`;
     msg += '\n';
   });
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-}
-function abrirRepartoExterno(){
-  window.open('https://shaniwaris80-crypto.github.io/reparto/', '_blank');
-}
-
-/* ==========================
-   PRECIOS — solo comprados/estandarizados + historial + export modificados
-========================== */
-function getCompradosKeySet(){
-  const set = new Set();
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  all.forEach(r=>{
-    if(!r || !r.e) return;
-    const k = normKey(r.e);
-    if(k) set.add(k);
-  });
-  return set;
-}
-function ensurePriceEntry(key, name){
-  if(!prices[key]){
-    prices[key] = { name: name, price: '', updatedAt: 0, history: [] };
-  }else{
-    // actualiza name si cambió (mantiene historial)
-    if(name && prices[key].name !== name) prices[key].name = name;
-  }
-  if(!Array.isArray(prices[key].history)) prices[key].history = [];
-}
-function setPriceFor(key, name, priceStr){
-  ensurePriceEntry(key, name);
-  const prev = prices[key].price;
-  const num = parseFloat(String(priceStr).replace(',','.'));
-  if(!isFinite(num)) { prices[key].price = ''; persistState(); return; }
-
-  const newP = num.toFixed(2);
-  prices[key].price = newP;
-  prices[key].updatedAt = Date.now();
-
-  if(prev !== newP){
-    changedPricesKeys[key] = true;
-    prices[key].history.push({p:newP, t:Date.now()});
-    // limita historial para no crecer infinito
-    if(prices[key].history.length > 30) prices[key].history = prices[key].history.slice(-30);
-  }
-
-  persistState();
-}
-function renderPrecios(){
-  const wrap = byId('precios_wrap');
-  if(!wrap) return;
-
-  const set = getCompradosKeySet();
-  const keys = Array.from(set.values());
-
-  if(!keys.length){
-    wrap.innerHTML = '<div class="hint">No hay productos comprados/estandarizados hoy (Tiendas vacías).</div>';
-    return;
-  }
-
-  // map name desde tiendas (último visto)
-  const nameMap = {};
-  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
-  all.forEach(r=>{
-    const k = normKey(r.e);
-    if(k) nameMap[k] = r.e;
-  });
-
-  keys.forEach(k=> ensurePriceEntry(k, nameMap[k] || k));
-
-  // orden por nombre
-  keys.sort((a,b)=> (prices[a].name||a).localeCompare(prices[b].name||b,'es'));
-
-  let html = `<div class="scroll-x"><table>
-    <thead><tr>
-      <th>Producto</th>
-      <th>Precio (€)</th>
-      <th>Estado</th>
-      <th>Historial</th>
-    </tr></thead><tbody>`;
-
-  keys.forEach(k=>{
-    const it = prices[k];
-    const changed = !!changedPricesKeys[k];
-    const lastHist = (it.history && it.history.length) ? it.history[it.history.length-1] : null;
-    const histTxt = lastHist ? `${lastHist.p}€` : '—';
-    html += `<tr>
-      <td><b>${it.name||k}</b></td>
-      <td contenteditable="true" data-k="${k}" data-f="price">${it.price||''}</td>
-      <td>${changed?'<span class="pill ok">Modificado</span>':'<span class="pill">Sin cambios</span>'}</td>
-      <td class="hint">${histTxt}</td>
-    </tr>`;
-  });
-
-  html += `</tbody></table></div>`;
-  wrap.innerHTML = html;
-
-  wrap.querySelectorAll('[contenteditable][data-f="price"]').forEach(cell=>{
-    cell.addEventListener('blur', ()=>{
-      const k = cell.dataset.k;
-      const name = prices[k]?.name || k;
-      setPriceFor(k, name, cell.innerText.trim());
-      renderPrecios();
-    }, {passive:true});
-  });
-}
-function getModifiedPriceRows(){
-  const rows = [];
-  Object.keys(changedPricesKeys).forEach(k=>{
-    if(!changedPricesKeys[k]) return;
-    if(prices[k] && prices[k].price){
-      rows.push({name: prices[k].name||k, price: prices[k].price});
-    }
-  });
-  rows.sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  return rows;
-}
-function exportPreciosModificadosTXT(){
-  const rows = getModifiedPriceRows();
-  if(!rows.length){ alert('No hay precios modificados.'); return; }
-  const txt = rows.map(r=>`${r.name} — ${r.price}€`).join('\n');
-  const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`precios_modificados_${todayISO()}.txt`;
-  a.click();
-}
-function copiarPreciosModificados(){
-  const rows = getModifiedPriceRows();
-  if(!rows.length){ alert('No hay precios modificados.'); return; }
-  const txt = rows.map(r=>`${r.name} — ${r.price}€`).join('\n');
-  navigator.clipboard.writeText(txt);
-  alert('Copiado: precios modificados.');
-}
-function resetModificados(){
-  if(!confirm('¿Resetear lista de precios modificados? (NO borra historial)')) return;
-  changedPricesKeys = {};
-  persistState();
-  renderPrecios();
-}
-function printPreciosModificadosPDF(){
-  const rows = getModifiedPriceRows();
-  if(!rows.length){ alert('No hay precios modificados.'); return; }
-
-  byId('printPricesMeta').textContent = `${todayISO()} · Total: ${rows.length}`;
-  const tbl = `
-    <table>
-      <thead><tr><th>Producto</th><th>Precio nuevo (€)</th></tr></thead>
-      <tbody>
-        ${rows.map(r=>`<tr><td>${r.name}</td><td><b>${r.price}€</b></td></tr>`).join('')}
-      </tbody>
-    </table>`;
-  byId('printPricesTable').innerHTML = tbl;
-
-  // imprimir
-  window.print();
+  msg = encodeURIComponent(msg);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ==========================
@@ -2016,67 +1576,66 @@ function printPreciosModificadosPDF(){
 ========================== */
 function toggleFabMenu(forceHide){
   const m = byId('fabMenu');
-  if(!m) return;
   if(forceHide){ m.classList.remove('show'); return; }
   m.classList.toggle('show');
 }
 document.addEventListener('click', (e)=>{
   const m = byId('fabMenu'), f = byId('fab');
-  if(!m || !f) return;
   if(!m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
 }, {capture:true});
 
 /* ==========================
-   Atajos teclado (GLOBAL)
-   - ↑↓ cambia fila enfocada
-   - Enter asigna a proveedor activo
-   - 1..6 asigna a proveedor específico
+   ✅ GENERAR LINK REPARTIDOR (tu URL fija)
+   https://shaniwaris80-crypto.github.io/reparto/
 ========================== */
-function assignFocusedToProvider(prov){
-  if(!globalRows.length) return;
-  const idx = GLOBAL_FOCUS_IDX || 0;
-  if(!globalRows[idx]) return;
+function buildRepartoPayloadForLink(){
+  const dateISO = new Date().toISOString().split('T')[0];
+  const destinations = [];
 
-  const prev = ACTIVE_PROV;
-  ACTIVE_PROV = prov;
-  buildProvBar();
-  assignFromGlobal(idx);
-  ACTIVE_PROV = prev;
-  buildProvBar();
+  function pushStore(code, label){
+    const list = (tiendaState[code]||[]).filter(x=>Number(x.q)>0);
+    if(!list.length) return;
+    destinations.push({
+      id: `STORE_${code.toUpperCase()}`,
+      label,
+      lines: list.map((x,ix)=>({ id:`${code}_${ix}`, name:x.e, qty:x.q }))
+    });
+  }
+  pushStore('sp','🏪 San Pablo');
+  pushStore('sl','🏪 San Lesmes');
+  pushStore('st','🏪 Santiago');
+
+  // clientes con pedido
+  clients.forEach(c=>{
+    const rows = (c.rows||[]).filter(x=>Number(x.q)>0);
+    if(!rows.length) return;
+    const label = c.tag ? `🏨 ${c.name} — ${c.tag}` : `🏨 ${c.name}`;
+    destinations.push({
+      id: `CLIENT_${c.id.toUpperCase()}`,
+      label,
+      lines: rows.map((x,ix)=>({ id:`${c.id}_${ix}`, name:x.e, qty:x.q }))
+    });
+  });
+
+  return { dateISO, title:"REPARTO", destinations };
 }
 
-document.addEventListener('keydown', (e)=>{
-  const tabGlobalVisible = byId('tab-global') && byId('tab-global').style.display !== 'none';
-  if(!tabGlobalVisible) return;
+function generarLinkRepartidor(){
+  const payload = buildRepartoPayloadForLink();
+  if(!payload.destinations.length){
+    alert('No hay pedidos hoy (sin destinos).');
+    return;
+  }
+  const json = JSON.stringify(payload);
+  const packed = LZString.compressToEncodedURIComponent(json);
 
-  // si estás escribiendo dentro de un contenteditable, dejamos que funcione normal excepto atajos directos 1..6
-  const ae = document.activeElement;
-  const isEditable = ae && ae.getAttribute && ae.getAttribute('contenteditable')==='true';
+  const baseURL = "https://shaniwaris80-crypto.github.io/reparto/";
+  const url = `${baseURL}?data=${packed}`;
 
-  if(e.key==='ArrowDown'){
-    if(isEditable) return; // no interrumpir edición
-    e.preventDefault();
-    focusRow((GLOBAL_FOCUS_IDX||0)+1);
-  }
-  if(e.key==='ArrowUp'){
-    if(isEditable) return;
-    e.preventDefault();
-    focusRow((GLOBAL_FOCUS_IDX||0)-1);
-  }
-  if(e.key==='Enter'){
-    if(isEditable) return;
-    e.preventDefault();
-    assignFromGlobal(GLOBAL_FOCUS_IDX||0);
-  }
-
-  // 1..6 asigna directo (aunque estés en edición, si quieres)
-  const map = { '1':0,'2':1,'3':2,'4':3,'5':4,'6':5 };
-  if(map[e.key] != null){
-    e.preventDefault();
-    const prov = PROVEEDORES[ map[e.key] ];
-    if(prov) assignFocusedToProvider(prov);
-  }
-}, {capture:true});
+  navigator.clipboard?.writeText(url);
+  window.open(url, '_blank');
+  alert('Link Repartidor generado y copiado. Pégalo en WhatsApp al repartidor.');
+}
 
 /* ==========================
    INIT
@@ -2087,10 +1646,10 @@ document.addEventListener('keydown', (e)=>{
 
   loadVocab();
   loadState();
+  loadUndo();
 
   showTab('dic');
-
-  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderPrecios(); });
+  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderClientsUI(); buildRepartoSelector(); });
 })();
 </script>
 </body>
