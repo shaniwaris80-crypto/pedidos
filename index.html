@@ -2,17 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-<!-- XLSX -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<!-- PDF (jsPDF + autoTable) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<!-- ✅ Para generar LINK Repartidor comprimido -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <style>
   :root{
@@ -40,7 +36,7 @@
   .hint{font-size:12px;color:var(--muted)}
   .card{border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow);margin-bottom:12px; transition: transform .12s ease}
   .card:active{transform:scale(.998)}
-  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:10px; flex-wrap:wrap}
+  .card .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border); position:relative; gap:8px; flex-wrap:wrap}
   .card .bd{padding:10px 12px}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap}
   .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi) 0%, var(--kiwi-2) 100%);color:#fff;cursor:pointer;font-size:14px; transition: opacity .2s ease, transform .1s ease}
@@ -97,23 +93,37 @@
   }
   .fab-menu.show{display:flex}
 
+  /* select bonito */
   select{
-    padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink)
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
   }
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row > *{flex:1}
 </style>
 </head>
-
 <body>
   <div class="topbar">
     <div class="left">
       <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
       <span class="pill">Modo móvil optimizado</span>
+      <span class="pill">🚚 Reparto link: /reparto/</span>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
+    <div class="toolbar">
+      <button class="btn ghost small" onclick="generarLinkRepartidor()">🚚 Link Repartidor</button>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌗 Tema</button>
+    </div>
   </div>
 
   <div class="container">
-    <div class="hint" style="margin-bottom:10px">Flujo: Diccionario → Tiendas+Clientes → Global (Unificar/Asignar) → Proveedores+Precios+Reparto</div>
+    <div class="hint" style="margin-bottom:10px">
+      Flujo: Diccionario → Tiendas/Clientes (Estandarizar) → Global (Unificar/Asignar) → Proveedores (TXT) → Reparto (clic)
+    </div>
 
     <!-- TAB: Diccionario -->
     <section class="tab" id="tab-dic">
@@ -123,12 +133,14 @@
           <div class="toolbar">
             <button class="btn ghost" onclick="addNewWord()">+ Nuevo producto</button>
             <button class="btn ghost" onclick="saveVocab()">Guardar vocabulario</button>
-            <button class="btn muted" onclick="limpiarDia()">🧼 Limpiar día</button>
-            <button class="btn muted" onclick="resetAll()">🧹 Limpiar TODO</button>
+            <button class="btn muted" onclick="limpiarDia()">🧹 Limpiar día</button>
+            <button class="btn muted" onclick="resetAll()">💥 Reset total</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:6px">Un producto por línea. Normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.</div>
+          <div class="hint" style="margin-bottom:6px">
+            Un producto por línea. Se normaliza a <b>MAYÚSCULAS</b> sin tildes. Sin duplicados.
+          </div>
           <textarea id="vocabTxt"></textarea>
         </div>
       </div>
@@ -139,8 +151,7 @@
       <div class="grid-3">
         <!-- San Pablo -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Pablo</strong>
+          <div class="hd"><strong>🏪 San Pablo</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sp')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sp')">Guardar</button>
@@ -150,15 +161,14 @@
           </div>
           <div class="bd">
             <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
-            <div class="hint">Edita en tabla: OK verde, Revisar rojo. Autocomplete con flechas ↑↓ y Enter.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
         <!-- San Lesmes -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 San Lesmes</strong>
+          <div class="hd"><strong>🏪 San Lesmes</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('sl')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('sl')">Guardar</button>
@@ -168,15 +178,14 @@
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Edita en tabla: OK verde, Revisar rojo. Autocomplete con flechas ↑↓ y Enter.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
 
         <!-- Santiago -->
         <div class="card">
-          <div class="hd">
-            <strong>🏪 Santiago</strong>
+          <div class="hd"><strong>🏪 Santiago</strong>
             <div class="toolbar">
               <button class="btn ghost" onclick="estandarizar('st')">Estandarizar</button>
               <button class="btn" onclick="guardarTienda('st')">Guardar</button>
@@ -186,37 +195,27 @@
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Edita en tabla: OK verde, Revisar rojo. Autocomplete con flechas ↑↓ y Enter.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
       </div>
 
-      <!-- Clientes / Hoteles -->
+      <!-- ✅ NUEVO: CLIENTES/HOTELES -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
-          <strong>🏨 Clientes / Hoteles (con tags)</strong>
+          <strong>🏨 Clientes / Hoteles (con TAG)</strong>
           <div class="toolbar">
-            <button class="btn ghost" onclick="addClient()">+ Cliente</button>
-            <button class="btn ghost" onclick="addClientTag()">+ Tag</button>
+            <button class="btn ghost" onclick="addClient()">+ Nuevo cliente</button>
             <button class="btn muted" onclick="saveClients()">Guardar clientes</button>
           </div>
         </div>
         <div class="bd">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-            <select id="selClient" onchange="syncClientTags(); renderClientTable();"></select>
-            <select id="selClientTag" onchange="renderClientTable()"></select>
-
-            <button class="btn ghost" onclick="estandarizarCliente()">Estandarizar</button>
-            <button class="btn" onclick="guardarClienteTXT()">Guardar</button>
-            <button class="btn muted" onclick="exportClienteTXT()">📄 TXT</button>
-            <button class="btn muted" onclick="enviarClienteWhatsApp()">📲 WhatsApp</button>
-            <button class="btn muted" onclick="borrarPedidoCliente()">🧹 Borrar pedido</button>
+          <div class="hint" style="margin-bottom:8px">
+            Añade pedidos de hoteles/clientes (Braseros Centro/Forum/Edificio/Tomillares/Severo, Riviera, etc.).  
+            ✅ Solo cuentan si tienen líneas. Se suman a Global/Proveedores/Reparto.
           </div>
-
-          <textarea id="in_client" placeholder="Pega aquí el pedido del cliente seleccionado..."></textarea>
-          <div class="hint" style="margin-top:6px">✅ Si está vacío, se ignora. Si hay pedido, suma al Global/Proveedores y aparece en Reparto.</div>
-          <div id="tbl_client_wrap" class="scroll-x" style="margin-top:8px"></div>
+          <div id="clients_wrap"></div>
         </div>
       </div>
     </section>
@@ -224,18 +223,19 @@
     <!-- TAB: Global -->
     <section class="tab" id="tab-global" style="display:none">
       <div class="card">
-        <div class="hd">
-          <strong>🧮 Unificación global</strong>
+        <div class="hd"><strong>🧮 Unificación global</strong>
           <div class="toolbar">
-            <button class="btn ghost" onclick="unificarGlobal()">Unificar</button>
+            <button class="btn ghost" onclick="unificarGlobal()">Unificar todo</button>
             <button class="btn muted" onclick="exportarGlobalTXT()">TXT visible</button>
             <button class="btn muted" onclick="exportarGlobalXLSX()">Excel</button>
-            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global (asignados + pendientes)</button>
+            <button class="btn" onclick="exportResumenGlobalTXT()">📄 TXT Global</button>
             <button class="btn muted" onclick="copiarGlobal()">Copiar</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint">✅ asigna al proveedor activo. Atajos: ↑↓ mover, Enter asignar, 1..6 cambia proveedor.</div>
+          <div class="hint">
+            ✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
+          </div>
 
           <div class="card" style="margin-top:8px">
             <div class="bd">
@@ -244,6 +244,11 @@
                 <div class="prov-bar" id="provBar"></div>
               </div>
             </div>
+          </div>
+
+          <div class="toolbar" style="margin-top:8px">
+            <button class="btn ghost small" onclick="undoLast()">↩️ Deshacer</button>
+            <span class="pill" id="undoPill">Undo: 0</span>
           </div>
 
           <div id="global_wrap" class="scroll-x" style="margin-top:8px"></div>
@@ -260,35 +265,21 @@
         </div>
       </div>
 
-      <!-- Precios: solo comprados/estandarizados + export solo modificados -->
+      <!-- REPARTO -->
       <div class="card" style="margin-top:12px">
-        <div class="hd">
-          <strong>💰 Precios (solo comprados/estandarizados)</strong>
+        <div class="hd"><strong>🚚 Reparto (tiendas + clientes)</strong>
           <div class="toolbar">
-            <button class="btn small muted" onclick="copyChangedPricesTXT()">📋 Copiar TXT</button>
-            <button class="btn small" onclick="exportChangedPricesTXT()">📄 TXT</button>
-            <button class="btn small muted" onclick="sendChangedPricesWhatsApp()">📲 WhatsApp</button>
-            <button class="btn small" onclick="exportChangedPricesPDF()">🧾 PDF</button>
+            <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
+            <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
           </div>
         </div>
         <div class="bd">
-          <div class="hint" style="margin-bottom:8px">Solo aparecen productos estandarizados hoy (tiendas + clientes). Export solo incluye los precios modificados.</div>
-          <div id="prices_wrap" class="scroll-x"></div>
-        </div>
-      </div>
-
-      <!-- Reparto por destinos clickeables -->
-      <div class="card" style="margin-top:12px">
-        <div class="hd">
-          <strong>🚚 Reparto (destinos)</strong>
-          <div class="toolbar">
-            <button class="btn small" onclick="sendRepartoWhatsApp()">📲 WhatsApp</button>
-            <button class="btn small muted" onclick="exportRepartoTXT()">📄 TXT</button>
+          <div class="hint" style="margin-bottom:8px">
+            Selecciona destino (tienda o cliente con pedido). Marca lo repartido y exporta.
           </div>
-        </div>
-        <div class="bd">
-          <div class="hint" style="margin-bottom:8px">Pulsa un destino. Solo salen destinos que tengan pedido.</div>
-          <div id="reparto_destinos" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div style="margin-bottom:8px;">
+            <select id="selRepartoTienda" onchange="renderRepartoTienda()"></select>
+          </div>
           <div id="reparto_wrap" class="scroll-x"></div>
         </div>
       </div>
@@ -305,7 +296,7 @@
     <button class="fab-item" onclick="exportResumenGlobalTXT(); toggleFabMenu(true)">🧾 TXT Global</button>
   </div>
 
-  <!-- Tabbar móvil -->
+  <!-- Tabbar -->
   <nav class="tabbar">
     <button id="btn-dic" class="active" onclick="showTab('dic')">📚<span>Diccionario</span></button>
     <button id="btn-tiendas" onclick="showTab('tiendas')">🏪<span>Tiendas</span></button>
@@ -327,7 +318,7 @@ function toggleTheme(){
 }
 
 /* ==========================
-   Debounce + idle
+   Debounce util + recálculo en idle
 ========================== */
 function debounce(fn, wait=300){
   let t=null;
@@ -339,7 +330,7 @@ function debounce(fn, wait=300){
 const idle = (cb)=> (window.requestIdleCallback? requestIdleCallback(cb): setTimeout(cb, 1));
 
 /* ==========================
-   Tabs + lazy render
+   Tabs (móvil) + render diferido + limpieza
 ========================== */
 function showTab(key){
   const ids = ['dic','tiendas','global','proveedores'];
@@ -353,22 +344,21 @@ function showTab(key){
 
   closeAC();
 
+  if(key==='tiendas'){ idle(()=>{ renderClientsUI(); buildRepartoSelector(); }); }
   if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); }); }
-  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); refreshPricesTab(); renderRepartoDestinos(); }); }
-  if(key==='tiendas'){ idle(()=>{ renderClientsSelect(); renderClientTable(); }); }
+  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); }); }
 }
 
 /* ==========================
-   Config / util
+   Config y utilidades
 ========================== */
 const LS = {
   VOCAB:'arslan_v34_vocab',
   STORES:'arslan_v34_stores',
   ASSIGN:'arslan_v34_assign',
   ORDERS:'arslan_v34_orders',
-  PRICES:'arslan_v34_prices',
   CLIENTS:'arslan_v34_clients',
-  CLIENT_ORDERS:'arslan_v34_client_orders'
+  UNDO:'arslan_v34_undo'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
@@ -395,7 +385,7 @@ function stripGenericWords(s){
 }
 
 /* ==========================
-   Vocabulario
+   Vocabulario (editable + persistente)
 ========================== */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
@@ -619,11 +609,95 @@ function loadVocab(){
   byId('vocabTxt').value = list.join('\n');
   return list;
 }
+
+/* ==========================
+   Estado global
+========================== */
+const tiendaState = { sp:[], sl:[], st:[] };
+let globalRows = [];
+let assignments = {};
+let orders = {};
+let ACTIVE_PROV = PROVEEDORES[0];
+
+/* CLIENTES/HOTELES */
+let clients = []; 
+// { id, name, tag, input, rows:[{o,e,q,a}] }
+// id: "cli_xxx", tag: "BRASEROS FORUM", etc.
+
+const persistState = debounce(function(){
+  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
+  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
+  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+  localStorage.setItem(LS.CLIENTS, JSON.stringify(clients));
+}, 350);
+
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
+    ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
+  }catch{}
+  try{
+    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
+    assignments = a||{};
+  }catch{}
+  try{
+    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
+    orders = o||{};
+  }catch{}
+  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
+
+  try{
+    const c = JSON.parse(localStorage.getItem(LS.CLIENTS)||'[]');
+    clients = Array.isArray(c)? c : [];
+  }catch{ clients = []; }
+}
+
+/* ==========================
+   Reset total / Limpiar día
+========================== */
+function resetAll(){
+  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocabulario)?')){ localStorage.clear(); location.reload(); }
+}
+
+function limpiarDia(){
+  if(!confirm('¿Limpiar el día? (pone en 0 tiendas, clientes, asignaciones y pedidos. NO borra vocabulario)')) return;
+
+  // tiendas
+  tiendaState.sp = [];
+  tiendaState.sl = [];
+  tiendaState.st = [];
+  byId('in_sp').value = '';
+  byId('in_sl').value = '';
+  byId('in_st').value = '';
+  byId('tbl_sp_wrap').innerHTML = '';
+  byId('tbl_sl_wrap').innerHTML = '';
+  byId('tbl_st_wrap').innerHTML = '';
+
+  // clientes
+  clients = clients.map(c=>({ ...c, input:'', rows:[] }));
+  renderClientsUI();
+
+  // asignaciones y pedidos
+  assignments = {};
+  orders = {};
+  PROVEEDORES.forEach(p=>orders[p]=[]);
+
+  // reparto no persistente (por seguridad)
+  for(const k in repartoState){ delete repartoState[k]; }
+
+  persistState();
+  alert('Día limpiado. (Vocabulario intacto)');
+  idle(()=>{ unificarGlobal(); renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); updateUndoPill(); });
+}
+
+/* ==========================
+   Vocab actions
+========================== */
 function saveVocab(){
   localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
   alert('Vocabulario guardado.');
+  renderClientsUI();
   unificarGlobal();
-  refreshPricesTab();
 }
 function addNewWord(){
   const entry = prompt("Introduce nuevo producto (uno por línea si son varios):");
@@ -636,7 +710,7 @@ function addNewWord(){
 }
 
 /* ==========================
-   Similaridad (Dice + TokenSet)
+   Coincidencia aproximada (Dice + TokenSet)
 ========================== */
 function bigrams(str){
   const s = stripGenericWords(str);
@@ -695,198 +769,40 @@ function parseLine(raw){
 }
 
 /* ==========================
-   Estado
-========================== */
-const tiendaState = { sp:[], sl:[], st:[] }; // [{o,e,q,a}]
-let globalRows = [];                          // [{name,total}]
-let assignments = {};                         // { normKey(name) : proveedor }
-let orders = {};                              // { proveedor : [{name, qty}] }
-let ACTIVE_PROV = PROVEEDORES[0];
-
-let priceDB = {}; // priceDB[key] = { name, current, prev, lastExportedCurrent, updatedAt }
-
-let clients = [];     // [{id,name,tags:[...]}]
-let clientOrders = {}; // clientOrders[id] = { tags: {TAG:[{o,e,q,a}]} }
-
-const persistState = debounce(function(){
-  localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
-  localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
-  localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
-  localStorage.setItem(LS.PRICES, JSON.stringify(priceDB));
-  localStorage.setItem(LS.CLIENTS, JSON.stringify(clients));
-  localStorage.setItem(LS.CLIENT_ORDERS, JSON.stringify(clientOrders));
-}, 350);
-
-function loadState(){
-  try{
-    const s = JSON.parse(localStorage.getItem(LS.STORES)||'{}');
-    ['sp','sl','st'].forEach(k=>{ if(Array.isArray(s[k])) tiendaState[k]=s[k]; });
-  }catch{}
-  try{
-    const a = JSON.parse(localStorage.getItem(LS.ASSIGN)||'{}');
-    assignments = a||{};
-  }catch{ assignments = {}; }
-  try{
-    const o = JSON.parse(localStorage.getItem(LS.ORDERS)||'{}');
-    orders = o||{};
-  }catch{ orders = {}; }
-  PROVEEDORES.forEach(p=>{ if(!Array.isArray(orders[p])) orders[p]=[]; });
-
-  try{
-    const p = JSON.parse(localStorage.getItem(LS.PRICES)||'{}');
-    priceDB = p || {};
-  }catch{ priceDB = {}; }
-
-  try{
-    const c = JSON.parse(localStorage.getItem(LS.CLIENTS)||'[]');
-    clients = Array.isArray(c) ? c : [];
-  }catch{ clients = []; }
-
-  try{
-    const co = JSON.parse(localStorage.getItem(LS.CLIENT_ORDERS)||'{}');
-    clientOrders = co || {};
-  }catch{ clientOrders = {}; }
-
-  if(!clients.length){
-    clients = [
-      { id:'braseros', name:'BRASEROS', tags:['CENTRO','SEVERO','FORUM','TOMILLARES','EDIFICIO'] },
-      { id:'riviera', name:'RIVIERA', tags:['GENERAL'] }
-    ];
-  }
-
-  clients.forEach(cl=>{
-    if(!clientOrders[cl.id]) clientOrders[cl.id] = { tags:{} };
-    (cl.tags||[]).forEach(t=>{
-      if(!Array.isArray(clientOrders[cl.id].tags[t])) clientOrders[cl.id].tags[t] = [];
-    });
-  });
-}
-
-function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocabulario)?')){
-    localStorage.clear();
-    location.reload();
-  }
-}
-
-/* ==========================
-   Limpiar día (NO borra vocab)
-========================== */
-function limpiarDia(){
-  if(!confirm('¿Limpiar día? (Pone tiendas, pedidos, asignaciones y precios a 0. NO borra vocabulario)')) return;
-
-  tiendaState.sp = [];
-  tiendaState.sl = [];
-  tiendaState.st = [];
-
-  byId('in_sp').value = '';
-  byId('in_sl').value = '';
-  byId('in_st').value = '';
-
-  // borrar pedidos de clientes (solo pedidos, no clientes)
-  clients.forEach(cl=>{
-    const c = clientOrders[cl.id];
-    if(c && c.tags){
-      Object.keys(c.tags).forEach(tag=> c.tags[tag] = []);
-    }
-  });
-  byId('in_client').value = '';
-  byId('tbl_client_wrap').innerHTML = '';
-
-  assignments = {};
-  PROVEEDORES.forEach(p=> orders[p] = []);
-
-  Object.keys(priceDB).forEach(k=>{
-    if(priceDB[k]){
-      priceDB[k].current = null;
-      priceDB[k].lastExportedCurrent = null;
-      priceDB[k].updatedAt = 0;
-    }
-  });
-
-  persistState();
-  byId('tbl_sp_wrap').innerHTML='';
-  byId('tbl_sl_wrap').innerHTML='';
-  byId('tbl_st_wrap').innerHTML='';
-  byId('global_wrap').innerHTML='';
-  byId('provPanels').innerHTML='';
-  byId('prices_wrap').innerHTML='';
-  byId('reparto_destinos').innerHTML='';
-  byId('reparto_wrap').innerHTML='';
-
-  alert('Día limpiado. Vocabulario conservado.');
-}
-
-/* ==========================
-   Autocomplete (↑↓ Enter Esc)
+   Autocomplete
 ========================== */
 let AC_ACTIVE = null;
 function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
 
 function attachAutocomplete(cell, onPick){
-  let sel = -1;
-
-  function buildBox(suggestions){
+  cell.addEventListener('input', ()=>{
+    const val = stripGenericWords(cell.innerText||'');
     closeAC();
+    if(!val) return;
+    const vocab = loadVocab();
+    const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
+    if(!suggestions.length) return;
     const rect = cell.getBoundingClientRect();
     const box = document.createElement('div');
     box.className='ac-box';
     box.style.left = (rect.left + window.scrollX) + 'px';
     box.style.top = (rect.bottom + window.scrollY) + 'px';
     box.style.width = rect.width + 'px';
-
     suggestions.forEach((s,idx)=>{
       const item = document.createElement('div');
       item.className='ac-item';
       item.textContent = s;
-      item.dataset.idx = String(idx);
       item.onclick = ()=>{ onPick(s); closeAC(); };
       box.appendChild(item);
     });
-
     document.body.appendChild(box);
     AC_ACTIVE = box;
-    sel = 0;
-    highlight();
-  }
-
-  function highlight(){
-    if(!AC_ACTIVE) return;
-    const items = Array.from(AC_ACTIVE.querySelectorAll('.ac-item'));
-    items.forEach((it,i)=> it.style.outline = (i===sel ? '2px solid rgba(22,163,74,.35)' : 'none'));
-    const cur = items[sel];
-    if(cur) cur.scrollIntoView({block:'nearest'});
-  }
-
-  cell.addEventListener('input', ()=>{
-    const val = stripGenericWords(cell.innerText||'');
-    if(!val){ closeAC(); return; }
-    const vocab = loadVocab();
-    const q = normKey(val);
-    const suggestions = vocab.filter(v=> normKey(v).includes(q)).slice(0,8);
-    if(!suggestions.length){ closeAC(); return; }
-    buildBox(suggestions);
   }, {passive:true});
-
-  cell.addEventListener('keydown', (e)=>{
-    if(!AC_ACTIVE) return;
-
-    const items = Array.from(AC_ACTIVE.querySelectorAll('.ac-item'));
-    if(!items.length) return;
-
-    if(e.key==='ArrowDown'){ e.preventDefault(); sel = Math.min(sel+1, items.length-1); highlight(); }
-    else if(e.key==='ArrowUp'){ e.preventDefault(); sel = Math.max(sel-1, 0); highlight(); }
-    else if(e.key==='Enter'){ e.preventDefault(); const pick = items[sel]?.textContent; if(pick){ onPick(pick); } closeAC(); }
-    else if(e.key==='Escape'){ e.preventDefault(); closeAC(); }
-  });
-
-  document.addEventListener('click', (e)=>{
-    if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }
-  }, {capture:true});
+  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
 }
 
 /* ==========================
-   Estandarizar tiendas
+   Render tabla tienda
 ========================== */
 function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
@@ -915,7 +831,8 @@ function renderTable(code){
         cell.classList.remove('red');
         cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
         persistState();
-        idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+        pushUndo({type:'edit_store', code});
+        idle(()=>unificarGlobal());
       });
     }
     cell.addEventListener('blur', ()=>{
@@ -932,7 +849,8 @@ function renderTable(code){
         else { tiendaState[code][i].a=true; cell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
       }
       persistState();
-      idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+      pushUndo({type:'edit_store', code});
+      idle(()=>unificarGlobal());
     }, {passive:true});
   });
 }
@@ -953,7 +871,8 @@ function estandarizar(code){
   tiendaState[code] = rows;
   renderTable(code);
   persistState();
-  idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+  pushUndo({type:'estandarizar_store', code});
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
 }
 
 function guardarTienda(code){
@@ -975,7 +894,6 @@ function exportarTiendaTXT(code){
   a.download = `${code}_estandarizado_${today}.txt`;
   a.click();
 }
-
 function enviarTiendaWhatsApp(code){
   const tienda = tiendaState[code] || [];
   if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
@@ -987,91 +905,104 @@ function enviarTiendaWhatsApp(code){
 }
 
 /* ==========================
-   Clientes / Hoteles (con tags)
+   CLIENTES/HOTELES
 ========================== */
-function clientId(){ return byId('selClient')?.value || ''; }
-function clientTag(){ return byId('selClientTag')?.value || ''; }
-
-function renderClientsSelect(){
-  const sel = byId('selClient');
-  if(!sel) return;
-  sel.innerHTML = '';
-  clients.forEach(cl=>{
-    const o = document.createElement('option');
-    o.value = cl.id;
-    o.textContent = cl.name;
-    sel.appendChild(o);
-  });
-  if(!sel.value && clients[0]) sel.value = clients[0].id;
-  syncClientTags();
+function genId(){
+  return 'cli_' + Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
-function syncClientTags(){
-  const cid = clientId();
-  const cl = clients.find(x=>x.id===cid);
-  const sel = byId('selClientTag');
-  if(!sel) return;
-  sel.innerHTML = '';
-  (cl?.tags || ['GENERAL']).forEach(t=>{
-    const o = document.createElement('option');
-    o.value = t;
-    o.textContent = t;
-    sel.appendChild(o);
-  });
-  if(!sel.value) sel.value = (cl?.tags?.[0] || 'GENERAL');
+function addClient(){
+  const name = prompt('Nombre cliente/hotel (ej: BRASEROS / RIVIERA / HOTEL CORDON):');
+  if(!name) return;
+  const tag = prompt('TAG / Sede (ej: CENTRO, FORUM, EDIFICIO, TOMILLARES, SEVERO, GENERAL, TARDE):') || '';
+  clients.push({ id: genId(), name: removeDiacriticsUpper(name), tag: removeDiacriticsUpper(tag), input:'', rows:[] });
+  persistState();
+  renderClientsUI();
 }
 
 function saveClients(){
   persistState();
   alert('Clientes guardados.');
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
 }
 
-function addClient(){
-  const name = prompt('Nombre del cliente/hotel (ej: HOTEL CORDON):');
-  if(!name) return;
-  const clean = removeDiacriticsUpper(name);
-  const id = 'cli_' + normKey(clean).toLowerCase().replace(/\s+/g,'_').slice(0,40);
-  if(clients.some(c=>c.id===id)){
-    alert('Ya existe un cliente parecido.');
+function deleteClient(id){
+  if(!confirm('¿Eliminar este cliente?')) return;
+  clients = clients.filter(c=>c.id!==id);
+  persistState();
+  renderClientsUI();
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
+}
+
+function renderClientsUI(){
+  const wrap = byId('clients_wrap');
+  if(!wrap) return;
+
+  if(!clients.length){
+    wrap.innerHTML = `<div class="hint">No hay clientes aún. Pulsa “+ Nuevo cliente”.</div>`;
     return;
   }
-  clients.push({ id, name: clean, tags:['GENERAL'] });
-  if(!clientOrders[id]) clientOrders[id] = { tags:{ GENERAL: [] } };
+
+  let html = '';
+  clients.forEach((c)=>{
+    const label = c.tag ? `${c.name} — ${c.tag}` : c.name;
+    html += `
+      <div class="card" style="margin-bottom:10px">
+        <div class="hd">
+          <strong>🏨 ${label}</strong>
+          <div class="toolbar">
+            <button class="btn small ghost" onclick="estandarizarCliente('${c.id}')">Estandarizar</button>
+            <button class="btn small" onclick="guardarCliente('${c.id}')">Guardar</button>
+            <button class="btn small muted" onclick="exportarClienteTXT('${c.id}')">TXT</button>
+            <button class="btn small muted" onclick="enviarClienteWhatsApp('${c.id}')">WhatsApp</button>
+            <button class="btn small muted" onclick="deleteClient('${c.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="row" style="margin-bottom:8px">
+            <div>
+              <div class="hint">Nombre</div>
+              <input style="width:100%;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg);color:var(--ink)"
+                value="${c.name||''}" onblur="updateClientField('${c.id}','name',this.value)">
+            </div>
+            <div>
+              <div class="hint">TAG</div>
+              <input style="width:100%;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg);color:var(--ink)"
+                value="${c.tag||''}" onblur="updateClientField('${c.id}','tag',this.value)">
+            </div>
+          </div>
+          <textarea id="in_${c.id}" placeholder="Pega pedido cliente/hotel...">${c.input||''}</textarea>
+          <div class="hint">Edita en tabla igual que tiendas.</div>
+          <div id="tbl_${c.id}_wrap" class="scroll-x" style="margin-top:8px"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  wrap.innerHTML = html;
+
+  // render tablas existentes
+  clients.forEach(c=>{
+    if(Array.isArray(c.rows) && c.rows.length){
+      renderClientTable(c.id);
+    }
+  });
+}
+
+function updateClientField(id, field, value){
+  const idx = clients.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  if(field==='name') clients[idx].name = removeDiacriticsUpper(value);
+  if(field==='tag') clients[idx].tag = removeDiacriticsUpper(value);
   persistState();
-  renderClientsSelect();
-  renderClientTable();
+  idle(()=>{ buildRepartoSelector(); unificarGlobal(); });
 }
 
-function addClientTag(){
-  const cid = clientId();
-  if(!cid) return;
-  const tag = prompt('Nuevo tag (ej: CENTRO / FORUM / EDIFICIO):');
-  if(!tag) return;
-  const t = removeDiacriticsUpper(tag);
-  const cl = clients.find(x=>x.id===cid);
-  if(!cl) return;
-  if(!cl.tags) cl.tags = [];
-  if(!cl.tags.includes(t)) cl.tags.push(t);
-  if(!clientOrders[cid]) clientOrders[cid] = { tags:{} };
-  if(!Array.isArray(clientOrders[cid].tags[t])) clientOrders[cid].tags[t] = [];
-  persistState();
-  syncClientTags();
-  renderClientTable();
-  alert('Tag añadido.');
-}
-
-function getClientRows(cid, tag){
-  if(!clientOrders[cid]) clientOrders[cid] = { tags:{} };
-  if(!clientOrders[cid].tags[tag]) clientOrders[cid].tags[tag] = [];
-  return clientOrders[cid].tags[tag];
-}
-
-function renderClientTable(){
-  const wrap = byId('tbl_client_wrap');
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag){ if(wrap) wrap.innerHTML=''; return; }
-  const rows = getClientRows(cid, tag);
+function renderClientTable(id){
+  const wrap = byId('tbl_'+id+'_wrap');
+  const c = clients.find(x=>x.id===id);
+  if(!wrap || !c) return;
+  const rows = c.rows||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
 
   let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
@@ -1092,39 +1023,41 @@ function renderClientTable(){
     if(f==='e'){
       attachAutocomplete(cell, (picked)=>{
         cell.innerText = picked;
-        rows[i].e = picked;
-        rows[i].a = false;
+        c.rows[i].e = picked;
+        c.rows[i].a = false;
         cell.classList.remove('red');
         cell.parentElement.querySelector('td:last-child').innerHTML = '<span class="pill ok">OK</span>';
         persistState();
-        idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+        pushUndo({type:'edit_client', id});
+        idle(()=>unificarGlobal());
       });
     }
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='q'){
-        rows[i].q = Number(String(val).replace(',','.'))||0;
+        c.rows[i].q = Number(String(val).replace(',','.'))||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
-        rows[i].e = cleaned;
+        c.rows[i].e = cleaned;
         const vocab = loadVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         const tdState = cell.parentElement.querySelector('td:last-child');
-        if(exact){ rows[i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
-        else { rows[i].a=true; cell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
+        if(exact){ c.rows[i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
+        else { c.rows[i].a=true; cell.classList.add('red'); tdState.innerHTML='<span class="pill warn">Revisar</span>'; }
       }
       persistState();
-      idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+      pushUndo({type:'edit_client', id});
+      idle(()=>unificarGlobal());
     }, {passive:true});
   });
 }
 
-function estandarizarCliente(){
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag) return;
+function estandarizarCliente(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const txt = byId('in_'+id).value;
+  c.input = txt;
   const vocab = loadVocab();
-  const txt = byId('in_client').value;
   const rows = [];
   toLines(txt).forEach(line=>{
     const p = parseLine(line);
@@ -1135,95 +1068,122 @@ function estandarizarCliente(){
     const chosen = m.name || p.name;
     rows.push({o:p.original, e:chosen, q:p.qty, a:(normKey(chosen)!==normKey(p.name))});
   });
-  clientOrders[cid].tags[tag] = rows;
-  renderClientTable();
+  c.rows = rows;
+  renderClientTable(id);
   persistState();
-  idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+  pushUndo({type:'estandarizar_client', id});
+  idle(()=>{ unificarGlobal(); buildRepartoSelector(); });
 }
 
-function guardarClienteTXT(){
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag) return;
-  const rows = getClientRows(cid, tag);
-  const out = rows.map(r=> `${r.e} ${r.q}`).join('\n');
-  byId('in_client').value = out;
-  alert('Pedido cliente guardado en textarea.');
+function guardarCliente(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const out = (c.rows||[]).map(r=> `${r.e} ${r.q}`).join('\n');
+  byId('in_'+id).value = out;
+  c.input = out;
+  persistState();
+  alert('Cliente guardado.');
 }
 
-function exportClienteTXT(){
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag) return;
-  const rows = getClientRows(cid, tag).filter(r=>!r.a);
-  if(!rows.length){ alert('No hay líneas OK.'); return; }
-  const cl = clients.find(x=>x.id===cid);
+function exportarClienteTXT(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const tienda = c.rows || [];
+  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = rows.map(x=> `${x.q} ${x.e}`).join('\n');
-  const blob = new Blob([txt],{type:'text/plain'});
+  const label = (c.tag? `${c.name}_${c.tag}`:c.name).replace(/\s+/g,'_');
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const blob = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `pedido_${(cl?.name||cid)}_${tag}_${today}.txt`;
+  a.download = `cliente_${label}_${today}.txt`;
   a.click();
 }
 
-function enviarClienteWhatsApp(){
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag) return;
-  const rows = getClientRows(cid, tag).filter(r=>!r.a);
-  if(!rows.length){ alert('No hay líneas OK.'); return; }
-  const cl = clients.find(x=>x.id===cid);
-  const txt = rows.map(x=> `${x.q} ${x.e}`).join('\n');
-  const msg = encodeURIComponent(`🏨 *Pedido ${(cl?.name||'CLIENTE')} — ${tag}*\n\n${txt}`);
+function enviarClienteWhatsApp(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const tienda = c.rows || [];
+  if (!tienda.length) { alert('No hay datos estandarizados.'); return; }
+  const okRows = tienda.filter(r => !r.a);
+  if (!okRows.length) { alert('Aún hay productos por revisar (en rojo).'); return; }
+  const txt = okRows.map(x => `${x.q} ${x.e}`).join('\n');
+  const label = c.tag? `${c.name} — ${c.tag}`:c.name;
+  const msg = encodeURIComponent(`🏨 *Pedido ${label}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
-function borrarPedidoCliente(){
-  const cid = clientId();
-  const tag = clientTag();
-  if(!cid || !tag) return;
-  if(!confirm('¿Borrar este pedido?')) return;
-  clientOrders[cid].tags[tag] = [];
-  byId('in_client').value = '';
-  renderClientTable();
+/* ==========================
+   UNDO simple (últimas acciones)
+========================== */
+let undoStack = [];
+function loadUndo(){
+  try{ undoStack = JSON.parse(localStorage.getItem(LS.UNDO)||'[]') || []; }catch{ undoStack=[]; }
+  updateUndoPill();
+}
+function pushUndo(meta){
+  // guardamos snapshot ligero de estado crítico
+  const snap = {
+    meta: meta||{},
+    ts: Date.now(),
+    tiendaState: JSON.parse(JSON.stringify(tiendaState)),
+    clients: JSON.parse(JSON.stringify(clients)),
+    assignments: JSON.parse(JSON.stringify(assignments)),
+    orders: JSON.parse(JSON.stringify(orders))
+  };
+  undoStack.push(snap);
+  if(undoStack.length>25) undoStack.shift();
+  localStorage.setItem(LS.UNDO, JSON.stringify(undoStack));
+  updateUndoPill();
+}
+function updateUndoPill(){
+  const el = byId('undoPill');
+  if(el) el.textContent = 'Undo: ' + (undoStack.length||0);
+}
+function undoLast(){
+  if(!undoStack.length){ alert('No hay nada para deshacer.'); return; }
+  const snap = undoStack.pop();
+  tiendaState.sp = snap.tiendaState.sp||[];
+  tiendaState.sl = snap.tiendaState.sl||[];
+  tiendaState.st = snap.tiendaState.st||[];
+  clients = snap.clients||[];
+  assignments = snap.assignments||{};
+  orders = snap.orders||{};
+  localStorage.setItem(LS.UNDO, JSON.stringify(undoStack));
   persistState();
-  idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+  updateUndoPill();
+  renderTable('sp'); renderTable('sl'); renderTable('st');
+  renderClientsUI();
+  unificarGlobal();
+  renderProvidersPanels();
+  buildRepartoSelector();
+  renderRepartoTienda();
 }
 
 /* ==========================
-   Unificar global incluyendo clientes
+   Unificar global (tiendas + clientes)
 ========================== */
-function getAllClientLines(){
-  const out = [];
-  clients.forEach(cl=>{
-    const c = clientOrders[cl.id];
-    if(!c || !c.tags) return;
-    Object.keys(c.tags).forEach(tag=>{
-      const rows = c.tags[tag];
-      if(Array.isArray(rows) && rows.length){
-        rows.forEach(r=> out.push(r));
-      }
-    });
+function getAllRowsUnified(){
+  const all = [].concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[]);
+  const clientRows = [];
+  clients.forEach(c=>{
+    (c.rows||[]).forEach(r=>clientRows.push(r));
   });
-  return out;
+  return all.concat(clientRows);
 }
 
 function unificarGlobal(){
-  const all = []
-    .concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[])
-    .concat(getAllClientLines());
-
+  const all = getAllRowsUnified();
   const map = new Map();
   all.forEach(r=>{
     const key = normKey(r.e);
     if(!map.has(key)) map.set(key,{name:r.e,total:0});
     map.get(key).total += (Number(r.q)||0);
   });
-
   const arr = Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'es'));
 
-  // detectar similares
   const names = arr.map(x=>x.name);
   const similarSet = new Set();
   for(let i=0;i<names.length;i++){
@@ -1239,29 +1199,18 @@ function unificarGlobal(){
 }
 
 /* ==========================
-   Global + asignación
+   GLOBAL + Asignación a proveedor
 ========================== */
-let GLOBAL_SEL = 0;
-
-function setGlobalSelectedRow(){
-  const wrap = byId('global_wrap');
-  const trs = Array.from(wrap.querySelectorAll('tbody tr'));
-  trs.forEach((tr,i)=>{
-    tr.style.outline = (i===GLOBAL_SEL ? '2px solid rgba(22,163,74,.35)' : 'none');
-  });
-  trs[GLOBAL_SEL]?.scrollIntoView({block:'nearest'});
-}
-
 function renderGlobalTable(rows, similarSet){
   const visible = rows.filter(r => !assignments[normKey(r.name)]);
   globalRows = visible;
 
   const wrap = byId('global_wrap');
-  if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no hay líneas).</div>'; return; }
+  if(!visible.length){ wrap.innerHTML='<div class="hint">Sin productos (todo asignado o no unificado).</div>'; return; }
 
   let html = `
     <div class="hint" style="margin-bottom:6px">
-      Proveedor activo: <b>${ACTIVE_PROV}</b>. ✅ asigna rápido.
+      Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
     </div>
     <div class="scroll-x"><table>
       <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
@@ -1318,17 +1267,19 @@ function renderGlobalTable(rows, similarSet){
           }
         }
       }
+      persistState();
+      pushUndo({type:'edit_global'});
     }, {passive:true});
   });
-
-  GLOBAL_SEL = 0;
-  idle(()=>setGlobalSelectedRow());
 }
 
 function assignFromGlobal(idx){
   const item = globalRows[idx];
   if(!item) return;
   const k = normKey(item.name);
+
+  pushUndo({type:'assign', idx, name:item.name, prov:ACTIVE_PROV, qty:item.total});
+
   assignments[k] = ACTIVE_PROV;
 
   const list = orders[ACTIVE_PROV]||[];
@@ -1342,37 +1293,8 @@ function assignFromGlobal(idx){
   renderProvidersPanels();
 }
 
-/* Atajos Global: ↑↓ Enter, 1..6 proveedor */
-document.addEventListener('keydown', (e)=>{
-  const tabGlobalVisible = (byId('tab-global').style.display !== 'none');
-  if(!tabGlobalVisible) return;
-
-  const wrap = byId('global_wrap');
-  const trs = Array.from(wrap.querySelectorAll('tbody tr'));
-  if(!trs.length) return;
-
-  const n = Number(e.key);
-  if(n>=1 && n<=Math.min(PROVEEDORES.length,9)){
-    ACTIVE_PROV = PROVEEDORES[n-1];
-    buildProvBar();
-    e.preventDefault();
-    return;
-  }
-
-  if(e.key==='ArrowDown'){ GLOBAL_SEL = Math.min(GLOBAL_SEL+1, trs.length-1); setGlobalSelectedRow(); e.preventDefault(); }
-  if(e.key==='ArrowUp'){ GLOBAL_SEL = Math.max(GLOBAL_SEL-1, 0); setGlobalSelectedRow(); e.preventDefault(); }
-
-  if(e.key==='Enter'){
-    const idx = GLOBAL_SEL;
-    assignFromGlobal(idx);
-    GLOBAL_SEL = Math.min(idx, Math.max(0, trs.length-2));
-    idle(()=>setGlobalSelectedRow());
-    e.preventDefault();
-  }
-});
-
 /* ==========================
-   Barra proveedores
+   Barra proveedores + paneles
 ========================== */
 function buildProvBar(){
   const bar = byId('provBar'); bar.innerHTML='';
@@ -1389,9 +1311,6 @@ function buildProvBar(){
   });
 }
 
-/* ==========================
-   Paneles proveedores
-========================== */
 function renderProvidersPanels(){
   const cont = byId('provPanels'); cont.innerHTML='';
   PROVEEDORES.forEach(p=>{
@@ -1402,7 +1321,7 @@ function renderProvidersPanels(){
     hd.className='hd';
     hd.innerHTML = `<strong>${p}</strong>
       <div class="toolbar">
-        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT</button>
+        <button class="btn small" onclick="exportProvTXT('${p}')">📄 TXT ${p}</button>
         <button class="btn small muted" onclick="enviarProvWhatsApp('${p}')">📲 WhatsApp</button>
       </div>`;
     const bd = document.createElement('div');
@@ -1430,6 +1349,7 @@ function renderProvidersPanels(){
             cell.innerText = picked;
             orders[prov][idx].name = picked;
             persistState();
+            pushUndo({type:'edit_provider', prov});
           });
         }
         cell.addEventListener('blur', ()=>{
@@ -1440,6 +1360,7 @@ function renderProvidersPanels(){
             orders[prov][idx].name = removeDiacriticsUpper(val);
           }
           persistState();
+          pushUndo({type:'edit_provider', prov});
         }, {passive:true});
       });
     }
@@ -1489,11 +1410,12 @@ function exportarGlobalXLSX(){
   XLSX.utils.book_append_sheet(wb, ws, 'Global');
   XLSX.writeFile(wb, `lista_global_${today}.xlsx`);
 }
-function exportResumenGlobalTXT(){
-  const all = []
-    .concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[])
-    .concat(getAllClientLines());
 
+/* ==========================
+   TXT Global (asignados + pendientes)
+========================== */
+function exportResumenGlobalTXT(){
+  const all = getAllRowsUnified();
   const totalMap = {};
   all.forEach(r=>{
     const k = normKey(r.e);
@@ -1519,7 +1441,9 @@ function exportResumenGlobalTXT(){
     if(byProv[p].length){
       byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
       byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-    }else out += `- (sin líneas)\n`;
+    }else{
+      out += `- (sin líneas)\n`;
+    }
     out += `\n`;
   });
 
@@ -1527,7 +1451,9 @@ function exportResumenGlobalTXT(){
   if(unassigned.length){
     unassigned.sort((a,b)=>a.name.localeCompare(b.name,'es'));
     unassigned.forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
-  }else out += `- (sin líneas)\n`;
+  }else{
+    out += `- (sin líneas)\n`;
+  }
 
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([out],{type:'text/plain'});
@@ -1535,333 +1461,108 @@ function exportResumenGlobalTXT(){
 }
 
 /* ==========================
-   Precios SOLO comprados/estandarizados
+   🚚 REPARTO (tiendas + clientes)
 ========================== */
-function getBoughtKeysAndNames(){
-  const all = []
-    .concat(tiendaState.sp||[], tiendaState.sl||[], tiendaState.st||[])
-    .concat(getAllClientLines());
-  const map = new Map();
-  all.forEach(r=>{
-    const k = normKey(r.e);
-    if(!k) return;
-    if(!map.has(k)) map.set(k, r.e);
-  });
-  return Array.from(map.entries()).map(([key,name])=>({key,name}))
-    .sort((a,b)=>a.name.localeCompare(b.name,'es'));
-}
+const repartoState = {};
+// key destino -> [{name,qty,price,checked}]
 
-function ensurePriceRowsForBought(){
-  const bought = getBoughtKeysAndNames();
-  bought.forEach(it=>{
-    if(!priceDB[it.key]){
-      priceDB[it.key] = { name: it.name, current: null, prev: null, lastExportedCurrent: null, updatedAt: 0 };
-    }else{
-      priceDB[it.key].name = it.name;
-    }
-  });
-}
+function getRepartoDestinations(){
+  const dests = [];
+  // stores
+  dests.push({ key:'sp', label:'🏪 San Pablo', type:'store' });
+  dests.push({ key:'sl', label:'🏪 San Lesmes', type:'store' });
+  dests.push({ key:'st', label:'🏪 Santiago', type:'store' });
 
-function refreshPricesTab(){
-  ensurePriceRowsForBought();
-
-  const wrap = byId('prices_wrap');
-  const bought = getBoughtKeysAndNames();
-  if(!bought.length){
-    wrap.innerHTML = '<div class="hint">Aún no hay productos estandarizados (tiendas/clientes).</div>';
-    return;
-  }
-
-  let html = `<div class="scroll-x"><table>
-    <thead><tr><th>Producto</th><th>Precio (€)</th><th>Estado</th></tr></thead><tbody>`;
-
-  bought.forEach(it=>{
-    const row = priceDB[it.key] || { current:null, lastExportedCurrent:null, name:it.name };
-    const cur = (row.current===null || row.current===undefined) ? '' : Number(row.current).toFixed(2);
-    const isChanged = (row.current!==null && row.current!==undefined && Number(row.current)!==Number(row.lastExportedCurrent));
-    html += `<tr data-key="${it.key}">
-      <td>${it.name}</td>
-      <td contenteditable="true" data-f="price">${cur}</td>
-      <td>${isChanged?'<span class="pill warn">Modificado</span>':'<span class="pill ok">Sin cambios</span>'}</td>
-    </tr>`;
+  // clients only if they have pedido (rows)
+  clients.forEach(c=>{
+    const has = (c.rows||[]).some(x=>Number(x.q)>0);
+    if(!has) return;
+    const label = c.tag ? `🏨 ${c.name} — ${c.tag}` : `🏨 ${c.name}`;
+    dests.push({ key:c.id, label, type:'client' });
   });
 
-  html += `</tbody></table></div>`;
-  wrap.innerHTML = html;
-
-  wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
-    cell.addEventListener('blur', ()=>{
-      const tr = cell.parentElement;
-      const key = tr.dataset.key;
-      const raw = (cell.innerText||'').trim();
-      const num = raw==='' ? null : (Number(String(raw).replace(',','.')));
-
-      if(!priceDB[key]) priceDB[key] = { name: tr.children[0].innerText.trim(), current:null, prev:null, lastExportedCurrent:null, updatedAt:0 };
-
-      if(num===null || Number.isNaN(num)){
-        priceDB[key].current = null;
-      }else{
-        const prevCur = priceDB[key].current;
-        priceDB[key].prev = (prevCur===null || prevCur===undefined) ? priceDB[key].prev : prevCur;
-        priceDB[key].current = Number(num.toFixed(2));
-        priceDB[key].updatedAt = Date.now();
-        cell.innerText = Number(priceDB[key].current).toFixed(2);
-      }
-
-      persistState();
-
-      const row = priceDB[key];
-      const isChanged = (row.current!==null && Number(row.current)!==Number(row.lastExportedCurrent));
-      tr.children[2].innerHTML = isChanged?'<span class="pill warn">Modificado</span>':'<span class="pill ok">Sin cambios</span>';
-    }, {passive:true});
-  });
+  return dests;
 }
 
-function getChangedPriceLines(){
-  ensurePriceRowsForBought();
-  const bought = getBoughtKeysAndNames();
-  const out = [];
-  bought.forEach(it=>{
-    const row = priceDB[it.key];
-    if(!row) return;
-    if(row.current===null || row.current===undefined) return;
-    const changed = (Number(row.current)!==Number(row.lastExportedCurrent));
-    if(changed){
-      out.push({ key: it.key, name: it.name, price: Number(row.current) });
-    }
-  });
-  return out.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+function buildRepartoSelector(){
+  const sel = byId('selRepartoTienda');
+  if(!sel) return;
+  const dests = getRepartoDestinations();
+  const current = sel.value;
+
+  sel.innerHTML = `<option value="">Selecciona destino...</option>` + dests.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');
+  // mantener selección si existe
+  if(current && dests.some(d=>d.key===current)) sel.value = current;
 }
 
-function buildChangedPricesText(){
-  const changed = getChangedPriceLines();
-  if(!changed.length) return '';
-  return changed.map(x=> `${x.name}: ${x.price.toFixed(2)}€`).join('\n');
-}
-function markChangedPricesAsExported(){
-  const changed = getChangedPriceLines();
-  changed.forEach(x=>{
-    if(priceDB[x.key]) priceDB[x.key].lastExportedCurrent = priceDB[x.key].current;
-  });
-  persistState();
-  refreshPricesTab();
-}
-function copyChangedPricesTXT(){
-  const txt = buildChangedPricesText();
-  if(!txt){ alert('No hay precios modificados.'); return; }
-  navigator.clipboard.writeText(txt);
-  alert('Copiado: solo precios modificados.');
-}
-function exportChangedPricesTXT(){
-  const txt = buildChangedPricesText();
-  if(!txt){ alert('No hay precios modificados.'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const blob = new Blob([txt],{type:'text/plain'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `precios_modificados_${today}.txt`;
-  a.click();
-  markChangedPricesAsExported();
-}
-function sendChangedPricesWhatsApp(){
-  const txt = buildChangedPricesText();
-  if(!txt){ alert('No hay precios modificados.'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const msg = encodeURIComponent(`💰 *Precios modificados* (${today})\n\n${txt}`);
-  window.open(`https://wa.me/?text=${msg}`, '_blank');
-  markChangedPricesAsExported();
-}
-function exportChangedPricesPDF(){
-  const changed = getChangedPriceLines();
-  if(!changed.length){ alert('No hay precios modificados.'); return; }
-
-  const { jsPDF } = window.jspdf || {};
-  if(!jsPDF){ alert('jsPDF no cargó.'); return; }
-  const test = new jsPDF();
-  if(typeof test.autoTable !== 'function'){ alert('autoTable no cargó.'); return; }
-
-  const today = new Date().toISOString().split('T')[0];
-  const body = changed.map(x => [x.name, `${x.price.toFixed(2)} €`]);
-
-  const doc = new jsPDF({ orientation:'p', unit:'mm', format:'a4' });
-
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(16);
-  doc.text('🍈 ARSLAN', 14, 14);
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(11);
-  doc.text('LISTAS v3.4 — PRECIOS MODIFICADOS', 14, 20);
-
-  doc.setFontSize(10);
-  doc.text(`Fecha: ${today}   |   Líneas: ${body.length}`, 14, 26);
-
-  doc.autoTable({
-    startY: 32,
-    head: [['PRODUCTO', 'PRECIO']],
-    body,
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 10, cellPadding: 2.2 },
-    headStyles: { fontStyle: 'bold' },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 40, halign: 'right' } },
-    margin: { left: 14, right: 14 }
-  });
-
-  doc.save(`precios_modificados_${today}.pdf`);
-  markChangedPricesAsExported();
-}
-
-/* ==========================
-   Reparto por destinos clickeables (tiendas + clientes con pedido)
-========================== */
-let REPARTO_DEST = null;
-const repartoState2 = {}; // repartoState2[destKey] = [{name,qty,price,checked}]
-
-function getRepartoDestinos(){
-  const dest = [];
-
-  // tiendas si tienen líneas
-  ['sp','sl','st'].forEach(code=>{
-    const rows = tiendaState[code]||[];
-    if(rows.length){
-      dest.push({
-        type:'store',
-        code,
-        label: (code==='sp'?'🏪 San Pablo':code==='sl'?'🏪 San Lesmes':'🏪 Santiago')
-      });
-    }
-  });
-
-  // clientes/hoteles por tag si tienen líneas
-  clients.forEach(cl=>{
-    const c = clientOrders[cl.id];
-    if(!c || !c.tags) return;
-    Object.keys(c.tags).forEach(tag=>{
-      const rows = c.tags[tag];
-      if(Array.isArray(rows) && rows.length){
-        dest.push({ type:'client', clientId:cl.id, tag, label:`🏨 ${cl.name} — ${tag}` });
-      }
-    });
-  });
-
-  return dest;
-}
-
-function rowsFromDestino(d){
-  if(!d) return [];
-  if(d.type==='store') return (tiendaState[d.code]||[]);
-  if(d.type==='client'){
-    const cl = clientOrders[d.clientId];
-    return (cl && cl.tags && Array.isArray(cl.tags[d.tag])) ? cl.tags[d.tag] : [];
-  }
-  return [];
-}
-function keyFromDestino(d){
-  if(!d) return '';
-  if(d.type==='store') return `store_${d.code}`;
-  return `client_${d.clientId}_${d.tag}`;
-}
-
-function renderRepartoDestinos(){
-  const bar = byId('reparto_destinos');
-  if(!bar) return;
-
-  const dest = getRepartoDestinos();
-  bar.innerHTML = '';
-
-  if(!dest.length){
-    bar.innerHTML = '<span class="hint">No hay pedidos para repartir.</span>';
-    byId('reparto_wrap').innerHTML = '';
-    REPARTO_DEST = null;
-    return;
-  }
-
-  // si REPARTO_DEST ya no existe, reset
-  if(REPARTO_DEST){
-    const k = JSON.stringify(REPARTO_DEST);
-    const still = dest.some(d=>JSON.stringify(d)===k);
-    if(!still) REPARTO_DEST = null;
-  }
-
-  dest.forEach((d,idx)=>{
-    const b = document.createElement('button');
-    b.className = 'prov-btn' + (REPARTO_DEST && JSON.stringify(REPARTO_DEST)===JSON.stringify(d) ? ' active':'');
-    b.textContent = d.label;
-    b.onclick = ()=>{
-      REPARTO_DEST = d;
-      renderRepartoDestinos();
-      renderRepartoDestinoDetalle();
-    };
-    bar.appendChild(b);
-    if(idx===0 && !REPARTO_DEST) REPARTO_DEST = d;
-  });
-
-  renderRepartoDestinoDetalle();
-}
-
-function renderRepartoDestinoDetalle(){
+function renderRepartoTienda(){
+  const code = byId('selRepartoTienda').value;
   const wrap = byId('reparto_wrap');
-  if(!wrap) return;
+  if(!code){ wrap.innerHTML = '<div class="hint">Selecciona un destino para ver su lista.</div>'; return; }
 
-  const d = REPARTO_DEST;
-  if(!d){ wrap.innerHTML = '<div class="hint">Selecciona un destino.</div>'; return; }
-
-  const destKey = keyFromDestino(d);
-  const src = rowsFromDestino(d);
-  if(!src.length){ wrap.innerHTML='<div class="hint">Este destino no tiene pedido.</div>'; return; }
-
-  if(!repartoState2[destKey] || repartoState2[destKey].length !== src.length){
-    repartoState2[destKey] = src.map(x=>({ name:x.e, qty:x.q, price:'', checked:false }));
+  // fuente: store o client
+  let lista = [];
+  const isClient = clients.some(c=>c.id===code);
+  if(isClient){
+    const c = clients.find(x=>x.id===code);
+    lista = (c && c.rows) ? c.rows : [];
+  }else{
+    lista = tiendaState[code] || [];
   }
 
-  let html = `<div class="hint" style="margin-bottom:6px"><b>${d.label}</b></div>`;
-  html += '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
-  repartoState2[destKey].forEach((r,i)=>{
+  if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en este destino.</div>'; return; }
+
+  if(!repartoState[code] || repartoState[code].length !== lista.length){
+    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
+  }
+
+  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
+  repartoState[code].forEach((r,i)=>{
     html += `<tr>
-      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleReparto2('${destKey}', ${i}, this.checked)"></td>
+      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', ${i}, this.checked)"></td>
       <td>${r.name}</td>
       <td>${r.qty}</td>
-      <td contenteditable="true" onblur="updateReparto2Price('${destKey}', ${i}, this.innerText)">${r.price||''}</td>
+      <td contenteditable="true" onblur="updateRepartoPrice('${code}', ${i}, this.innerText)">${r.price||''}</td>
     </tr>`;
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
 }
 
-function toggleReparto2(destKey, idx, checked){
-  if(!repartoState2[destKey]) return;
-  repartoState2[destKey][idx].checked = checked;
+function toggleRepartoItem(code, idx, checked){
+  if(!repartoState[code]) return;
+  repartoState[code][idx].checked = checked;
 }
-function updateReparto2Price(destKey, idx, val){
-  if(!repartoState2[destKey]) return;
+
+function updateRepartoPrice(code, idx, val){
+  if(!repartoState[code]) return;
   const num = parseFloat(String(val||'').replace(',','.'));
-  repartoState2[destKey][idx].price = isNaN(num)? '' : num.toFixed(2);
+  repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
 }
 
-function exportRepartoTXT(){
-  if(!REPARTO_DEST){ alert('Selecciona un destino.'); return; }
-  const destKey = keyFromDestino(REPARTO_DEST);
-  const list = (repartoState2[destKey]||[]).filter(x=>x.checked);
-  if(!list.length){ alert('No hay productos seleccionados.'); return; }
+function exportarRepartoTXT(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona un destino primero.'); return; }
+  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  const txt = list.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
   const today = new Date().toISOString().split('T')[0];
-  const safe = (REPARTO_DEST.label||'reparto').replace(/[^\w\s\-ÁÉÍÓÚÜÑáéíóúüñ]/g,'').trim().slice(0,40);
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `reparto_${safe}_${today}.txt`;
+  a.download = `reparto_${code}_${today}.txt`;
   a.click();
 }
 
-function sendRepartoWhatsApp(){
-  if(!REPARTO_DEST){ alert('Selecciona un destino.'); return; }
-  const destKey = keyFromDestino(REPARTO_DEST);
-  const list = (repartoState2[destKey]||[]).filter(x=>x.checked);
-  if(!list.length){ alert('No hay productos seleccionados.'); return; }
+function enviarRepartoWhatsApp(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona un destino primero.'); return; }
+  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  let msg = `🚚 *Reparto*\n${REPARTO_DEST.label}\n\n`;
-  list.forEach(x=>{
+  let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
+  seleccionados.forEach(x=>{
     msg += `- ${x.qty} ${x.name}`;
     if(x.price) msg += ` — ${x.price}€`;
     msg += '\n';
@@ -1871,7 +1572,7 @@ function sendRepartoWhatsApp(){
 }
 
 /* ==========================
-   FAB
+   FAB helpers
 ========================== */
 function toggleFabMenu(forceHide){
   const m = byId('fabMenu');
@@ -1880,8 +1581,61 @@ function toggleFabMenu(forceHide){
 }
 document.addEventListener('click', (e)=>{
   const m = byId('fabMenu'), f = byId('fab');
-  if(m && f && !m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
+  if(!m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
 }, {capture:true});
+
+/* ==========================
+   ✅ GENERAR LINK REPARTIDOR (tu URL fija)
+   https://shaniwaris80-crypto.github.io/reparto/
+========================== */
+function buildRepartoPayloadForLink(){
+  const dateISO = new Date().toISOString().split('T')[0];
+  const destinations = [];
+
+  function pushStore(code, label){
+    const list = (tiendaState[code]||[]).filter(x=>Number(x.q)>0);
+    if(!list.length) return;
+    destinations.push({
+      id: `STORE_${code.toUpperCase()}`,
+      label,
+      lines: list.map((x,ix)=>({ id:`${code}_${ix}`, name:x.e, qty:x.q }))
+    });
+  }
+  pushStore('sp','🏪 San Pablo');
+  pushStore('sl','🏪 San Lesmes');
+  pushStore('st','🏪 Santiago');
+
+  // clientes con pedido
+  clients.forEach(c=>{
+    const rows = (c.rows||[]).filter(x=>Number(x.q)>0);
+    if(!rows.length) return;
+    const label = c.tag ? `🏨 ${c.name} — ${c.tag}` : `🏨 ${c.name}`;
+    destinations.push({
+      id: `CLIENT_${c.id.toUpperCase()}`,
+      label,
+      lines: rows.map((x,ix)=>({ id:`${c.id}_${ix}`, name:x.e, qty:x.q }))
+    });
+  });
+
+  return { dateISO, title:"REPARTO", destinations };
+}
+
+function generarLinkRepartidor(){
+  const payload = buildRepartoPayloadForLink();
+  if(!payload.destinations.length){
+    alert('No hay pedidos hoy (sin destinos).');
+    return;
+  }
+  const json = JSON.stringify(payload);
+  const packed = LZString.compressToEncodedURIComponent(json);
+
+  const baseURL = "https://shaniwaris80-crypto.github.io/reparto/";
+  const url = `${baseURL}?data=${packed}`;
+
+  navigator.clipboard?.writeText(url);
+  window.open(url, '_blank');
+  alert('Link Repartidor generado y copiado. Pégalo en WhatsApp al repartidor.');
+}
 
 /* ==========================
    INIT
@@ -1892,33 +1646,11 @@ document.addEventListener('click', (e)=>{
 
   loadVocab();
   loadState();
-
-  renderClientsSelect();
-  buildProvBar();
+  loadUndo();
 
   showTab('dic');
-  idle(()=>{ unificarGlobal(); refreshPricesTab(); renderRepartoDestinos(); });
+  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderClientsUI(); buildRepartoSelector(); });
 })();
 </script>
-  function generarLinkRepartidor(){
-  const payload = buildRepartoPayloadForLink();
-  if(!payload.destinations.length){
-    alert('No hay pedidos hoy (sin destinos).');
-    return;
-  }
-
-  const json = JSON.stringify(payload);
-  const packed = LZString.compressToEncodedURIComponent(json);
-
-  const baseURL = "https://shaniwaris80-crypto.github.io/reparto/"; // ✅ tu link fijo
-  const url = `${baseURL}?data=${packed}`;
-
-  // Copiar + abrir
-  navigator.clipboard?.writeText(url);
-  window.open(url, '_blank');
-  alert('Link generado y copiado. Envíalo al repartidor por WhatsApp.');
-}
-
-
 </body>
 </html>
