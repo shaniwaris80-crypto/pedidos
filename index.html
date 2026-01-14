@@ -105,6 +105,32 @@
   }
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row > *{flex:1}
+
+  /* ✅ NUEVO: ayudas de teclado + precios + pdf grid */
+  .price-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:2px 8px;border-radius:999px;border:1px solid var(--border);
+    background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap
+  }
+  .kbd{
+    font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    font-size:12px;border:1px solid var(--border);border-bottom-width:2px;border-radius:8px;
+    padding:2px 6px;background:var(--bg);color:var(--ink)
+  }
+  .qty-tools{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+  .qty-btn{
+    width:28px;height:28px;border-radius:10px;border:1px solid var(--border);
+    background:var(--bg);color:var(--ink);cursor:pointer;font-weight:700
+  }
+  .qty-btn:active{transform:translateY(1px)}
+  .pdf-grid{
+    width:100%; border-collapse:collapse;
+    font-family:'Poppins',sans-serif; font-size:12px;
+  }
+  .pdf-grid th,.pdf-grid td{
+    border:1px solid #11182722; padding:6px; vertical-align:top;
+  }
+  .pdf-grid th{background:#11182710; text-transform:uppercase; letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -113,6 +139,12 @@
       <h1>🍈 ARSLAN LISTAS v3.4 — KIWI MOBILE TABS</h1>
       <span class="pill">Modo móvil optimizado</span>
       <span class="pill">🚚 Reparto link: /reparto/</span>
+      <span class="price-chip" title="Atajos de cantidades">
+        <span class="kbd">+</span><span class="kbd">-</span>
+        <span class="kbd">↑</span><span class="kbd">↓</span>
+        <span class="kbd">Shift</span>=10
+        <span class="kbd">Alt</span>=0,1
+      </span>
     </div>
     <div class="toolbar">
       <button class="btn ghost small" onclick="generarLinkRepartidor()">🚚 Link Repartidor</button>
@@ -122,7 +154,7 @@
 
   <div class="container">
     <div class="hint" style="margin-bottom:10px">
-      Flujo: Diccionario → Tiendas/Clientes (Estandarizar) → Global (Unificar/Asignar) → Proveedores (TXT) → Reparto (clic)
+      Flujo: Diccionario → Tiendas/Clientes (Estandarizar) → Global (Unificar/Asignar) → Proveedores (TXT) → Reparto (clic) → PDF/WhatsApp
     </div>
 
     <!-- TAB: Diccionario -->
@@ -161,7 +193,7 @@
           </div>
           <div class="bd">
             <textarea id="in_sp" placeholder="Pega lista San Pablo..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades con teclado (+/-/↑/↓).</div>
             <div id="tbl_sp_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
@@ -178,7 +210,7 @@
           </div>
           <div class="bd">
             <textarea id="in_sl" placeholder="Pega lista San Lesmes..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades con teclado (+/-/↑/↓).</div>
             <div id="tbl_sl_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
@@ -195,13 +227,13 @@
           </div>
           <div class="bd">
             <textarea id="in_st" placeholder="Pega lista Santiago..."></textarea>
-            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir.</div>
+            <div class="hint">Edita en la tabla: OK = verde, Revisar = rojo. Sugerencias al escribir. Cantidades con teclado (+/-/↑/↓).</div>
             <div id="tbl_st_wrap" class="scroll-x" style="margin-top:8px"></div>
           </div>
         </div>
       </div>
 
-      <!-- ✅ NUEVO: CLIENTES/HOTELES -->
+      <!-- ✅ CLIENTES/HOTELES -->
       <div class="card" style="margin-top:12px">
         <div class="hd">
           <strong>🏨 Clientes / Hoteles (con TAG)</strong>
@@ -235,6 +267,7 @@
         <div class="bd">
           <div class="hint">
             ✅ a la izquierda asigna al proveedor activo. Duplicados probables se <span class="red">marcan en rojo</span> y fila rosada (<b>⚠️</b>).
+            Cantidades con teclado (+/-/↑/↓). Enter baja a la siguiente fila.
           </div>
 
           <div class="card" style="margin-top:8px">
@@ -265,17 +298,38 @@
         </div>
       </div>
 
+      <!-- ✅ PRECIOS (SOLO COMPRADO/ASIGNADO) -->
+      <div class="card" style="margin-top:12px">
+        <div class="hd">
+          <strong>💶 Precios (solo productos comprados/asignados hoy)</strong>
+          <div class="toolbar">
+            <button class="btn small muted" onclick="rebuildPricesToday()">🔄 Refrescar</button>
+            <button class="btn small muted" onclick="exportPricesTXT()">📄 Export precios TXT</button>
+            <button class="btn small muted" onclick="resetPricesConfirm()">🧽 Reset precios</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin-bottom:8px">
+            ✅ Solo aparecen productos de pedidos por proveedor (lo “comprado”).  
+            Si NO cambias un precio, NO se toca. Si está vacío, se ignora.
+          </div>
+          <div id="prices_wrap" class="scroll-x"></div>
+        </div>
+      </div>
+
       <!-- REPARTO -->
       <div class="card" style="margin-top:12px">
         <div class="hd"><strong>🚚 Reparto (tiendas + clientes)</strong>
           <div class="toolbar">
             <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
             <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
+            <button class="btn small muted" onclick="exportarRepartoPDF()">🧾 PDF (cuadrícula)</button>
           </div>
         </div>
         <div class="bd">
           <div class="hint" style="margin-bottom:8px">
-            Selecciona destino (tienda o cliente con pedido). Marca lo repartido y exporta.
+            Selecciona destino (tienda o cliente con pedido). Marca lo repartido y exporta.  
+            Los precios se autocompletan si existen en “Precios”.
           </div>
           <div style="margin-bottom:8px;">
             <select id="selRepartoTienda" onchange="renderRepartoTienda()"></select>
@@ -346,7 +400,7 @@ function showTab(key){
 
   if(key==='tiendas'){ idle(()=>{ renderClientsUI(); buildRepartoSelector(); }); }
   if(key==='global'){ idle(()=>{ unificarGlobal(); buildProvBar(); }); }
-  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); }); }
+  if(key==='proveedores'){ idle(()=>{ renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); rebuildPricesToday(); }); }
 }
 
 /* ==========================
@@ -358,7 +412,8 @@ const LS = {
   ASSIGN:'arslan_v34_assign',
   ORDERS:'arslan_v34_orders',
   CLIENTS:'arslan_v34_clients',
-  UNDO:'arslan_v34_undo'
+  UNDO:'arslan_v34_undo',
+  PRICES:'arslan_v34_prices'
 };
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
@@ -382,6 +437,27 @@ function normKey(s){
 function stripGenericWords(s){
   const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS.includes(t.toLowerCase()));
   return tokens.join(' ').trim();
+}
+function num(x){
+  const n = Number(String(x).replace(',','.'));
+  return isNaN(n)? 0 : n;
+}
+function stepFromEvent(e){
+  // base 1, Shift=10, Alt=0.1
+  if(e && e.altKey) return 0.1;
+  if(e && e.shiftKey) return 10;
+  return 1;
+}
+function clampQty(v){
+  if(!isFinite(v)) return 0;
+  // evita -0
+  if(Math.abs(v) < 1e-9) return 0;
+  // redondeo suave (si tiene decimales)
+  const s = String(v);
+  if(s.includes('.') || s.includes(',')){
+    return Math.round(v*1000)/1000;
+  }
+  return v;
 }
 
 /* ==========================
@@ -622,13 +698,20 @@ let ACTIVE_PROV = PROVEEDORES[0];
 /* CLIENTES/HOTELES */
 let clients = []; 
 // { id, name, tag, input, rows:[{o,e,q,a}] }
-// id: "cli_xxx", tag: "BRASEROS FORUM", etc.
 
+/* PRECIOS */
+let pricesDB = {}; 
+// key normKey(product) -> { name, price, updatedAt }
+
+/* ==========================
+   Persistencia
+========================== */
 const persistState = debounce(function(){
   localStorage.setItem(LS.STORES, JSON.stringify(tiendaState));
   localStorage.setItem(LS.ASSIGN, JSON.stringify(assignments));
   localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
   localStorage.setItem(LS.CLIENTS, JSON.stringify(clients));
+  localStorage.setItem(LS.PRICES, JSON.stringify(pricesDB));
 }, 350);
 
 function loadState(){
@@ -650,6 +733,11 @@ function loadState(){
     const c = JSON.parse(localStorage.getItem(LS.CLIENTS)||'[]');
     clients = Array.isArray(c)? c : [];
   }catch{ clients = []; }
+
+  try{
+    const p = JSON.parse(localStorage.getItem(LS.PRICES)||'{}');
+    pricesDB = p && typeof p==='object' ? p : {};
+  }catch{ pricesDB = {}; }
 }
 
 /* ==========================
@@ -660,7 +748,7 @@ function resetAll(){
 }
 
 function limpiarDia(){
-  if(!confirm('¿Limpiar el día? (pone en 0 tiendas, clientes, asignaciones y pedidos. NO borra vocabulario)')) return;
+  if(!confirm('¿Limpiar el día? (pone en 0 tiendas, clientes, asignaciones y pedidos. NO borra vocabulario ni precios)')) return;
 
   // tiendas
   tiendaState.sp = [];
@@ -686,8 +774,8 @@ function limpiarDia(){
   for(const k in repartoState){ delete repartoState[k]; }
 
   persistState();
-  alert('Día limpiado. (Vocabulario intacto)');
-  idle(()=>{ unificarGlobal(); renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); updateUndoPill(); });
+  alert('Día limpiado. (Vocabulario, precios intactos)');
+  idle(()=>{ unificarGlobal(); renderProvidersPanels(); buildRepartoSelector(); renderRepartoTienda(); updateUndoPill(); rebuildPricesToday(); });
 }
 
 /* ==========================
@@ -769,10 +857,17 @@ function parseLine(raw){
 }
 
 /* ==========================
-   Autocomplete
+   Autocomplete (mejorado: un solo listener global)
 ========================== */
 let AC_ACTIVE = null;
-function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; } }
+let AC_OWNER = null;
+function closeAC(){ if(AC_ACTIVE){ AC_ACTIVE.remove(); AC_ACTIVE=null; AC_OWNER=null; } }
+
+document.addEventListener('click', (e)=>{
+  if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==AC_OWNER){
+    closeAC();
+  }
+}, {capture:true});
 
 function attachAutocomplete(cell, onPick){
   cell.addEventListener('input', ()=>{
@@ -788,7 +883,7 @@ function attachAutocomplete(cell, onPick){
     box.style.left = (rect.left + window.scrollX) + 'px';
     box.style.top = (rect.bottom + window.scrollY) + 'px';
     box.style.width = rect.width + 'px';
-    suggestions.forEach((s,idx)=>{
+    suggestions.forEach((s)=>{
       const item = document.createElement('div');
       item.className='ac-item';
       item.textContent = s;
@@ -797,8 +892,77 @@ function attachAutocomplete(cell, onPick){
     });
     document.body.appendChild(box);
     AC_ACTIVE = box;
+    AC_OWNER = cell;
   }, {passive:true});
-  document.addEventListener('click', (e)=>{ if(AC_ACTIVE && !AC_ACTIVE.contains(e.target) && e.target!==cell){ closeAC(); }}, {capture:true});
+}
+
+/* ==========================
+   ✅ Atajos cantidades (delegación)
+   Funciona en cualquier td[contenteditable] de cantidad
+========================== */
+function bindQtyShortcuts(rootEl, getCellValue, setCellValue, onChanged){
+  if(!rootEl) return;
+  rootEl.addEventListener('keydown', (e)=>{
+    const t = e.target;
+    if(!t) return;
+    if(!(t instanceof HTMLElement)) return;
+    if(!t.isContentEditable) return;
+
+    const f = t.dataset && t.dataset.f;
+    if(f!=='q' && f!=='qty' && f!=='total') return;
+
+    const key = e.key;
+    const isPlus = (key==='+' || key==='=');
+    const isMinus = (key==='-' || key==='_');
+    const isUp = (key==='ArrowUp');
+    const isDown = (key==='ArrowDown');
+    const isEnter = (key==='Enter');
+
+    if(isPlus || isMinus || isUp || isDown){
+      e.preventDefault();
+      const step = stepFromEvent(e);
+      const cur = num(getCellValue(t));
+      const next = clampQty(cur + ((isMinus || isDown)? -step : step));
+      setCellValue(t, next);
+      if(typeof onChanged==='function') onChanged(t, next);
+      // selecciona el final
+      placeCaretAtEnd(t);
+      return;
+    }
+
+    if(isEnter){
+      // Enter -> baja a la siguiente fila misma columna
+      e.preventDefault();
+      focusNextEditableCell(t);
+      return;
+    }
+  }, true);
+}
+
+function placeCaretAtEnd(el){
+  try{
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }catch{}
+}
+
+function focusNextEditableCell(cur){
+  try{
+    const tr = cur.closest('tr');
+    if(!tr) return;
+    const table = tr.closest('table');
+    if(!table) return;
+    const all = Array.from(table.querySelectorAll('td[contenteditable="true"]'));
+    const idx = all.indexOf(cur);
+    if(idx>-1 && all[idx+1]){
+      all[idx+1].focus();
+      return;
+    }
+  }catch{}
 }
 
 /* ==========================
@@ -808,17 +972,33 @@ function renderTable(code){
   const wrap = byId('tbl_'+code+'_wrap');
   const rows = tiendaState[code]||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
-  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Tools</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
     html += `<tr>
       <td>${r.o}</td>
       <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
       <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
+      <td>
+        <div class="qty-tools">
+          <button class="qty-btn" onclick="bumpStoreQty('${code}',${i},-1)">-</button>
+          <button class="qty-btn" onclick="bumpStoreQty('${code}',${i},+1)">+</button>
+        </div>
+      </td>
       <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+
+  // atajos de teclado en cantidades
+  bindQtyShortcuts(wrap, (cell)=>cell.innerText, (cell,val)=>{ cell.innerText = val; }, (cell,val)=>{
+    const i = Number(cell.dataset.i);
+    tiendaState[code][i].q = num(val);
+    persistState();
+    pushUndo({type:'edit_store_qty', code});
+    idle(()=>unificarGlobal());
+  });
 
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const i = Number(cell.dataset.i);
@@ -838,7 +1018,7 @@ function renderTable(code){
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='q'){
-        tiendaState[code][i].q = Number(String(val).replace(',','.'))||0;
+        tiendaState[code][i].q = num(val)||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
         tiendaState[code][i].e = cleaned;
@@ -853,6 +1033,15 @@ function renderTable(code){
       idle(()=>unificarGlobal());
     }, {passive:true});
   });
+}
+
+function bumpStoreQty(code, idx, delta){
+  if(!tiendaState[code] || !tiendaState[code][idx]) return;
+  tiendaState[code][idx].q = clampQty(num(tiendaState[code][idx].q) + delta);
+  persistState();
+  pushUndo({type:'bump_store_qty', code});
+  renderTable(code);
+  idle(()=>unificarGlobal());
 }
 
 function estandarizar(code){
@@ -972,7 +1161,7 @@ function renderClientsUI(){
             </div>
           </div>
           <textarea id="in_${c.id}" placeholder="Pega pedido cliente/hotel...">${c.input||''}</textarea>
-          <div class="hint">Edita en tabla igual que tiendas.</div>
+          <div class="hint">Edita en tabla igual que tiendas. Cantidades con teclado (+/-/↑/↓).</div>
           <div id="tbl_${c.id}_wrap" class="scroll-x" style="margin-top:8px"></div>
         </div>
       </div>
@@ -1005,17 +1194,31 @@ function renderClientTable(id){
   const rows = c.rows||[];
   if(!rows.length){ wrap.innerHTML=''; return; }
 
-  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Estado</th></tr></thead><tbody>';
+  let html = '<div class="scroll-x"><table><thead><tr><th>Original</th><th>Estandarizado</th><th>Cantidad</th><th>Tools</th><th>Estado</th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
     html += `<tr>
       <td>${r.o}</td>
       <td contenteditable="true" data-i="${i}" data-f="e" ${r.a? 'class="red"':''}>${r.e}</td>
       <td contenteditable="true" data-i="${i}" data-f="q">${r.q}</td>
+      <td>
+        <div class="qty-tools">
+          <button class="qty-btn" onclick="bumpClientQty('${id}',${i},-1)">-</button>
+          <button class="qty-btn" onclick="bumpClientQty('${id}',${i},+1)">+</button>
+        </div>
+      </td>
       <td>${r.a? '<span class="pill warn">Revisar</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+
+  bindQtyShortcuts(wrap, (cell)=>cell.innerText, (cell,val)=>{ cell.innerText = val; }, (cell,val)=>{
+    const i = Number(cell.dataset.i);
+    c.rows[i].q = num(val);
+    persistState();
+    pushUndo({type:'edit_client_qty', id});
+    idle(()=>unificarGlobal());
+  });
 
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const i = Number(cell.dataset.i);
@@ -1035,7 +1238,7 @@ function renderClientTable(id){
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='q'){
-        c.rows[i].q = Number(String(val).replace(',','.'))||0;
+        c.rows[i].q = num(val)||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
         c.rows[i].e = cleaned;
@@ -1050,6 +1253,16 @@ function renderClientTable(id){
       idle(()=>unificarGlobal());
     }, {passive:true});
   });
+}
+
+function bumpClientQty(id, idx, delta){
+  const c = clients.find(x=>x.id===id);
+  if(!c || !c.rows || !c.rows[idx]) return;
+  c.rows[idx].q = clampQty(num(c.rows[idx].q) + delta);
+  persistState();
+  pushUndo({type:'bump_client_qty', id});
+  renderClientTable(id);
+  idle(()=>unificarGlobal());
 }
 
 function estandarizarCliente(id){
@@ -1124,14 +1337,14 @@ function loadUndo(){
   updateUndoPill();
 }
 function pushUndo(meta){
-  // guardamos snapshot ligero de estado crítico
   const snap = {
     meta: meta||{},
     ts: Date.now(),
     tiendaState: JSON.parse(JSON.stringify(tiendaState)),
     clients: JSON.parse(JSON.stringify(clients)),
     assignments: JSON.parse(JSON.stringify(assignments)),
-    orders: JSON.parse(JSON.stringify(orders))
+    orders: JSON.parse(JSON.stringify(orders)),
+    pricesDB: JSON.parse(JSON.stringify(pricesDB))
   };
   undoStack.push(snap);
   if(undoStack.length>25) undoStack.shift();
@@ -1151,6 +1364,7 @@ function undoLast(){
   clients = snap.clients||[];
   assignments = snap.assignments||{};
   orders = snap.orders||{};
+  pricesDB = snap.pricesDB || {};
   localStorage.setItem(LS.UNDO, JSON.stringify(undoStack));
   persistState();
   updateUndoPill();
@@ -1158,6 +1372,7 @@ function undoLast(){
   renderClientsUI();
   unificarGlobal();
   renderProvidersPanels();
+  rebuildPricesToday();
   buildRepartoSelector();
   renderRepartoTienda();
 }
@@ -1213,7 +1428,7 @@ function renderGlobalTable(rows, similarSet){
       Proveedor activo: <b>${ACTIVE_PROV}</b>. Usa ✅ para asignar rápidamente.
     </div>
     <div class="scroll-x"><table>
-      <thead><tr><th></th><th>Producto</th><th>Total</th><th>Estado</th></tr></thead>
+      <thead><tr><th></th><th>Producto</th><th>Total</th><th>Tools</th><th>Estado</th></tr></thead>
       <tbody>`;
   visible.forEach((r,i)=>{
     const isSimilar = similarSet.has(r.name);
@@ -1221,11 +1436,29 @@ function renderGlobalTable(rows, similarSet){
       <td><button class="ok-assign" onclick="assignFromGlobal(${i})">✅</button></td>
       <td contenteditable="true" data-f="name">${r.name}${isSimilar?'<span class="flag">⚠️</span>':''}</td>
       <td contenteditable="true" data-f="total">${r.total}</td>
+      <td>
+        <div class="qty-tools">
+          <button class="qty-btn" onclick="bumpGlobalQty(${i},-1)">-</button>
+          <button class="qty-btn" onclick="bumpGlobalQty(${i},+1)">+</button>
+        </div>
+      </td>
       <td>${isSimilar? '<span class="pill warn">Posible duplicado</span>':'<span class="pill ok">OK</span>'}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+
+  bindQtyShortcuts(wrap, (cell)=>cell.innerText, (cell,val)=>{ cell.innerText = val; }, (cell,val)=>{
+    const tr = cell.closest('tr');
+    if(!tr) return;
+    const idx = Number(tr.dataset.i);
+    if(!isFinite(idx)) return;
+    if(cell.dataset.f==='total'){
+      globalRows[idx].total = num(val);
+      persistState();
+      pushUndo({type:'edit_global_total'});
+    }
+  });
 
   wrap.querySelectorAll('td[contenteditable]').forEach(cell=>{
     const tr = cell.parentElement;
@@ -1242,7 +1475,7 @@ function renderGlobalTable(rows, similarSet){
     cell.addEventListener('blur', ()=>{
       const val = cell.innerText.trim();
       if(f==='total'){
-        globalRows[idx].total = Number(String(val).replace(',','.'))||0;
+        globalRows[idx].total = num(val)||0;
       }else{
         const cleaned = removeDiacriticsUpper(val);
         globalRows[idx].name = cleaned;
@@ -1273,6 +1506,14 @@ function renderGlobalTable(rows, similarSet){
   });
 }
 
+function bumpGlobalQty(idx, delta){
+  if(!globalRows[idx]) return;
+  globalRows[idx].total = clampQty(num(globalRows[idx].total) + delta);
+  pushUndo({type:'bump_global_qty'});
+  // re-render mantiene tabla coherente
+  unificarGlobal();
+}
+
 function assignFromGlobal(idx){
   const item = globalRows[idx];
   if(!item) return;
@@ -1291,6 +1532,7 @@ function assignFromGlobal(idx){
   persistState();
   idle(()=>unificarGlobal());
   renderProvidersPanels();
+  rebuildPricesToday();
 }
 
 /* ==========================
@@ -1330,15 +1572,34 @@ function renderProvidersPanels(){
     if(!list.length){
       bd.innerHTML = '<div class="hint">Sin productos asignados.</div>';
     }else{
-      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th></tr></thead><tbody>';
+      let html = '<div class="scroll-x"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Tools</th></tr></thead><tbody>';
       list.forEach((it,ix)=>{
         html += `<tr>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="name" class="green">${it.name}</td>
           <td contenteditable="true" data-prov="${p}" data-idx="${ix}" data-f="qty" class="green">${it.qty}</td>
+          <td>
+            <div class="qty-tools">
+              <button class="qty-btn" onclick="bumpProvQty('${p}',${ix},-1)">-</button>
+              <button class="qty-btn" onclick="bumpProvQty('${p}',${ix},+1)">+</button>
+            </div>
+          </td>
         </tr>`;
       });
       html += '</tbody></table></div>';
       bd.innerHTML = html;
+
+      bindQtyShortcuts(bd, (cell)=>cell.innerText, (cell,val)=>{ cell.innerText = val; }, (cell,val)=>{
+        const prov = cell.dataset.prov;
+        const idx = Number(cell.dataset.idx);
+        const f = cell.dataset.f;
+        if(!orders[prov] || !orders[prov][idx]) return;
+        if(f==='qty'){
+          orders[prov][idx].qty = num(val);
+          persistState();
+          pushUndo({type:'edit_provider_qty', prov});
+          rebuildPricesToday();
+        }
+      });
 
       bd.querySelectorAll('td[contenteditable]').forEach(cell=>{
         const prov = cell.dataset.prov;
@@ -1350,17 +1611,19 @@ function renderProvidersPanels(){
             orders[prov][idx].name = picked;
             persistState();
             pushUndo({type:'edit_provider', prov});
+            rebuildPricesToday();
           });
         }
         cell.addEventListener('blur', ()=>{
           const val = cell.innerText.trim();
           if(f==='qty'){
-            orders[prov][idx].qty = Number(String(val).replace(',','.'))||0;
+            orders[prov][idx].qty = num(val)||0;
           }else{
             orders[prov][idx].name = removeDiacriticsUpper(val);
           }
           persistState();
           pushUndo({type:'edit_provider', prov});
+          rebuildPricesToday();
         }, {passive:true});
       });
     }
@@ -1368,6 +1631,15 @@ function renderProvidersPanels(){
     card.appendChild(hd); card.appendChild(bd);
     cont.appendChild(card);
   });
+}
+
+function bumpProvQty(prov, idx, delta){
+  if(!orders[prov] || !orders[prov][idx]) return;
+  orders[prov][idx].qty = clampQty(num(orders[prov][idx].qty) + delta);
+  persistState();
+  pushUndo({type:'bump_provider_qty', prov});
+  renderProvidersPanels();
+  rebuildPricesToday();
 }
 
 function exportProvTXT(prov){
@@ -1381,7 +1653,14 @@ function exportProvTXT(prov){
 function enviarProvWhatsApp(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+
+  // ✅ añade precio si existe (opcional, no obliga)
+  const txt = list.map(x=>{
+    const k = normKey(x.name);
+    const pr = pricesDB[k] && pricesDB[k].price ? ` — ${Number(pricesDB[k].price).toFixed(2)}€` : '';
+    return `${x.qty} ${x.name}${pr}`;
+  }).join('\n');
+
   const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
@@ -1461,19 +1740,146 @@ function exportResumenGlobalTXT(){
 }
 
 /* ==========================
+   💶 PRECIOS (solo comprado/asignado)
+========================== */
+function getBoughtTodaySet(){
+  const set = new Map(); // key -> name
+  PROVEEDORES.forEach(p=>{
+    (orders[p]||[]).forEach(it=>{
+      const k = normKey(it.name);
+      if(!k) return;
+      if(!set.has(k)) set.set(k, it.name);
+    });
+  });
+  return set;
+}
+
+function rebuildPricesToday(){
+  const wrap = byId('prices_wrap');
+  if(!wrap) return;
+
+  const bought = getBoughtTodaySet();
+  if(!bought.size){
+    wrap.innerHTML = `<div class="hint">No hay productos comprados/asignados todavía (asigna desde Global o añade a pedidos).</div>`;
+    return;
+  }
+
+  // asegura entradas en DB sin tocar precios existentes
+  bought.forEach((name,k)=>{
+    if(!pricesDB[k]){
+      pricesDB[k] = { name:name, price:'', updatedAt:0 };
+    }else{
+      // refresca "name" pero NO cambia precio
+      pricesDB[k].name = pricesDB[k].name || name;
+    }
+  });
+
+  // Render
+  const rows = Array.from(bought.entries()).map(([k,name])=>{
+    const rec = pricesDB[k] || {name, price:'', updatedAt:0};
+    return { k, name: rec.name || name, price: rec.price || '', updatedAt: rec.updatedAt || 0 };
+  }).sort((a,b)=>a.name.localeCompare(b.name,'es'));
+
+  let html = `<div class="scroll-x"><table>
+    <thead><tr><th>Producto</th><th>Precio (€)</th><th>Última actualización</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const dt = r.updatedAt ? new Date(r.updatedAt) : null;
+    const stamp = dt ? dt.toLocaleString() : '';
+    html += `<tr>
+      <td class="green">${r.name}</td>
+      <td contenteditable="true" data-pricekey="${r.k}" data-f="price">${r.price}</td>
+      <td class="hint">${stamp}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  wrap.innerHTML = html;
+
+  // teclado en precios (solo num + enter)
+  wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
+    cell.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        focusNextEditableCell(cell);
+      }
+    });
+    cell.addEventListener('blur', ()=>{
+      const k = cell.dataset.pricekey;
+      const raw = (cell.innerText||'').trim();
+      if(!k) return;
+
+      // si vacío => IGNORAR (no tocar)
+      if(raw===''){
+        // no cambiamos nada
+        cell.innerText = (pricesDB[k] && pricesDB[k].price) ? pricesDB[k].price : '';
+        return;
+      }
+
+      const n = parseFloat(String(raw).replace(',','.'));
+      if(isNaN(n)){
+        // revertir si inválido
+        cell.innerText = (pricesDB[k] && pricesDB[k].price) ? pricesDB[k].price : '';
+        return;
+      }
+
+      const val = n.toFixed(2);
+
+      // si es igual => no tocar timestamp
+      if(pricesDB[k] && String(pricesDB[k].price||'') === val){
+        cell.innerText = val;
+        return;
+      }
+
+      // guardar nuevo precio
+      pricesDB[k] = pricesDB[k] || { name:'', price:'', updatedAt:0 };
+      pricesDB[k].price = val;
+      pricesDB[k].updatedAt = Date.now();
+      persistState();
+
+      // refresca reparto (autoprecio)
+      idle(()=>renderRepartoTienda());
+    }, {passive:true});
+  });
+
+  persistState();
+}
+
+function exportPricesTXT(){
+  const bought = getBoughtTodaySet();
+  if(!bought.size){ alert('No hay productos comprados/asignados hoy.'); return; }
+  const rows = [];
+  bought.forEach((name,k)=>{
+    const rec = pricesDB[k];
+    if(rec && rec.price){
+      rows.push(`${rec.name || name}\t${rec.price}€`);
+    }
+  });
+  if(!rows.length){ alert('No hay precios guardados para los productos de hoy.'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  const blob = new Blob([rows.join('\n')],{type:'text/plain'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`precios_${today}.txt`; a.click();
+}
+
+function resetPricesConfirm(){
+  if(!confirm('¿Resetear TODOS los precios guardados? (No afecta pedidos ni vocabulario)')) return;
+  pricesDB = {};
+  persistState();
+  rebuildPricesToday();
+  alert('Precios reseteados.');
+}
+
+/* ==========================
    🚚 REPARTO (tiendas + clientes)
 ========================== */
 const repartoState = {};
-// key destino -> [{name,qty,price,checked}]
+// key destino -> { mapKey -> {name,qty,price,checked} }
+function keyLine(name){ return normKey(name); }
 
 function getRepartoDestinations(){
   const dests = [];
-  // stores
   dests.push({ key:'sp', label:'🏪 San Pablo', type:'store' });
   dests.push({ key:'sl', label:'🏪 San Lesmes', type:'store' });
   dests.push({ key:'st', label:'🏪 Santiago', type:'store' });
 
-  // clients only if they have pedido (rows)
   clients.forEach(c=>{
     const has = (c.rows||[]).some(x=>Number(x.q)>0);
     if(!has) return;
@@ -1491,16 +1897,17 @@ function buildRepartoSelector(){
   const current = sel.value;
 
   sel.innerHTML = `<option value="">Selecciona destino...</option>` + dests.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');
-  // mantener selección si existe
   if(current && dests.some(d=>d.key===current)) sel.value = current;
 }
 
 function renderRepartoTienda(){
-  const code = byId('selRepartoTienda').value;
+  const sel = byId('selRepartoTienda');
+  const code = sel ? sel.value : '';
   const wrap = byId('reparto_wrap');
+  if(!wrap) return;
+
   if(!code){ wrap.innerHTML = '<div class="hint">Selecciona un destino para ver su lista.</div>'; return; }
 
-  // fuente: store o client
   let lista = [];
   const isClient = clients.some(c=>c.id===code);
   if(isClient){
@@ -1512,41 +1919,170 @@ function renderRepartoTienda(){
 
   if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en este destino.</div>'; return; }
 
-  if(!repartoState[code] || repartoState[code].length !== lista.length){
-    repartoState[code] = lista.map(x => ({ name:x.e, qty:x.q, price:'', checked:false }));
-  }
+  // construir estado por producto (mantiene checks/precios aunque cambie qty)
+  const prev = repartoState[code] || {};
+  const next = {};
 
-  let html = '<table><thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Precio (€)</th></tr></thead><tbody>';
-  repartoState[code].forEach((r,i)=>{
+  lista.forEach(x=>{
+    const k = keyLine(x.e);
+    if(!k) return;
+    const old = prev[k] || { name:x.e, qty:x.q, price:'', checked:false };
+
+    // autoprecio (solo si no hay price manual)
+    let price = old.price;
+    const pr = pricesDB[k] && pricesDB[k].price ? pricesDB[k].price : '';
+    if(!price && pr) price = pr;
+
+    next[k] = {
+      name: x.e,
+      qty: x.q,
+      price: price || '',
+      checked: !!old.checked
+    };
+  });
+
+  repartoState[code] = next;
+
+  const arr = Object.values(next).sort((a,b)=>a.name.localeCompare(b.name,'es'));
+
+  let totalImporte = 0;
+  arr.forEach(r=>{
+    const p = parseFloat(String(r.price||'').replace(',','.'));
+    if(!isNaN(p) && r.checked){
+      totalImporte += (num(r.qty) * p);
+    }
+  });
+
+  let html = `
+    <div class="hint" style="margin-bottom:6px">
+      Seleccionados con precio: <b>${totalImporte ? totalImporte.toFixed(2)+'€' : '0.00€'}</b>
+    </div>
+    <table>
+      <thead><tr><th></th><th>Producto</th><th>Cantidad</th><th>Tools</th><th>Precio (€)</th></tr></thead><tbody>`;
+
+  arr.forEach((r,i)=>{
+    const rowKey = keyLine(r.name);
     html += `<tr>
-      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', ${i}, this.checked)"></td>
+      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRepartoItem('${code}', '${rowKey}', this.checked)"></td>
       <td>${r.name}</td>
-      <td>${r.qty}</td>
-      <td contenteditable="true" onblur="updateRepartoPrice('${code}', ${i}, this.innerText)">${r.price||''}</td>
+      <td class="green">${r.qty}</td>
+      <td>
+        <div class="qty-tools">
+          <button class="qty-btn" onclick="bumpRepartoQty('${code}','${rowKey}',-1)">-</button>
+          <button class="qty-btn" onclick="bumpRepartoQty('${code}','${rowKey}',+1)">+</button>
+        </div>
+      </td>
+      <td contenteditable="true" data-f="price" data-rk="${rowKey}" onblur="updateRepartoPrice('${code}', '${rowKey}', this.innerText)">${r.price||''}</td>
     </tr>`;
   });
+
   html += '</tbody></table>';
   wrap.innerHTML = html;
+
+  // teclado en precio (Enter siguiente)
+  wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
+    cell.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        focusNextEditableCell(cell);
+      }
+    });
+  });
 }
 
-function toggleRepartoItem(code, idx, checked){
+function toggleRepartoItem(code, rowKey, checked){
   if(!repartoState[code]) return;
-  repartoState[code][idx].checked = checked;
+  if(!repartoState[code][rowKey]) return;
+  repartoState[code][rowKey].checked = checked;
+  renderRepartoTienda();
 }
 
-function updateRepartoPrice(code, idx, val){
+function updateRepartoPrice(code, rowKey, val){
   if(!repartoState[code]) return;
-  const num = parseFloat(String(val||'').replace(',','.'));
-  repartoState[code][idx].price = isNaN(num)? '' : num.toFixed(2);
+  if(!repartoState[code][rowKey]) return;
+
+  const raw = String(val||'').trim();
+  if(raw===''){
+    repartoState[code][rowKey].price = '';
+    renderRepartoTienda();
+    return;
+  }
+
+  const n = parseFloat(raw.replace(',','.'));
+  if(isNaN(n)){
+    renderRepartoTienda();
+    return;
+  }
+
+  const fixed = n.toFixed(2);
+  repartoState[code][rowKey].price = fixed;
+
+  // ✅ si cambia el precio manualmente, lo guardamos también en pricesDB (es producto comprado)
+  const name = repartoState[code][rowKey].name;
+  const k = normKey(name);
+  pricesDB[k] = pricesDB[k] || { name:name, price:'', updatedAt:0 };
+  // solo actualiza si es distinto
+  if(String(pricesDB[k].price||'') !== fixed){
+    pricesDB[k].name = pricesDB[k].name || name;
+    pricesDB[k].price = fixed;
+    pricesDB[k].updatedAt = Date.now();
+    persistState();
+    rebuildPricesToday();
+  }else{
+    persistState();
+  }
+
+  renderRepartoTienda();
+}
+
+function bumpRepartoQty(code, rowKey, delta){
+  // Nota: reparto toma qty desde lista destino (tienda/cliente).
+  // Esta mejora: si cambias en reparto, también cambia en su origen (store/client) por nombre exacto.
+  if(!repartoState[code] || !repartoState[code][rowKey]) return;
+  const name = repartoState[code][rowKey].name;
+  const nk = normKey(name);
+
+  // si es cliente:
+  const c = clients.find(x=>x.id===code);
+  if(c){
+    const idx = (c.rows||[]).findIndex(r=>normKey(r.e)===nk);
+    if(idx>-1){
+      c.rows[idx].q = clampQty(num(c.rows[idx].q) + delta);
+      persistState();
+      pushUndo({type:'bump_reparto_client_qty', code});
+      renderClientTable(code);
+      renderRepartoTienda();
+      idle(()=>unificarGlobal());
+      return;
+    }
+  }
+
+  // si es tienda:
+  if(code==='sp' || code==='sl' || code==='st'){
+    const idx = (tiendaState[code]||[]).findIndex(r=>normKey(r.e)===nk);
+    if(idx>-1){
+      tiendaState[code][idx].q = clampQty(num(tiendaState[code][idx].q) + delta);
+      persistState();
+      pushUndo({type:'bump_reparto_store_qty', code});
+      renderTable(code);
+      renderRepartoTienda();
+      idle(()=>unificarGlobal());
+      return;
+    }
+  }
 }
 
 function exportarRepartoTXT(){
   const code = byId('selRepartoTienda').value;
   if(!code){ alert('Selecciona un destino primero.'); return; }
-  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  const st = repartoState[code] || {};
+  const seleccionados = Object.values(st).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  const txt = seleccionados.map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+  const txt = seleccionados
+    .sort((a,b)=>a.name.localeCompare(b.name,'es'))
+    .map(x => `${x.qty} ${x.name}${x.price ? ' — ' + x.price + '€' : ''}`).join('\n');
+
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a');
@@ -1558,17 +2094,125 @@ function exportarRepartoTXT(){
 function enviarRepartoWhatsApp(){
   const code = byId('selRepartoTienda').value;
   if(!code){ alert('Selecciona un destino primero.'); return; }
-  const seleccionados = (repartoState[code]||[]).filter(x=>x.checked);
+  const st = repartoState[code] || {};
+  const seleccionados = Object.values(st).filter(x=>x.checked);
   if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
 
-  let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
+  let total = 0;
   seleccionados.forEach(x=>{
+    const p = parseFloat(String(x.price||'').replace(',','.'));
+    if(!isNaN(p)) total += (num(x.qty)*p);
+  });
+
+  let msg = `🚚 *Reparto ${code.toUpperCase()}*\n\n`;
+  seleccionados.sort((a,b)=>a.name.localeCompare(b.name,'es')).forEach(x=>{
     msg += `- ${x.qty} ${x.name}`;
     if(x.price) msg += ` — ${x.price}€`;
     msg += '\n';
   });
+  if(total>0) msg += `\n*TOTAL:* ${total.toFixed(2)}€`;
+
   msg = encodeURIComponent(msg);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+/* ==========================
+   🧾 PDF Reparto con cuadrícula (sin librerías)
+========================== */
+function exportarRepartoPDF(){
+  const code = byId('selRepartoTienda').value;
+  if(!code){ alert('Selecciona un destino primero.'); return; }
+
+  const st = repartoState[code] || {};
+  const seleccionados = Object.values(st).filter(x=>x.checked);
+  if(!seleccionados.length){ alert('No hay productos seleccionados.'); return; }
+
+  const dt = new Date();
+  const dateStr = dt.toLocaleDateString();
+  const timeStr = dt.toLocaleTimeString();
+
+  let total = 0;
+  seleccionados.forEach(x=>{
+    const p = parseFloat(String(x.price||'').replace(',','.'));
+    if(!isNaN(p)) total += (num(x.qty)*p);
+  });
+
+  const rowsHTML = seleccionados
+    .sort((a,b)=>a.name.localeCompare(b.name,'es'))
+    .map(x=>{
+      const p = x.price ? Number(x.price).toFixed(2) : '';
+      const imp = x.price ? (num(x.qty)*Number(x.price)).toFixed(2) : '';
+      return `<tr>
+        <td>${escapeHTML(x.name)}</td>
+        <td style="text-align:right">${escapeHTML(x.qty)}</td>
+        <td style="text-align:right">${p?escapeHTML(p):''}</td>
+        <td style="text-align:right">${imp?escapeHTML(imp):''}</td>
+      </tr>`;
+    }).join('');
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Bloqueado por el navegador. Permite popups.'); return; }
+
+  w.document.open();
+  w.document.write(`
+    <!doctype html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Reparto ${escapeHTML(code.toUpperCase())}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:Poppins,system-ui,Arial;margin:24px;color:#111827}
+        h1{font-size:18px;margin:0 0 6px}
+        .meta{font-size:12px;color:#6b7280;margin-bottom:14px}
+        .grid{width:100%;border-collapse:collapse;font-size:12px}
+        .grid th,.grid td{border:1px solid #11182722;padding:6px;vertical-align:top}
+        .grid th{background:#11182710;text-transform:uppercase;letter-spacing:.04em}
+        .tot{margin-top:10px;font-size:12px}
+        @media print{ .noPrint{display:none} }
+        .noPrint{margin-bottom:12px}
+        button{padding:8px 12px;border:1px solid #11182722;border-radius:10px;background:#fff;cursor:pointer}
+      </style>
+    </head>
+    <body>
+      <div class="noPrint">
+        <button onclick="window.print()">🧾 Imprimir / Guardar como PDF</button>
+      </div>
+      <h1>🚚 Reparto ${escapeHTML(code.toUpperCase())}</h1>
+      <div class="meta">${escapeHTML(dateStr)} — ${escapeHTML(timeStr)}</div>
+
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th style="text-align:right">Cantidad</th>
+            <th style="text-align:right">Precio</th>
+            <th style="text-align:right">Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHTML}
+        </tbody>
+      </table>
+
+      <div class="tot"><b>TOTAL:</b> ${total.toFixed(2)}€</div>
+    </body>
+    </html>
+  `);
+  w.document.close();
+}
+
+/* ==========================
+   Escape HTML
+========================== */
+function escapeHTML(str){
+  return String(str||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
 }
 
 /* ==========================
@@ -1581,7 +2225,7 @@ function toggleFabMenu(forceHide){
 }
 document.addEventListener('click', (e)=>{
   const m = byId('fabMenu'), f = byId('fab');
-  if(!m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
+  if(m && f && !m.contains(e.target) && e.target!==f){ m.classList.remove('show'); }
 }, {capture:true});
 
 /* ==========================
@@ -1605,7 +2249,6 @@ function buildRepartoPayloadForLink(){
   pushStore('sl','🏪 San Lesmes');
   pushStore('st','🏪 Santiago');
 
-  // clientes con pedido
   clients.forEach(c=>{
     const rows = (c.rows||[]).filter(x=>Number(x.q)>0);
     if(!rows.length) return;
@@ -1649,7 +2292,7 @@ function generarLinkRepartidor(){
   loadUndo();
 
   showTab('dic');
-  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderClientsUI(); buildRepartoSelector(); });
+  idle(()=>{ buildProvBar(); unificarGlobal(); renderProvidersPanels(); renderClientsUI(); buildRepartoSelector(); rebuildPricesToday(); });
 })();
 </script>
 </body>
