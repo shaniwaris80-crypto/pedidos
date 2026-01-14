@@ -1,3 +1,6 @@
+<!-- ===========================
+PARTE 1/3 — ARSLAN LISTAS v3.4 (INDEX COMPLETO)
+=========================== -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -106,7 +109,7 @@
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row > *{flex:1}
 
-  /* ✅ NUEVO: ayudas de teclado + precios + pdf grid */
+  /* ✅ ayudas de teclado + precios + pdf grid */
   .price-chip{
     display:inline-flex;align-items:center;gap:6px;
     padding:2px 8px;border-radius:999px;border:1px solid var(--border);
@@ -321,6 +324,8 @@
       <div class="card" style="margin-top:12px">
         <div class="hd"><strong>🚚 Reparto (tiendas + clientes)</strong>
           <div class="toolbar">
+            <button class="btn small muted" onclick="marcarTodoReparto(true)">✅ Todo</button>
+            <button class="btn small muted" onclick="marcarTodoReparto(false)">⬜ Nada</button>
             <button class="btn small" onclick="enviarRepartoWhatsApp()">📲 WhatsApp</button>
             <button class="btn small muted" onclick="exportarRepartoTXT()">📄 TXT</button>
             <button class="btn small muted" onclick="exportarRepartoPDF()">🧾 PDF (cuadrícula)</button>
@@ -418,6 +423,7 @@ const LS = {
 
 const PROVEEDORES = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO"];
 const IGNORE_WORDS = ['caja','cajas','kg','kilo','kilos','uds','ud','u','unidad','unidades','manojo','manojos','saco','sacos'];
+const IGNORE_WORDS_UP = IGNORE_WORDS.map(x=>String(x).toUpperCase());
 
 const byId = id => document.getElementById(id);
 const toLines = t => String(t||'').split(/[\n\r,]/).map(x=>x.trim()).filter(Boolean);
@@ -435,7 +441,7 @@ function normKey(s){
     .trim();
 }
 function stripGenericWords(s){
-  const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS.includes(t.toLowerCase()));
+  const tokens = normKey(s).split(' ').filter(t=>!IGNORE_WORDS_UP.includes(t));
   return tokens.join(' ').trim();
 }
 function num(x){
@@ -450,9 +456,7 @@ function stepFromEvent(e){
 }
 function clampQty(v){
   if(!isFinite(v)) return 0;
-  // evita -0
   if(Math.abs(v) < 1e-9) return 0;
-  // redondeo suave (si tiene decimales)
   const s = String(v);
   if(s.includes('.') || s.includes(',')){
     return Math.round(v*1000)/1000;
@@ -461,7 +465,21 @@ function clampQty(v){
 }
 
 /* ==========================
-   Vocabulario (editable + persistente)
+   Vocabulario (CACHE en memoria + persistente)
+========================== */
+let VOCAB = [];
+let VOCAB_KEYS = [];
+
+function buildVocabCache(list){
+  VOCAB = list.slice();
+  VOCAB_KEYS = VOCAB.map(v => normKey(v));
+}
+function getVocab(){
+  return (VOCAB && VOCAB.length) ? VOCAB : loadVocab();
+}
+
+/* ==========================
+   Vocabulario RAW oficial
 ========================== */
 const OFFICIAL_VOCAB_RAW = `GRANNY FRANCIA
 MANZANA PINK LADY
@@ -683,6 +701,7 @@ function loadVocab(){
   const base = saved && saved.trim()? saved : OFFICIAL_VOCAB_RAW;
   const list = uniqueVocab(toLines(base));
   byId('vocabTxt').value = list.join('\n');
+  buildVocabCache(list);
   return list;
 }
 
@@ -744,7 +763,11 @@ function loadState(){
    Reset total / Limpiar día
 ========================== */
 function resetAll(){
-  if(confirm('¿Seguro que quieres limpiar TODO (incluye vocabulario)?')){ localStorage.clear(); location.reload(); }
+  if(!confirm('¿Seguro que quieres limpiar TODO (incluye vocabulario)?')) return;
+  // ✅ seguro: borra SOLO claves de esta app
+  Object.values(LS).forEach(k=>localStorage.removeItem(k));
+  localStorage.removeItem('arslan_theme');
+  location.reload();
 }
 
 function limpiarDia(){
@@ -782,7 +805,12 @@ function limpiarDia(){
    Vocab actions
 ========================== */
 function saveVocab(){
-  localStorage.setItem(LS.VOCAB, byId('vocabTxt').value||'');
+  const txt = byId('vocabTxt').value||'';
+  localStorage.setItem(LS.VOCAB, txt);
+  const list = uniqueVocab(toLines(txt));
+  // reescribe limpio
+  byId('vocabTxt').value = list.join('\n');
+  buildVocabCache(list);
   alert('Vocabulario guardado.');
   renderClientsUI();
   unificarGlobal();
@@ -831,25 +859,47 @@ function bestMatch(query, vocabArr){
 }
 
 /* ==========================
-   Parser líneas (cantidad + nombre)
+   Parser líneas (cantidad + nombre) — mejorado
 ========================== */
+function parseMaybeFraction(s){
+  const m = String(s||'').match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+  if(!m) return null;
+  const a = Number(m[1]), b = Number(m[2]);
+  if(!b) return null;
+  return a/b;
+}
+
 function parseLine(raw){
   if(!raw) return null;
   let s = raw.replace(/\t/g,' ').replace(/\s{2,}/g,' ').trim();
   s = s.replace(/^[-•*]\s*/,'');
   let qty=null, name=s;
 
+  // x150 / x 150
   const mX = s.match(/(?:x|X|\*)\s*(\d+[\.,]?\d*)\b/);
   if(mX){ qty=Number(mX[1].replace(',','.')); name=s.replace(mX[0],'').trim(); }
 
+  // 1/2
   if(qty===null){
-    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas)?\s*$/i);
+    const mf = s.match(/\b(\d+\s*\/\s*\d+)\b/);
+    if(mf){
+      const fr = parseMaybeFraction(mf[1]);
+      if(fr!==null){ qty=fr; name=s.replace(mf[0],'').trim(); }
+    }
+  }
+
+  // al final "150 kilos"
+  if(qty===null){
+    const mEnd = s.match(/(\d+[\.,]?\d*)\s*(?:kg|kgs|kilo|kilos|uds|ud|u|unidad|unidades|caja|cajas|manojo|manojos|saco|sacos)?\s*$/i);
     if(mEnd){ qty=Number(mEnd[1].replace(',','.')); name=s.slice(0,mEnd.index).trim(); }
   }
+
+  // al inicio "3 tomate"
   if(qty===null){
     const mStart = s.match(/^\s*(\d+[\.,]?\d*)\s+(.*)$/);
     if(mStart){ qty=Number(mStart[1].replace(',','.')); name=mStart[2].trim(); }
   }
+
   if(qty===null){ qty=1; }
 
   name = stripGenericWords(name);
@@ -857,7 +907,7 @@ function parseLine(raw){
 }
 
 /* ==========================
-   Autocomplete (mejorado: un solo listener global)
+   Autocomplete (mejorado + rápido con CACHE)
 ========================== */
 let AC_ACTIVE = null;
 let AC_OWNER = null;
@@ -874,8 +924,26 @@ function attachAutocomplete(cell, onPick){
     const val = stripGenericWords(cell.innerText||'');
     closeAC();
     if(!val) return;
-    const vocab = loadVocab();
-    const suggestions = vocab.filter(v=> normKey(v).includes(normKey(val))).slice(0,8);
+
+    const qk = normKey(val);
+    const vocab = getVocab();
+
+    // primero prefijo, luego contains
+    const suggestions = [];
+    for(let i=0;i<vocab.length;i++){
+      const vk = VOCAB_KEYS[i];
+      if(vk.startsWith(qk) || vk.includes(qk)){
+        suggestions.push(vocab[i]);
+        if(suggestions.length>=8) break;
+      }
+    }
+
+    // si no hay, usa bestMatch
+    if(!suggestions.length){
+      const m = bestMatch(val, vocab);
+      if(m && m.name) suggestions.push(m.name);
+    }
+
     if(!suggestions.length) return;
     const rect = cell.getBoundingClientRect();
     const box = document.createElement('div');
@@ -898,7 +966,6 @@ function attachAutocomplete(cell, onPick){
 
 /* ==========================
    ✅ Atajos cantidades (delegación)
-   Funciona en cualquier td[contenteditable] de cantidad
 ========================== */
 function bindQtyShortcuts(rootEl, getCellValue, setCellValue, onChanged){
   if(!rootEl) return;
@@ -925,13 +992,11 @@ function bindQtyShortcuts(rootEl, getCellValue, setCellValue, onChanged){
       const next = clampQty(cur + ((isMinus || isDown)? -step : step));
       setCellValue(t, next);
       if(typeof onChanged==='function') onChanged(t, next);
-      // selecciona el final
       placeCaretAtEnd(t);
       return;
     }
 
     if(isEnter){
-      // Enter -> baja a la siguiente fila misma columna
       e.preventDefault();
       focusNextEditableCell(t);
       return;
@@ -964,7 +1029,18 @@ function focusNextEditableCell(cur){
     }
   }catch{}
 }
+</script>
+</body>
+</html>
+<!-- ===========================
+PARTE 2/3 — CONTINÚA SCRIPT (PEGA JUSTO DESPUÉS DEL <script> DE PARTE 1)
+NOTA: En la PARTE 1 cerré el HTML para que no se rompa el formato aquí.
+Para usarlo: copia PARTE 1 completa (hasta antes del </script> que cierra),
+luego reemplaza esa sección por PARTE 1+PARTE 2+PARTE 3 consecutivas dentro
+del mismo <script>. (No se ha quitado ninguna función, solo mejorado.)
+=========================== -->
 
+<script>
 /* ==========================
    Render tabla tienda
 ========================== */
@@ -991,7 +1067,6 @@ function renderTable(code){
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
 
-  // atajos de teclado en cantidades
   bindQtyShortcuts(wrap, (cell)=>cell.innerText, (cell,val)=>{ cell.innerText = val; }, (cell,val)=>{
     const i = Number(cell.dataset.i);
     tiendaState[code][i].q = num(val);
@@ -1022,7 +1097,7 @@ function renderTable(code){
       }else{
         const cleaned = removeDiacriticsUpper(val);
         tiendaState[code][i].e = cleaned;
-        const vocab = loadVocab();
+        const vocab = getVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         const tdState = cell.parentElement.querySelector('td:last-child');
         if(exact){ tiendaState[code][i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
@@ -1045,7 +1120,7 @@ function bumpStoreQty(code, idx, delta){
 }
 
 function estandarizar(code){
-  const vocab = loadVocab();
+  const vocab = getVocab();
   const txt = byId('in_'+code).value;
   const rows = [];
   toLines(txt).forEach(line=>{
@@ -1170,7 +1245,6 @@ function renderClientsUI(){
 
   wrap.innerHTML = html;
 
-  // render tablas existentes
   clients.forEach(c=>{
     if(Array.isArray(c.rows) && c.rows.length){
       renderClientTable(c.id);
@@ -1242,7 +1316,7 @@ function renderClientTable(id){
       }else{
         const cleaned = removeDiacriticsUpper(val);
         c.rows[i].e = cleaned;
-        const vocab = loadVocab();
+        const vocab = getVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         const tdState = cell.parentElement.querySelector('td:last-child');
         if(exact){ c.rows[i].a=false; cell.classList.remove('red'); tdState.innerHTML='<span class="pill ok">OK</span>'; }
@@ -1270,7 +1344,7 @@ function estandarizarCliente(id){
   if(!c) return;
   const txt = byId('in_'+id).value;
   c.input = txt;
-  const vocab = loadVocab();
+  const vocab = getVocab();
   const rows = [];
   toLines(txt).forEach(line=>{
     const p = parseLine(line);
@@ -1327,7 +1401,11 @@ function enviarClienteWhatsApp(id){
   const msg = encodeURIComponent(`🏨 *Pedido ${label}*\n\n${txt}`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
-
+</script>
+<!-- ===========================
+PARTE 3/3 — RESTO DEL SCRIPT + INIT + CIERRE FINAL
+=========================== -->
+<script>
 /* ==========================
    UNDO simple (últimas acciones)
 ========================== */
@@ -1401,8 +1479,10 @@ function unificarGlobal(){
 
   const names = arr.map(x=>x.name);
   const similarSet = new Set();
+
+  // ✅ OPT: comparar solo vecinos cercanos (mucho más rápido)
   for(let i=0;i<names.length;i++){
-    for(let j=i+1;j<names.length;j++){
+    for(let j=i+1;j<Math.min(i+15, names.length);j++){
       const s1 = names[i], s2 = names[j];
       const sc = similarityScore(s1, s2);
       if(sc>=0.86 && normKey(s1)!==normKey(s2)){
@@ -1479,7 +1559,7 @@ function renderGlobalTable(rows, similarSet){
       }else{
         const cleaned = removeDiacriticsUpper(val);
         globalRows[idx].name = cleaned;
-        const vocab = loadVocab();
+        const vocab = getVocab();
         const exact = vocab.find(v=> normKey(v)===normKey(cleaned));
         if(exact){
           tr.classList.remove('dup');
@@ -1510,7 +1590,6 @@ function bumpGlobalQty(idx, delta){
   if(!globalRows[idx]) return;
   globalRows[idx].total = clampQty(num(globalRows[idx].total) + delta);
   pushUndo({type:'bump_global_qty'});
-  // re-render mantiene tabla coherente
   unificarGlobal();
 }
 
@@ -1536,7 +1615,7 @@ function assignFromGlobal(idx){
 }
 
 /* ==========================
-   Barra proveedores + paneles
+   Barra proveedores + paneles (con “Devolver a Global”)
 ========================== */
 function buildProvBar(){
   const bar = byId('provBar'); bar.innerHTML='';
@@ -1551,6 +1630,27 @@ function buildProvBar(){
     };
     bar.appendChild(b);
   });
+}
+
+function unassignProviderLine(prov, idx){
+  if(!orders[prov] || !orders[prov][idx]) return;
+  const it = orders[prov][idx];
+  const k = normKey(it.name);
+
+  pushUndo({type:'unassign_line', prov, idx, name:it.name});
+
+  // quitar asignación si está asignado a ese prov
+  if(assignments[k] === prov) delete assignments[k];
+
+  // quitar línea de pedido
+  orders[prov].splice(idx, 1);
+
+  persistState();
+  unificarGlobal();
+  renderProvidersPanels();
+  rebuildPricesToday();
+  buildRepartoSelector();
+  renderRepartoTienda();
 }
 
 function renderProvidersPanels(){
@@ -1581,6 +1681,7 @@ function renderProvidersPanels(){
             <div class="qty-tools">
               <button class="qty-btn" onclick="bumpProvQty('${p}',${ix},-1)">-</button>
               <button class="qty-btn" onclick="bumpProvQty('${p}',${ix},+1)">+</button>
+              <button class="qty-btn" title="Devolver a Global" onclick="unassignProviderLine('${p}',${ix})">↩️</button>
             </div>
           </td>
         </tr>`;
@@ -1646,7 +1747,13 @@ function exportProvTXT(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
   const today = new Date().toISOString().split('T')[0];
-  const txt = list.map(x=> `${x.qty} ${x.name}`).join('\n');
+
+  // ✅ regla ESMO: sin primer espacio entre cantidad y producto
+  const txt = list.map(x=>{
+    if(prov==="ESMO") return `${x.qty}${x.name}`;
+    return `${x.qty} ${x.name}`;
+  }).join('\n');
+
   const blob = new Blob([txt],{type:'text/plain'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`pedido_${prov}_${today}.txt`; a.click();
 }
@@ -1654,11 +1761,11 @@ function enviarProvWhatsApp(prov){
   const list = orders[prov]||[];
   if(!list.length){ alert('No hay líneas para ' + prov); return; }
 
-  // ✅ añade precio si existe (opcional, no obliga)
   const txt = list.map(x=>{
     const k = normKey(x.name);
     const pr = pricesDB[k] && pricesDB[k].price ? ` — ${Number(pricesDB[k].price).toFixed(2)}€` : '';
-    return `${x.qty} ${x.name}${pr}`;
+    const base = (prov==="ESMO") ? `${x.qty}${x.name}` : `${x.qty} ${x.name}`;
+    return `${base}${pr}`;
   }).join('\n');
 
   const msg = encodeURIComponent(`📦 *Pedido ${prov}*\n\n${txt}`);
@@ -1719,7 +1826,10 @@ function exportResumenGlobalTXT(){
     out += `> ${p}:\n`;
     if(byProv[p].length){
       byProv[p].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-      byProv[p].forEach(x=>{ out += `- ${x.qty} ${x.name}\n`; });
+      byProv[p].forEach(x=>{
+        if(p==="ESMO") out += `- ${x.qty}${x.name}\n`;
+        else out += `- ${x.qty} ${x.name}\n`;
+      });
     }else{
       out += `- (sin líneas)\n`;
     }
@@ -1743,7 +1853,7 @@ function exportResumenGlobalTXT(){
    💶 PRECIOS (solo comprado/asignado)
 ========================== */
 function getBoughtTodaySet(){
-  const set = new Map(); // key -> name
+  const set = new Map();
   PROVEEDORES.forEach(p=>{
     (orders[p]||[]).forEach(it=>{
       const k = normKey(it.name);
@@ -1764,17 +1874,14 @@ function rebuildPricesToday(){
     return;
   }
 
-  // asegura entradas en DB sin tocar precios existentes
   bought.forEach((name,k)=>{
     if(!pricesDB[k]){
       pricesDB[k] = { name:name, price:'', updatedAt:0 };
     }else{
-      // refresca "name" pero NO cambia precio
       pricesDB[k].name = pricesDB[k].name || name;
     }
   });
 
-  // Render
   const rows = Array.from(bought.entries()).map(([k,name])=>{
     const rec = pricesDB[k] || {name, price:'', updatedAt:0};
     return { k, name: rec.name || name, price: rec.price || '', updatedAt: rec.updatedAt || 0 };
@@ -1794,7 +1901,6 @@ function rebuildPricesToday(){
   html += `</tbody></table></div>`;
   wrap.innerHTML = html;
 
-  // teclado en precios (solo num + enter)
   wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
     cell.addEventListener('keydown', (e)=>{
       if(e.key==='Enter'){
@@ -1807,35 +1913,29 @@ function rebuildPricesToday(){
       const raw = (cell.innerText||'').trim();
       if(!k) return;
 
-      // si vacío => IGNORAR (no tocar)
       if(raw===''){
-        // no cambiamos nada
         cell.innerText = (pricesDB[k] && pricesDB[k].price) ? pricesDB[k].price : '';
         return;
       }
 
       const n = parseFloat(String(raw).replace(',','.'));
       if(isNaN(n)){
-        // revertir si inválido
         cell.innerText = (pricesDB[k] && pricesDB[k].price) ? pricesDB[k].price : '';
         return;
       }
 
       const val = n.toFixed(2);
 
-      // si es igual => no tocar timestamp
       if(pricesDB[k] && String(pricesDB[k].price||'') === val){
         cell.innerText = val;
         return;
       }
 
-      // guardar nuevo precio
       pricesDB[k] = pricesDB[k] || { name:'', price:'', updatedAt:0 };
       pricesDB[k].price = val;
       pricesDB[k].updatedAt = Date.now();
       persistState();
 
-      // refresca reparto (autoprecio)
       idle(()=>renderRepartoTienda());
     }, {passive:true});
   });
@@ -1871,7 +1971,6 @@ function resetPricesConfirm(){
    🚚 REPARTO (tiendas + clientes)
 ========================== */
 const repartoState = {};
-// key destino -> { mapKey -> {name,qty,price,checked} }
 function keyLine(name){ return normKey(name); }
 
 function getRepartoDestinations(){
@@ -1900,6 +1999,19 @@ function buildRepartoSelector(){
   if(current && dests.some(d=>d.key===current)) sel.value = current;
 }
 
+function marcarTodoReparto(checked){
+  const sel = byId('selRepartoTienda');
+  const code = sel ? sel.value : '';
+  if(!code){ alert('Selecciona un destino primero.'); return; }
+  if(!repartoState[code]){ renderRepartoTienda(); }
+  if(!repartoState[code]) return;
+
+  Object.keys(repartoState[code]).forEach(k=>{
+    repartoState[code][k].checked = !!checked;
+  });
+  renderRepartoTienda();
+}
+
 function renderRepartoTienda(){
   const sel = byId('selRepartoTienda');
   const code = sel ? sel.value : '';
@@ -1919,7 +2031,6 @@ function renderRepartoTienda(){
 
   if(!lista.length){ wrap.innerHTML = '<div class="hint">Sin datos en este destino.</div>'; return; }
 
-  // construir estado por producto (mantiene checks/precios aunque cambie qty)
   const prev = repartoState[code] || {};
   const next = {};
 
@@ -1928,7 +2039,6 @@ function renderRepartoTienda(){
     if(!k) return;
     const old = prev[k] || { name:x.e, qty:x.q, price:'', checked:false };
 
-    // autoprecio (solo si no hay price manual)
     let price = old.price;
     const pr = pricesDB[k] && pricesDB[k].price ? pricesDB[k].price : '';
     if(!price && pr) price = pr;
@@ -1979,7 +2089,6 @@ function renderRepartoTienda(){
   html += '</tbody></table>';
   wrap.innerHTML = html;
 
-  // teclado en precio (Enter siguiente)
   wrap.querySelectorAll('td[contenteditable][data-f="price"]').forEach(cell=>{
     cell.addEventListener('keydown', (e)=>{
       if(e.key==='Enter'){
@@ -2017,11 +2126,9 @@ function updateRepartoPrice(code, rowKey, val){
   const fixed = n.toFixed(2);
   repartoState[code][rowKey].price = fixed;
 
-  // ✅ si cambia el precio manualmente, lo guardamos también en pricesDB (es producto comprado)
   const name = repartoState[code][rowKey].name;
   const k = normKey(name);
   pricesDB[k] = pricesDB[k] || { name:name, price:'', updatedAt:0 };
-  // solo actualiza si es distinto
   if(String(pricesDB[k].price||'') !== fixed){
     pricesDB[k].name = pricesDB[k].name || name;
     pricesDB[k].price = fixed;
@@ -2036,13 +2143,10 @@ function updateRepartoPrice(code, rowKey, val){
 }
 
 function bumpRepartoQty(code, rowKey, delta){
-  // Nota: reparto toma qty desde lista destino (tienda/cliente).
-  // Esta mejora: si cambias en reparto, también cambia en su origen (store/client) por nombre exacto.
   if(!repartoState[code] || !repartoState[code][rowKey]) return;
   const name = repartoState[code][rowKey].name;
   const nk = normKey(name);
 
-  // si es cliente:
   const c = clients.find(x=>x.id===code);
   if(c){
     const idx = (c.rows||[]).findIndex(r=>normKey(r.e)===nk);
@@ -2057,7 +2161,6 @@ function bumpRepartoQty(code, rowKey, delta){
     }
   }
 
-  // si es tienda:
   if(code==='sp' || code==='sl' || code==='st'){
     const idx = (tiendaState[code]||[]).findIndex(r=>normKey(r.e)===nk);
     if(idx>-1){
@@ -2230,7 +2333,6 @@ document.addEventListener('click', (e)=>{
 
 /* ==========================
    ✅ GENERAR LINK REPARTIDOR (tu URL fija)
-   https://shaniwaris80-crypto.github.io/reparto/
 ========================== */
 function buildRepartoPayloadForLink(){
   const dateISO = new Date().toISOString().split('T')[0];
@@ -2287,7 +2389,7 @@ function generarLinkRepartidor(){
   const savedTheme = localStorage.getItem('arslan_theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   applyTheme(savedTheme);
 
-  loadVocab();
+  loadVocab();      // ✅ carga + cache
   loadState();
   loadUndo();
 
